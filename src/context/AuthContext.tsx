@@ -1,200 +1,59 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { UserProfile, PROFILE_COLORS } from '../types';
+import { UserProfile } from '../types';
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: { id: string; email: string } | null;
   userProfile: UserProfile | null;
   loading: boolean;
   isDemoMode: boolean;
-  signUp: (email: string, pass: string, displayName: string, color: string) => Promise<{ error: Error | null }>;
-  signIn: (email: string, pass: string) => Promise<{ error: Error | null }>;
+  switchUserPersona: (name: 'Eve' | 'Abbie') => void;
   signOut: () => Promise<void>;
-  updateProfile: (displayName: string, color: string) => Promise<void>;
-  enableDemoMode: () => void;
 }
+
+const DEFAULT_PROFILES: Record<'Eve' | 'Abbie', UserProfile> = {
+  Eve: {
+    id: 'user-eve-1',
+    email: 'eve@calender.app',
+    display_name: 'Eve',
+    profile_color: '#3B82F6',
+  },
+  Abbie: {
+    id: 'user-abbie-2',
+    email: 'abbie@calender.app',
+    display_name: 'Abbie',
+    profile_color: '#EC4899',
+  },
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const DEMO_USER_A: UserProfile = {
-  id: 'demo-user-1',
-  email: 'alex@example.com',
-  display_name: 'Alex (Friend A)',
-  profile_color: '#3B82F6',
-};
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isDemoMode, setIsDemoMode] = useState(!isSupabaseConfigured());
+  const [activePersona, setActivePersona] = useState<'Eve' | 'Abbie'>(() => {
+    return (localStorage.getItem('calender_active_persona') as 'Eve' | 'Abbie') || 'Eve';
+  });
 
-  const fetchProfile = async (userId: string, emailStr?: string) => {
-    if (!isSupabaseConfigured()) return;
-    try {
-      const { data, error } = await supabase
-        .from('calendar_members')
-        .select('display_name, profile_color')
-        .eq('user_id', userId)
-        .limit(1)
-        .maybeSingle();
+  const userProfile = DEFAULT_PROFILES[activePersona];
+  const user = { id: userProfile.id, email: userProfile.email };
 
-      if (data) {
-        setUserProfile({
-          id: userId,
-          email: emailStr || user?.email || '',
-          display_name: data.display_name,
-          profile_color: data.profile_color,
-        });
-      } else {
-        // Default fallback metadata from auth user
-        const meta = user?.user_metadata || {};
-        setUserProfile({
-          id: userId,
-          email: emailStr || user?.email || '',
-          display_name: meta.display_name || emailStr?.split('@')[0] || 'Student',
-          profile_color: meta.profile_color || PROFILE_COLORS[0],
-        });
-      }
-    } catch (e) {
-      console.error('Error fetching profile:', e);
-    }
-  };
-
-  useEffect(() => {
-    if (!isSupabaseConfigured()) {
-      setIsDemoMode(true);
-      setUserProfile(DEMO_USER_A);
-      setLoading(false);
-      return;
-    }
-
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id, session.user.email);
-      }
-      setLoading(false);
-    });
-
-    // Listen to Auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await fetchProfile(session.user.id, session.user.email);
-      } else {
-        setUserProfile(null);
-      }
-      setLoading(false);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  const signUp = async (email: string, pass: string, displayName: string, color: string) => {
-    if (!isSupabaseConfigured()) {
-      const demoProf: UserProfile = {
-        id: 'demo-user-' + Date.now(),
-        email,
-        display_name: displayName,
-        profile_color: color,
-      };
-      setUserProfile(demoProf);
-      return { error: null };
-    }
-
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password: pass,
-      options: {
-        data: {
-          display_name: displayName,
-          profile_color: color,
-        },
-      },
-    });
-
-    if (!error && data.user) {
-      setUserProfile({
-        id: data.user.id,
-        email: data.user.email || email,
-        display_name: displayName,
-        profile_color: color,
-      });
-    }
-
-    return { error: error as Error | null };
-  };
-
-  const signIn = async (email: string, pass: string) => {
-    if (!isSupabaseConfigured()) {
-      setUserProfile({
-        id: 'demo-user-1',
-        email,
-        display_name: email.split('@')[0] || 'Friend',
-        profile_color: PROFILE_COLORS[0],
-      });
-      return { error: null };
-    }
-
-    const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
-    return { error: error as Error | null };
+  const switchUserPersona = (name: 'Eve' | 'Abbie') => {
+    setActivePersona(name);
+    localStorage.setItem('calender_active_persona', name);
   };
 
   const signOut = async () => {
-    if (!isSupabaseConfigured()) {
-      setUserProfile(null);
-      return;
-    }
-    await supabase.auth.signOut();
-    setUserProfile(null);
-  };
-
-  const updateProfile = async (displayName: string, color: string) => {
-    if (userProfile) {
-      const updated = { ...userProfile, display_name: displayName, profile_color: color };
-      setUserProfile(updated);
-
-      if (isSupabaseConfigured() && user) {
-        await supabase.from('calendar_members').update({
-          display_name: displayName,
-          profile_color: color,
-        }).eq('user_id', user.id);
-
-        await supabase.auth.updateUser({
-          data: { display_name: displayName, profile_color: color },
-        });
-      }
-    }
-  };
-
-  const enableDemoMode = () => {
-    setIsDemoMode(true);
-    setUserProfile(DEMO_USER_A);
-    setLoading(false);
+    // Soft reset
+    switchUserPersona('Eve');
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        session,
         userProfile,
-        loading,
-        isDemoMode,
-        signUp,
-        signIn,
+        loading: false,
+        isDemoMode: true,
+        switchUserPersona,
         signOut,
-        updateProfile,
-        enableDemoMode,
       }}
     >
       {children}

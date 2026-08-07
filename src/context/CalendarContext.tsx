@@ -61,16 +61,16 @@ const DEMO_MEMBERS: CalendarMember[] = [
   {
     id: 'mem-1',
     calendar_id: 'demo-cal-123',
-    user_id: 'demo-user-1',
-    display_name: 'Alex (Friend A)',
+    user_id: 'user-eve-1',
+    display_name: 'Eve',
     profile_color: '#3B82F6',
     joined_at: new Date().toISOString(),
   },
   {
     id: 'mem-2',
     calendar_id: 'demo-cal-123',
-    user_id: 'demo-user-2',
-    display_name: 'Sam (Friend B)',
+    user_id: 'user-abbie-2',
+    display_name: 'Abbie',
     profile_color: '#EC4899',
     joined_at: new Date().toISOString(),
   },
@@ -217,10 +217,14 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Load user's primary calendar
   const loadUserCalendar = useCallback(async () => {
+    // Check local storage cache first for instant load
+    const cachedEvents = localStorage.getItem('calender_events_storage');
+    const initialEvents = cachedEvents ? JSON.parse(cachedEvents) : generateInitialDemoEvents();
+
     if (!isSupabaseConfigured() || isDemoMode || !user) {
       setActiveCalendar(DEMO_CALENDAR);
       setMembers(DEMO_MEMBERS);
-      setEvents(generateInitialDemoEvents());
+      setEvents(initialEvents);
       setLoading(false);
       return;
     }
@@ -289,6 +293,13 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     loadUserCalendar();
   }, [loadUserCalendar]);
+
+  // Persistent LocalStorage auto-save sync
+  useEffect(() => {
+    if (events.length > 0) {
+      localStorage.setItem('calender_events_storage', JSON.stringify(events));
+    }
+  }, [events]);
 
   // Supabase Realtime Subscription
   useEffect(() => {
@@ -604,9 +615,9 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (filterState.search) {
         const query = filterState.search.toLowerCase();
         const matchesTitle = evt.title.toLowerCase().includes(query);
-        const matchesCourse = evt.course.toLowerCase().includes(query);
-        const matchesLocation = evt.location.toLowerCase().includes(query);
-        const matchesNotes = evt.notes.toLowerCase().includes(query);
+        const matchesCourse = evt.course ? evt.course.toLowerCase().includes(query) : false;
+        const matchesLocation = evt.location ? evt.location.toLowerCase().includes(query) : false;
+        const matchesNotes = evt.notes ? evt.notes.toLowerCase().includes(query) : false;
         if (!matchesTitle && !matchesCourse && !matchesLocation && !matchesNotes) {
           return false;
         }
@@ -638,7 +649,7 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       // Course filter
       if (filterState.courseFilter !== 'all') {
-        if (evt.course.toLowerCase() !== filterState.courseFilter.toLowerCase()) {
+        if (evt.course && evt.course.toLowerCase() !== filterState.courseFilter.toLowerCase()) {
           return false;
         }
       }

@@ -1,23 +1,27 @@
 import React from 'react';
 import { useCalendar } from '../../context/CalendarContext';
 import { useAuth } from '../../context/AuthContext';
-import { EVENT_TYPES, EventType } from '../../types';
+import { CATEGORY_COLORS } from '../../types';
 import {
-  Search,
-  Users,
-  User,
-  Filter,
   Calendar as CalendarIcon,
+  ClipboardList,
+  Star,
+  Settings as SettingsIcon,
+  Plus,
+  ChevronLeft,
+  ChevronRight,
   Download,
   Copy,
   Check,
-  CheckCircle2,
-  Trophy,
-  Flame,
 } from 'lucide-react';
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isToday } from 'date-fns';
 import { exportEventsToICS } from '../../lib/icsExport';
 
-export const Sidebar: React.FC = () => {
+interface SidebarProps {
+  onOpenAddEvent?: () => void;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({ onOpenAddEvent }) => {
   const {
     filterState,
     setFilterState,
@@ -25,279 +29,222 @@ export const Sidebar: React.FC = () => {
     members,
     events,
     filteredEvents,
+    currentDate,
+    setCurrentDate,
     addToast,
   } = useCalendar();
-  const { userProfile, user } = useAuth();
+  const { userProfile } = useAuth();
   const [copiedCode, setCopiedCode] = React.useState(false);
 
-  const currentUserId = userProfile?.id || user?.id;
-
-  const courses = Array.from(
-    new Set(events.map((e) => e.course).filter((c): c is string => Boolean(c && c.trim())))
-  );
+  const activeTab = filterState.tabFilter || 'calendar';
 
   const handleCopyInviteCode = () => {
     if (activeCalendar?.invite_code) {
       navigator.clipboard.writeText(activeCalendar.invite_code);
       setCopiedCode(true);
-      addToast('Invite code copied to clipboard!', 'success');
+      addToast('Invite code copied!', 'success');
       setTimeout(() => setCopiedCode(false), 2000);
     }
   };
 
-  const handleExportAll = () => {
-    exportEventsToICS(filteredEvents, `${activeCalendar?.name || 'Shared-Calendar'}.ics`);
+  const handleExport = () => {
+    exportEventsToICS(filteredEvents, `${activeCalendar?.name || 'calender'}.ics`);
     addToast('Calendar exported to .ics file', 'success');
   };
 
-  // Find nearest upcoming exam
-  const upcomingExam = events
-    .filter((e) => e.event_type === 'Exam' && new Date(e.event_date + 'T23:59:59') >= new Date())
-    .sort((a, b) => a.event_date.localeCompare(b.event_date))[0];
-
-  const getExamCountdownText = (dateStr: string) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const target = new Date(dateStr + 'T00:00:00');
-    const diffDays = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return 'Today!';
-    if (diffDays === 1) return 'Tomorrow!';
-    return `In ${diffDays} days`;
-  };
-
-  // Calculate task completion progress
-  const totalEvents = events.length;
-  const completedEvents = events.filter((e) => e.is_completed).length;
-  const progressPercent = totalEvents > 0 ? Math.round((completedEvents / totalEvents) * 100) : 0;
+  // Mini Calendar Generation
+  const miniMonthStart = startOfMonth(currentDate);
+  const miniMonthEnd = endOfMonth(miniMonthStart);
+  const miniStartDate = startOfWeek(miniMonthStart);
+  const miniEndDate = endOfWeek(miniMonthEnd);
+  const miniDays = eachDayOfInterval({ start: miniStartDate, end: miniEndDate });
 
   return (
-    <aside style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
-      {/* Calendar & Share Info */}
-      <div className="glass-card" style={{ padding: '1rem' }}>
-        <div style={{ fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.04em', marginBottom: '0.2rem' }}>
-          Shared Calendar
-        </div>
-        <h2 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '0.65rem', color: 'var(--text-primary)' }}>
-          {activeCalendar?.name || 'My Calendar'}
-        </h2>
-
-        {activeCalendar?.invite_code && (
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={handleCopyInviteCode}
-            style={{ width: '100%', fontSize: '0.78rem', padding: '0.4rem 0.65rem', justifyContent: 'space-between' }}
-          >
-            <span style={{ color: 'var(--text-muted)' }}>Invite Code: <strong style={{ color: 'var(--text-primary)' }}>{activeCalendar.invite_code}</strong></span>
-            {copiedCode ? <Check size={13} style={{ color: '#10B981' }} /> : <Copy size={13} />}
-          </button>
-        )}
-      </div>
-
-      {/* Fun Study Progress & Streak Widget */}
-      <div className="glass-card" style={{ padding: '1rem', background: 'linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(139,92,246,0.08) 100%)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-          <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <Trophy size={14} /> Progress Streak
-          </span>
-          <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#10B981' }}>
-            {progressPercent}% Complete
-          </span>
-        </div>
-
-        <div style={{
-          width: '100%',
-          height: '8px',
-          backgroundColor: 'var(--bg-active)',
-          borderRadius: '999px',
-          overflow: 'hidden',
-          marginBottom: '0.5rem',
-        }}>
-          <div style={{
-            width: `${progressPercent}%`,
-            height: '100%',
-            background: 'var(--accent-gradient)',
-            borderRadius: '999px',
-            transition: 'width 0.3s ease',
-          }} />
-        </div>
-
-        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between' }}>
-          <span>{completedEvents} done</span>
-          <span>{totalEvents - completedEvents} remaining</span>
-        </div>
-      </div>
-
-      {/* Embedded Clean Exam Countdown Card */}
-      {upcomingExam && (
-        <div className="glass-card" style={{
-          padding: '1rem',
-          borderLeft: '3px solid #EF4444',
-          backgroundColor: 'rgba(239, 68, 68, 0.03)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#EF4444', textTransform: 'uppercase' }}>
-              🚨 Next Exam
-            </span>
-            <span style={{ fontSize: '0.725rem', fontWeight: 700, color: 'var(--accent-primary)' }}>
-              {getExamCountdownText(upcomingExam.event_date)}
-            </span>
-          </div>
-
-          <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.15rem' }}>
-            {upcomingExam.title}
-          </div>
-
-          <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <CalendarIcon size={12} /> {upcomingExam.event_date}
-            {upcomingExam.course && <span>• {upcomingExam.course}</span>}
-          </div>
-        </div>
-      )}
-
-      {/* Clean Filters Section */}
-      <div className="glass-card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: '0.825rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--text-primary)' }}>
-            <Filter size={14} /> Filter Events
-          </span>
-          {(filterState.search || filterState.personFilter !== 'all' || filterState.eventTypeFilter !== 'all' || filterState.courseFilter !== 'all') && (
-            <button
-              type="button"
-              onClick={() => setFilterState({ search: '', personFilter: 'all', eventTypeFilter: 'all', courseFilter: 'all' })}
-              style={{ background: 'transparent', border: 'none', color: 'var(--accent-primary)', fontSize: '0.725rem', fontWeight: 600, cursor: 'pointer' }}
-            >
-              Clear
-            </button>
-          )}
-        </div>
-
-        {/* Search */}
-        <div style={{ position: 'relative' }}>
-          <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-          <input
-            type="text"
-            placeholder="Search events..."
-            value={filterState.search}
-            onChange={(e) => setFilterState((prev) => ({ ...prev, search: e.target.value }))}
-            className="input-field"
-            style={{ paddingLeft: '2.1rem', fontSize: '0.825rem', padding: '0.55rem 0.75rem 0.55rem 2.1rem' }}
-          />
-        </div>
-
-        {/* Person Selector */}
-        <div>
-          <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.35rem', textTransform: 'uppercase' }}>
-            Person
-          </label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <button
-              type="button"
-              onClick={() => setFilterState((prev) => ({ ...prev, personFilter: 'all' }))}
-              style={{
-                padding: '0.4rem 0.65rem',
-                borderRadius: '6px',
-                border: 'none',
-                textAlign: 'left',
-                fontSize: '0.8rem',
-                fontWeight: filterState.personFilter === 'all' ? 700 : 500,
-                backgroundColor: filterState.personFilter === 'all' ? 'var(--accent-light)' : 'transparent',
-                color: filterState.personFilter === 'all' ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                cursor: 'pointer',
-              }}
-            >
-              👥 All Events
-            </button>
-
-            {members.map((m) => (
-              <button
-                key={m.user_id}
-                type="button"
-                onClick={() => setFilterState((prev) => ({ ...prev, personFilter: m.user_id }))}
-                style={{
-                  padding: '0.4rem 0.65rem',
-                  borderRadius: '6px',
-                  border: 'none',
-                  textAlign: 'left',
-                  fontSize: '0.8rem',
-                  fontWeight: filterState.personFilter === m.user_id ? 700 : 500,
-                  backgroundColor: filterState.personFilter === m.user_id ? 'var(--accent-light)' : 'transparent',
-                  color: filterState.personFilter === m.user_id ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                }}
-              >
-                <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: m.profile_color }} />
-                {m.display_name} {m.user_id === currentUserId ? '(Me)' : ''}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Category Pills */}
-        <div>
-          <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.35rem', textTransform: 'uppercase' }}>
-            Category
-          </label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
-            {EVENT_TYPES.map((t) => (
-              <button
-                key={t.label}
-                type="button"
-                onClick={() => setFilterState((prev) => ({
-                  ...prev,
-                  eventTypeFilter: prev.eventTypeFilter === t.label ? 'all' : t.label,
-                }))}
-                style={{
-                  padding: '0.25rem 0.55rem',
-                  borderRadius: '5px',
-                  border: 'none',
-                  fontSize: '0.725rem',
-                  fontWeight: filterState.eventTypeFilter === t.label ? 700 : 500,
-                  backgroundColor: filterState.eventTypeFilter === t.label ? t.color : 'var(--bg-hover)',
-                  color: filterState.eventTypeFilter === t.label ? '#FFFFFF' : 'var(--text-secondary)',
-                  cursor: 'pointer',
-                }}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Course Filter */}
-        {courses.length > 0 && (
-          <div>
-            <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.35rem', textTransform: 'uppercase' }}>
-              Course
-            </label>
-            <select
-              value={filterState.courseFilter}
-              onChange={(e) => setFilterState((prev) => ({ ...prev, courseFilter: e.target.value }))}
-              className="input-field"
-              style={{ fontSize: '0.8rem', padding: '0.45rem 0.65rem' }}
-            >
-              <option value="all">All Courses</option>
-              {courses.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {/* Export Button */}
+    <aside style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem', width: '100%' }}>
+      {/* Quick Add Button */}
+      {onOpenAddEvent && (
         <button
           type="button"
-          className="btn btn-secondary"
-          onClick={handleExportAll}
-          style={{ width: '100%', fontSize: '0.8rem', padding: '0.45rem', marginTop: '0.25rem' }}
+          className="btn btn-primary"
+          onClick={onOpenAddEvent}
+          style={{
+            width: '100%',
+            padding: '0.75rem 1rem',
+            fontSize: '0.95rem',
+            borderRadius: '14px',
+            boxShadow: 'var(--shadow-md)',
+          }}
         >
-          <Download size={13} /> Export .ics
+          <Plus size={18} /> New Event
         </button>
+      )}
+
+      {/* Navigation Links */}
+      <div className="glass-card" style={{ padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        {[
+          { id: 'calendar', label: 'Calendar', icon: CalendarIcon, color: '#4F46E5' },
+          { id: 'upcoming', label: 'Upcoming', icon: ClipboardList, color: '#10B981' },
+          { id: 'important', label: 'Important', icon: Star, color: '#EF4444' },
+          { id: 'settings', label: 'Settings', icon: SettingsIcon, color: '#64748B' },
+        ].map((item) => {
+          const IconComponent = item.icon;
+          const isActive = activeTab === item.id;
+
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => {
+                setFilterState((prev) => ({
+                  ...prev,
+                  tabFilter: item.id as any,
+                  eventTypeFilter: item.id === 'important' ? 'Important' : 'all',
+                }));
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                padding: '0.65rem 0.85rem',
+                borderRadius: '10px',
+                border: 'none',
+                backgroundColor: isActive ? 'var(--accent-light)' : 'transparent',
+                color: isActive ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                fontWeight: isActive ? 700 : 500,
+                fontSize: '0.875rem',
+                cursor: 'pointer',
+                textAlign: 'left',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <IconComponent size={18} style={{ color: isActive ? 'var(--accent-primary)' : item.color }} />
+              {item.label}
+            </button>
+          );
+        })}
       </div>
+
+      {/* Mini Monthly Calendar Widget */}
+      <div className="glass-card" style={{ padding: '0.85rem 1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
+          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+            {format(currentDate, 'MMMM yyyy')}
+          </span>
+          <div style={{ display: 'flex', gap: '2px' }}>
+            <button
+              type="button"
+              onClick={() => setCurrentDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
+              style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }}
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setCurrentDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
+              style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }}
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', textAlign: 'center', fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.3rem' }}>
+          {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, idx) => (
+            <div key={idx}>{d}</div>
+          ))}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', textAlign: 'center' }}>
+          {miniDays.map((d) => {
+            const isCurrMonth = isSameMonth(d, miniMonthStart);
+            const isTodayDate = isToday(d);
+            const dateStr = format(d, 'yyyy-MM-dd');
+            const hasEvent = events.some((e) => e.event_date === dateStr);
+
+            return (
+              <div
+                key={d.toISOString()}
+                onClick={() => setCurrentDate(d)}
+                style={{
+                  padding: '4px 0',
+                  fontSize: '0.725rem',
+                  fontWeight: isTodayDate ? 800 : 500,
+                  borderRadius: '6px',
+                  backgroundColor: isTodayDate ? 'var(--accent-primary)' : 'transparent',
+                  color: isTodayDate ? '#FFFFFF' : isCurrMonth ? 'var(--text-primary)' : 'var(--text-muted)',
+                  cursor: 'pointer',
+                  opacity: isCurrMonth ? 1 : 0.4,
+                  position: 'relative',
+                }}
+              >
+                {format(d, 'd')}
+                {hasEvent && !isTodayDate && (
+                  <div style={{ width: '3px', height: '3px', borderRadius: '50%', backgroundColor: 'var(--accent-primary)', position: 'absolute', bottom: '2px', left: '50%', transform: 'translateX(-50%)' }} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Color Legend & Category Filter */}
+      <div className="glass-card" style={{ padding: '0.85rem 1rem' }}>
+        <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.6rem', letterSpacing: '0.04em' }}>
+          Color Categories
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+          {CATEGORY_COLORS.map((cat) => {
+            const isSelected = filterState.eventTypeFilter === cat.label;
+            return (
+              <button
+                key={cat.label}
+                type="button"
+                onClick={() => {
+                  setFilterState((prev) => ({
+                    ...prev,
+                    eventTypeFilter: prev.eventTypeFilter === cat.label ? 'all' : cat.label,
+                  }));
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.4rem 0.6rem',
+                  borderRadius: '8px',
+                  border: 'none',
+                  backgroundColor: isSelected ? `${cat.color}1E` : 'transparent',
+                  cursor: 'pointer',
+                  fontSize: '0.825rem',
+                  fontWeight: isSelected ? 800 : 600,
+                  color: 'var(--text-primary)',
+                  textAlign: 'left',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: cat.color }} />
+                  <span>{cat.emoji} {cat.label}</span>
+                </div>
+                {isSelected && <Check size={14} style={{ color: cat.color }} />}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Shared Calendar Invite Code */}
+      {activeCalendar?.invite_code && (
+        <div className="glass-card" style={{ padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Code: <strong style={{ color: 'var(--text-primary)' }}>{activeCalendar.invite_code}</strong></span>
+          <button
+            type="button"
+            onClick={handleCopyInviteCode}
+            style={{ background: 'transparent', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', padding: 0 }}
+          >
+            {copiedCode ? <Check size={14} style={{ color: '#10B981' }} /> : <Copy size={14} />}
+          </button>
+        </div>
+      )}
     </aside>
   );
 };

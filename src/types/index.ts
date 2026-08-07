@@ -1,12 +1,14 @@
-export type EventType =
-  | 'Exam'
-  | 'Quiz'
-  | 'Assignment'
-  | 'Presentation'
-  | 'Appointment'
-  | 'Trip'
-  | 'Birthday'
+export type EventCategory =
+  | 'School'
+  | 'Personal'
+  | 'Work'
+  | 'Health'
+  | 'Important'
   | 'Other';
+
+export type EventType = EventCategory | string;
+
+export type RepeatType = 'none' | 'daily' | 'weekly' | 'monthly';
 
 export interface CalendarEvent {
   id: string;
@@ -15,15 +17,17 @@ export interface CalendarEvent {
   owner_user_id?: string | null;
   title: string;
   event_type: EventType;
-  course: string;
+  course?: string;
   event_date: string; // YYYY-MM-DD
   start_time?: string | null; // HH:mm
   end_time?: string | null; // HH:mm
   is_all_day: boolean;
-  location: string;
-  notes: string;
+  location?: string;
+  notes?: string;
   color: string;
-  reminder_minutes: number;
+  reminder_minutes?: number;
+  repeat?: RepeatType;
+  emoji?: string;
   is_completed?: boolean;
   created_at: string;
   updated_at: string;
@@ -60,18 +64,22 @@ export interface FilterState {
   personFilter: 'all' | 'me' | 'friend' | string;
   eventTypeFilter: EventType | 'all';
   courseFilter: string | 'all';
+  tabFilter?: 'calendar' | 'upcoming' | 'important' | 'settings';
 }
 
-export const EVENT_TYPES: { label: EventType; color: string; icon: string }[] = [
-  { label: 'Exam', color: '#EF4444', icon: 'BookOpen' },
-  { label: 'Quiz', color: '#F59E0B', icon: 'FileText' },
-  { label: 'Assignment', color: '#8B5CF6', icon: 'CheckSquare' },
-  { label: 'Presentation', color: '#3B82F6', icon: 'Presentation' },
-  { label: 'Appointment', color: '#10B981', icon: 'CalendarPin' },
-  { label: 'Trip', color: '#EC4899', icon: 'Plane' },
-  { label: 'Birthday', color: '#F43F5E', icon: 'Cake' },
-  { label: 'Other', color: '#6B7280', icon: 'Tag' },
+export const CATEGORY_COLORS: { label: EventCategory; color: string; emoji: string; symbol: string }[] = [
+  { label: 'School', color: '#3B82F6', emoji: '📚', symbol: '🔵' },
+  { label: 'Personal', color: '#10B981', emoji: '🌿', symbol: '🟢' },
+  { label: 'Work', color: '#F59E0B', emoji: '💼', symbol: '🟠' },
+  { label: 'Health', color: '#8B5CF6', emoji: '🏋️', symbol: '🟣' },
+  { label: 'Important', color: '#EF4444', emoji: '🚨', symbol: '🔴' },
 ];
+
+export const EVENT_TYPES = CATEGORY_COLORS.map(c => ({
+  label: c.label,
+  color: c.color,
+  icon: c.emoji
+}));
 
 export const PROFILE_COLORS = [
   '#3B82F6', // Blue
