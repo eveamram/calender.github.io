@@ -40,6 +40,7 @@ interface CalendarContextType {
   updateEvent: (id: string, updates: Partial<CalendarEvent>) => Promise<{ error: Error | null }>;
   deleteEvent: (id: string) => Promise<{ error: Error | null }>;
   toggleEventCompleted: (id: string) => Promise<void>;
+  updateMemberProfile: (userId: string, updates: Partial<CalendarMember>) => void;
   
   addToast: (message: string, type?: 'success' | 'error' | 'info') => void;
   removeToast: (id: string) => void;
@@ -602,6 +603,12 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     await updateEvent(id, { is_completed: nextState });
   };
 
+  const updateMemberProfile = (userId: string, updates: Partial<CalendarMember>) => {
+    setMembers((prev) =>
+      prev.map((m) => (m.user_id === userId ? { ...m, ...updates } : m))
+    );
+  };
+
   const leaveCalendar = () => {
     setActiveCalendar(null);
     setMembers([]);
@@ -681,6 +688,7 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         updateEvent,
         deleteEvent,
         toggleEventCompleted,
+        updateMemberProfile,
         addToast,
         removeToast,
         leaveCalendar,

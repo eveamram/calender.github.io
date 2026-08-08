@@ -1,16 +1,18 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useCalendar } from '../../context/CalendarContext';
-import { Calendar as CalendarIcon, Plus, Moon, Sun } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, Moon, Sun, Settings } from 'lucide-react';
 
 interface HeaderProps {
   onOpenAddEvent: () => void;
+  onOpenCustomizeModal: () => void;
   isDarkMode: boolean;
   toggleDarkMode: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   onOpenAddEvent,
+  onOpenCustomizeModal,
   isDarkMode,
   toggleDarkMode,
 }) => {
@@ -18,6 +20,8 @@ export const Header: React.FC<HeaderProps> = ({
   const { setFilterState } = useCalendar();
 
   const activePersona = userProfile?.display_name || 'Eve';
+  const profileColor = userProfile?.profile_color || (activePersona === 'Eve' ? '#3B82F6' : '#EC4899');
+  const initial = activePersona.charAt(0).toUpperCase();
 
   return (
     <header style={{
@@ -55,7 +59,7 @@ export const Header: React.FC<HeaderProps> = ({
           </h1>
         </div>
 
-        {/* Person Selector (Eve vs Abbie) */}
+        {/* Person Selector & Customizer */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div style={{
             display: 'flex',
@@ -78,7 +82,7 @@ export const Header: React.FC<HeaderProps> = ({
                 padding: '0.35rem 0.85rem',
                 borderRadius: '999px',
                 border: 'none',
-                backgroundColor: activePersona === 'Eve' ? '#3B82F6' : 'transparent',
+                backgroundColor: activePersona === 'Eve' ? profileColor : 'transparent',
                 color: activePersona === 'Eve' ? '#FFFFFF' : 'var(--text-secondary)',
                 fontWeight: 700,
                 fontSize: '0.825rem',
@@ -90,8 +94,8 @@ export const Header: React.FC<HeaderProps> = ({
                 width: '14px',
                 height: '14px',
                 borderRadius: '50%',
-                backgroundColor: '#3B82F6',
-                color: '#FFFFFF',
+                backgroundColor: activePersona === 'Eve' ? '#FFFFFF' : profileColor,
+                color: activePersona === 'Eve' ? profileColor : '#FFFFFF',
                 fontSize: '0.55rem',
                 fontWeight: 800,
                 display: 'flex',
@@ -116,7 +120,7 @@ export const Header: React.FC<HeaderProps> = ({
                 padding: '0.35rem 0.85rem',
                 borderRadius: '999px',
                 border: 'none',
-                backgroundColor: activePersona === 'Abbie' ? '#EC4899' : 'transparent',
+                backgroundColor: activePersona === 'Abbie' ? profileColor : 'transparent',
                 color: activePersona === 'Abbie' ? '#FFFFFF' : 'var(--text-secondary)',
                 fontWeight: 700,
                 fontSize: '0.825rem',
@@ -128,8 +132,8 @@ export const Header: React.FC<HeaderProps> = ({
                 width: '14px',
                 height: '14px',
                 borderRadius: '50%',
-                backgroundColor: '#EC4899',
-                color: '#FFFFFF',
+                backgroundColor: activePersona === 'Abbie' ? '#FFFFFF' : '#EC4899',
+                color: activePersona === 'Abbie' ? '#EC4899' : '#FFFFFF',
                 fontSize: '0.55rem',
                 fontWeight: 800,
                 display: 'flex',
@@ -142,6 +146,17 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           </div>
 
+          {/* Edit Person Icon / Color Button */}
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onOpenCustomizeModal}
+            title="Change Person Icon & Color"
+            style={{ padding: '0.45rem 0.75rem', fontSize: '0.8rem', borderRadius: '10px' }}
+          >
+            <Settings size={14} /> Customize Icon
+          </button>
+
           {/* Quick Add Button */}
           <button
             type="button"
@@ -149,7 +164,7 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={onOpenAddEvent}
             style={{ padding: '0.45rem 0.95rem', fontSize: '0.85rem', borderRadius: '10px' }}
           >
-            <Plus size={16} /> New Event
+            <Plus size={16} /> Add Event
           </button>
 
           {/* Theme Toggle */}

@@ -6,6 +6,7 @@ import { Sidebar } from './components/layout/Sidebar';
 import { CalendarView } from './components/calendar/CalendarView';
 import { AuthModal } from './components/auth/AuthModal';
 import { CalendarJoinModal } from './components/auth/CalendarJoinModal';
+import { PersonCustomizeModal } from './components/auth/PersonCustomizeModal';
 import { EventFormModal } from './components/events/EventFormModal';
 import { EventDetailsModal } from './components/events/EventDetailsModal';
 import { ConfirmDialog } from './components/ui/ConfirmDialog';
@@ -23,6 +24,7 @@ const MainAppContent: React.FC = () => {
   });
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false);
   const [selectedDateForNewEvent, setSelectedDateForNewEvent] = useState<Date | undefined>(undefined);
   
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
@@ -97,9 +99,6 @@ const MainAppContent: React.FC = () => {
     );
   }
 
-  const showAuthModal = !userProfile;
-  const showJoinModal = Boolean(userProfile && !activeCalendar);
-
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', paddingBottom: '70px' }}>
       <Header
@@ -108,6 +107,7 @@ const MainAppContent: React.FC = () => {
           setSelectedDateForNewEvent(new Date());
           setIsAddModalOpen(true);
         }}
+        onOpenCustomizeModal={() => setIsCustomizeModalOpen(true)}
         isDarkMode={isDarkMode}
         toggleDarkMode={toggleDarkMode}
       />
@@ -127,7 +127,11 @@ const MainAppContent: React.FC = () => {
         }} className="main-layout-grid">
           {/* Sidebar */}
           <div className="sidebar-container">
-            <Sidebar />
+            <Sidebar onOpenAddEvent={() => {
+              setEventToEdit(null);
+              setSelectedDateForNewEvent(new Date());
+              setIsAddModalOpen(true);
+            }} />
           </div>
 
           {/* Main Calendar */}
@@ -191,7 +195,7 @@ const MainAppContent: React.FC = () => {
             borderRadius: '999px',
             padding: '0.5rem 1.25rem',
             fontSize: '0.85rem',
-            boxShadow: '0 4px 14px rgba(99,102,241,0.4)',
+            boxShadow: '0 4px 14px rgba(236,72,153,0.4)',
           }}
         >
           <Plus size={18} /> Add Event
@@ -256,14 +260,20 @@ const MainAppContent: React.FC = () => {
             >
               <X size={22} />
             </button>
-            <Sidebar />
+            <Sidebar onOpenAddEvent={() => {
+              setIsMobileSidebarOpen(false);
+              setEventToEdit(null);
+              setIsAddModalOpen(true);
+            }} />
           </div>
         </div>
       )}
 
       {/* Modals */}
-      <AuthModal isOpen={showAuthModal} />
-      <CalendarJoinModal isOpen={showJoinModal} />
+      <PersonCustomizeModal
+        isOpen={isCustomizeModalOpen}
+        onClose={() => setIsCustomizeModalOpen(false)}
+      />
 
       <EventFormModal
         isOpen={isAddModalOpen}
