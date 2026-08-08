@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useCalendar } from '../../context/CalendarContext';
 import { useAuth } from '../../context/AuthContext';
 import { CalendarEvent } from '../../types';
+import confetti from 'canvas-confetti';
 import {
   format,
   addDays,
@@ -17,18 +18,28 @@ import {
   ChevronRight,
   Plus,
   Clock,
-  BookOpen,
-  MapPin,
   CheckCircle2,
   Circle,
   GraduationCap,
-  Calendar as CalendarIcon,
+  Sparkles,
+  Flame,
+  Coffee,
+  Smile,
+  Trophy,
 } from 'lucide-react';
 
 interface ScheduleViewProps {
   onSelectEvent: (event: CalendarEvent) => void;
   onOpenAddEvent: () => void;
 }
+
+const DAILY_VIBES = [
+  { label: 'Hyped', emoji: '🔥', color: '#FF512F' },
+  { label: 'Focused', emoji: '☕', color: '#10B981' },
+  { label: 'Study Mode', emoji: '📚', color: '#3B82F6' },
+  { label: 'Relaxed', emoji: '✨', color: '#8B5CF6' },
+  { label: 'Victor', emoji: '🎉', color: '#EC4899' },
+];
 
 export const ScheduleView: React.FC<ScheduleViewProps> = ({
   onSelectEvent,
@@ -39,6 +50,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
 
   const [scheduleMode, setScheduleMode] = useState<'day' | 'week'>('week');
   const [selectedPerson, setSelectedPerson] = useState<'all' | 'Eve' | 'Abbie'>('all');
+  const [dailyVibe, setDailyVibe] = useState(() => localStorage.getItem('calender_daily_vibe') || 'Focused');
 
   const eveUser = members.find((m) => m.display_name.toLowerCase().includes('eve')) || members[0];
   const abbieUser = members.find((m) => m.display_name.toLowerCase().includes('abbie')) || members[1];
@@ -63,12 +75,34 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
     return members.find((m) => m.user_id === userId);
   };
 
-  // Hours array for Day View (8 AM to 9 PM)
+  // Today's events calculation for progress bar
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const todayEvents = filteredScheduleEvents.filter((e) => e.event_date === todayStr);
+  const completedCount = todayEvents.filter((e) => e.is_completed).length;
+  const progressPercent = todayEvents.length > 0 ? Math.round((completedCount / todayEvents.length) * 100) : 0;
+
+  const handleToggleComplete = (eventId: string, currentCompleted?: boolean) => {
+    if (!currentCompleted) {
+      confetti({
+        particleCount: 50,
+        spread: 60,
+        origin: { y: 0.7 },
+      });
+    }
+    toggleEventCompleted(eventId);
+  };
+
+  const handleSelectVibe = (vibeLabel: string) => {
+    setDailyVibe(vibeLabel);
+    localStorage.setItem('calender_daily_vibe', vibeLabel);
+    confetti({ particleCount: 30, spread: 50, origin: { y: 0.8 } });
+  };
+
   const HOURS = Array.from({ length: 14 }, (_, i) => i + 8);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem', width: '100%' }}>
-      {/* Schedule Header & Controls */}
+      {/* Schedule Header Controls */}
       <div className="glass-card" style={{
         padding: '1.1rem 1.4rem',
         display: 'flex',
@@ -276,7 +310,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  toggleEventCompleted(evt.id);
+                                  handleToggleComplete(evt.id, isCompleted);
                                 }}
                                 style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: isCompleted ? '#10B981' : 'var(--text-muted)', padding: 0 }}
                               >
@@ -338,7 +372,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
               const dayStr = format(currentDate, 'yyyy-MM-dd');
               const matchingEvents = filteredScheduleEvents.filter((e) => {
                 if (e.event_date !== dayStr) return false;
-                if (!e.start_time) return hour === 9; // default all day to 9am slot
+                if (!e.start_time) return hour === 9;
                 const eventHour = parseInt(e.start_time.split(':')[0], 10);
                 return eventHour === hour;
               });
@@ -453,7 +487,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  toggleEventCompleted(evt.id);
+                                  handleToggleComplete(evt.id, isCompleted);
                                 }}
                                 style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: isCompleted ? '#10B981' : 'var(--text-muted)' }}
                               >

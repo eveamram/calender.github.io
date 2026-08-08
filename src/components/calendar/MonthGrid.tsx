@@ -90,18 +90,18 @@ export const MonthGrid: React.FC<MonthGridProps> = ({ onSelectEvent, onSelectDat
                 backgroundColor: isCurrentDay
                   ? 'var(--accent-light)'
                   : hasExam
-                  ? 'rgba(239, 68, 68, 0.05)'
-                  : primaryEventColor
-                  ? `${primaryEventColor}0F`
-                  : isCurrentMonth
-                  ? 'var(--bg-secondary)'
-                  : 'var(--bg-hover)',
+                    ? 'rgba(239, 68, 68, 0.05)'
+                    : primaryEventColor
+                      ? `${primaryEventColor}0F`
+                      : isCurrentMonth
+                        ? 'var(--bg-secondary)'
+                        : 'var(--bg-hover)',
                 opacity: isCurrentMonth ? 1 : 0.4,
                 border: isCurrentDay
                   ? '2px solid var(--accent-primary)'
                   : hasExam
-                  ? '1.5px solid rgba(239, 68, 68, 0.4)'
-                  : '1px solid var(--border-color)',
+                    ? '1.5px solid rgba(239, 68, 68, 0.4)'
+                    : '1px solid var(--border-color)',
                 display: 'flex',
                 flexDirection: 'column',
                 cursor: 'pointer',

@@ -1,13 +1,15 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useCalendar } from '../../context/CalendarContext';
-import { Calendar as CalendarIcon, Plus, Moon, Sun, Settings, GraduationCap } from 'lucide-react';
+import { Plus, Moon, Sun, Settings, Calendar as CalendarIcon, GraduationCap } from 'lucide-react';
 
 interface HeaderProps {
   onOpenAddEvent: () => void;
   onOpenCustomizeModal: () => void;
   isDarkMode: boolean;
   toggleDarkMode: () => void;
+  activeTab: 'calendar' | 'schedule';
+  setActiveTab: (tab: 'calendar' | 'schedule') => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -15,17 +17,16 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenCustomizeModal,
   isDarkMode,
   toggleDarkMode,
+  activeTab,
+  setActiveTab,
 }) => {
   const { userProfile, switchUserPersona } = useAuth();
-  const { filterState, setFilterState } = useCalendar();
-
   const activePersona = userProfile?.display_name || 'Eve';
   const profileColor = userProfile?.profile_color || (activePersona === 'Eve' ? '#3B82F6' : '#EC4899');
-  const activeTab = filterState.tabFilter || 'calendar';
 
   return (
     <header style={{
-      backgroundColor: 'var(--bg-card)',
+      backgroundColor: 'var(--bg-secondary)',
       borderBottom: '1px solid var(--border-color)',
       padding: '0.75rem 1.5rem',
       position: 'sticky',
@@ -33,7 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
       zIndex: 100,
     }}>
       <div style={{
-        maxWidth: '1440px',
+        maxWidth: '1280px',
         margin: '0 auto',
         display: 'flex',
         alignItems: 'center',
@@ -41,178 +42,126 @@ export const Header: React.FC<HeaderProps> = ({
         gap: '1rem',
         flexWrap: 'wrap',
       }}>
-        {/* Brand & Main Navigation Tabs */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer' }}
-               onClick={() => setFilterState(prev => ({ ...prev, tabFilter: 'calendar' }))}>
-            <div style={{
-              width: '34px',
-              height: '34px',
-              borderRadius: '10px',
-              backgroundColor: 'var(--accent-primary)',
-              color: '#FFFFFF',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              <CalendarIcon size={19} />
-            </div>
-            <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-              calender
-            </h1>
-          </div>
+        {/* Brand & Section View Tabs */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+          <h1 style={{
+            fontSize: '1.2rem',
+            fontWeight: 700,
+            color: 'var(--text-primary)',
+            letterSpacing: '-0.02em',
+          }}>
+            calender
+          </h1>
 
-          {/* Top Menu Bar Navigation */}
-          <nav style={{
+          {/* Section View Switcher */}
+          <div style={{
             display: 'flex',
-            alignItems: 'center',
-            gap: '0.25rem',
             backgroundColor: 'var(--bg-hover)',
-            padding: '3px',
-            borderRadius: '12px',
+            padding: '2px',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--border-color)',
           }}>
             <button
               type="button"
-              onClick={() => setFilterState((prev) => ({ ...prev, tabFilter: 'calendar' }))}
+              onClick={() => setActiveTab('calendar')}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.4rem',
-                padding: '0.4rem 0.85rem',
-                borderRadius: '9px',
+                gap: '0.35rem',
+                padding: '0.3rem 0.75rem',
+                borderRadius: '6px',
                 border: 'none',
-                backgroundColor: activeTab === 'calendar' ? 'var(--bg-card)' : 'transparent',
+                backgroundColor: activeTab === 'calendar' ? 'var(--bg-secondary)' : 'transparent',
                 color: activeTab === 'calendar' ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                fontWeight: activeTab === 'calendar' ? 800 : 600,
-                fontSize: '0.825rem',
+                fontWeight: activeTab === 'calendar' ? 700 : 500,
+                fontSize: '0.8rem',
                 cursor: 'pointer',
-                boxShadow: activeTab === 'calendar' ? 'var(--shadow-sm)' : 'none',
-                transition: 'all 0.15s ease',
+                transition: 'all 0.12s ease',
               }}
             >
-              <CalendarIcon size={15} /> Calendar
+              <CalendarIcon size={14} /> Important Dates Calendar
             </button>
 
             <button
               type="button"
-              onClick={() => setFilterState((prev) => ({ ...prev, tabFilter: 'schedule' }))}
+              onClick={() => setActiveTab('schedule')}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.4rem',
-                padding: '0.4rem 0.85rem',
-                borderRadius: '9px',
+                gap: '0.35rem',
+                padding: '0.3rem 0.75rem',
+                borderRadius: '6px',
                 border: 'none',
-                backgroundColor: activeTab === 'schedule' ? 'var(--bg-card)' : 'transparent',
+                backgroundColor: activeTab === 'schedule' ? 'var(--bg-secondary)' : 'transparent',
                 color: activeTab === 'schedule' ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                fontWeight: activeTab === 'schedule' ? 800 : 600,
-                fontSize: '0.825rem',
+                fontWeight: activeTab === 'schedule' ? 700 : 500,
+                fontSize: '0.8rem',
                 cursor: 'pointer',
-                boxShadow: activeTab === 'schedule' ? 'var(--shadow-sm)' : 'none',
-                transition: 'all 0.15s ease',
+                transition: 'all 0.12s ease',
               }}
             >
-              <GraduationCap size={16} /> Schedule / Plan
+              <GraduationCap size={14} /> Class Schedule
             </button>
-          </nav>
+          </div>
         </div>
 
-        {/* Person Selector & Action Controls */}
+        {/* Persona Switcher & Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {/* Persona Switcher */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
             backgroundColor: 'var(--bg-hover)',
-            padding: '3px',
+            padding: '2px',
             borderRadius: '999px',
             border: '1px solid var(--border-color)',
           }}>
             <button
               type="button"
-              onClick={() => {
-                switchUserPersona('Eve');
-                setFilterState((prev) => ({ ...prev, personFilter: 'all' }));
-              }}
+              onClick={() => switchUserPersona('Eve')}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-                padding: '0.35rem 0.85rem',
+                padding: '0.3rem 0.75rem',
                 borderRadius: '999px',
                 border: 'none',
                 backgroundColor: activePersona === 'Eve' ? profileColor : 'transparent',
                 color: activePersona === 'Eve' ? '#FFFFFF' : 'var(--text-secondary)',
-                fontWeight: 700,
-                fontSize: '0.825rem',
+                fontWeight: 600,
+                fontSize: '0.8rem',
                 cursor: 'pointer',
-                transition: 'all 0.15s ease',
+                transition: 'all 0.12s ease',
               }}
             >
-              <div style={{
-                width: '14px',
-                height: '14px',
-                borderRadius: '50%',
-                backgroundColor: activePersona === 'Eve' ? '#FFFFFF' : profileColor,
-                color: activePersona === 'Eve' ? profileColor : '#FFFFFF',
-                fontSize: '0.55rem',
-                fontWeight: 800,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                E
-              </div>
               Eve
             </button>
 
             <button
               type="button"
-              onClick={() => {
-                switchUserPersona('Abbie');
-                setFilterState((prev) => ({ ...prev, personFilter: 'all' }));
-              }}
+              onClick={() => switchUserPersona('Abbie')}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-                padding: '0.35rem 0.85rem',
+                padding: '0.3rem 0.75rem',
                 borderRadius: '999px',
                 border: 'none',
                 backgroundColor: activePersona === 'Abbie' ? profileColor : 'transparent',
                 color: activePersona === 'Abbie' ? '#FFFFFF' : 'var(--text-secondary)',
-                fontWeight: 700,
-                fontSize: '0.825rem',
+                fontWeight: 600,
+                fontSize: '0.8rem',
                 cursor: 'pointer',
-                transition: 'all 0.15s ease',
+                transition: 'all 0.12s ease',
               }}
             >
-              <div style={{
-                width: '14px',
-                height: '14px',
-                borderRadius: '50%',
-                backgroundColor: activePersona === 'Abbie' ? '#FFFFFF' : '#EC4899',
-                color: activePersona === 'Abbie' ? '#EC4899' : '#FFFFFF',
-                fontSize: '0.55rem',
-                fontWeight: 800,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                A
-              </div>
               Abbie
             </button>
           </div>
 
-          {/* Edit Person Icon / Color Button */}
+          {/* Customize Options */}
           <button
             type="button"
             className="btn btn-secondary"
             onClick={onOpenCustomizeModal}
-            title="Change Person Icon & Color"
-            style={{ padding: '0.45rem 0.75rem', fontSize: '0.8rem', borderRadius: '10px' }}
+            title="Profile Options"
+            style={{ padding: '0.4rem 0.6rem' }}
           >
-            <Settings size={14} /> Customize
+            <Settings size={14} />
           </button>
 
           {/* Add Event Button */}
@@ -220,20 +169,19 @@ export const Header: React.FC<HeaderProps> = ({
             type="button"
             className="btn btn-primary"
             onClick={onOpenAddEvent}
-            style={{ padding: '0.45rem 0.95rem', fontSize: '0.85rem', borderRadius: '10px' }}
           >
-            <Plus size={16} /> Add Event
+            <Plus size={15} /> Add Event
           </button>
 
-          {/* Theme Toggle */}
+          {/* Dark / Light Mode Toggle */}
           <button
             type="button"
             onClick={toggleDarkMode}
             className="btn btn-secondary"
             title="Toggle theme"
-            style={{ padding: '0.45rem', borderRadius: '50%', width: '34px', height: '34px' }}
+            style={{ padding: '0.4rem', borderRadius: '50%', width: '32px', height: '32px' }}
           >
-            {isDarkMode ? <Sun size={15} /> : <Moon size={15} />}
+            {isDarkMode ? <Sun size={14} /> : <Moon size={14} />}
           </button>
         </div>
       </div>
