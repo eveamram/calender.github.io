@@ -4,19 +4,17 @@ import { CalendarProvider, useCalendar } from './context/CalendarContext';
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
 import { CalendarView } from './components/calendar/CalendarView';
-import { AuthModal } from './components/auth/AuthModal';
-import { CalendarJoinModal } from './components/auth/CalendarJoinModal';
 import { PersonCustomizeModal } from './components/auth/PersonCustomizeModal';
 import { EventFormModal } from './components/events/EventFormModal';
 import { EventDetailsModal } from './components/events/EventDetailsModal';
 import { ConfirmDialog } from './components/ui/ConfirmDialog';
 import { ToastContainer } from './components/ui/ToastContainer';
 import { CalendarEvent } from './types';
-import { Calendar as CalendarIcon, Plus, Filter, X } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, Filter, X, GraduationCap } from 'lucide-react';
 
 const MainAppContent: React.FC = () => {
-  const { userProfile, loading: authLoading } = useAuth();
-  const { activeCalendar, loading: calLoading, deleteEvent } = useCalendar();
+  const { loading: authLoading } = useAuth();
+  const { loading: calLoading, deleteEvent, filterState, setFilterState } = useCalendar();
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem('theme') === 'dark' ||
@@ -72,6 +70,8 @@ const MainAppContent: React.FC = () => {
       setDeletingEventId(null);
     }
   };
+
+  const activeTab = filterState.tabFilter || 'schedule';
 
   if (authLoading || calLoading) {
     return (
@@ -134,7 +134,7 @@ const MainAppContent: React.FC = () => {
             }} />
           </div>
 
-          {/* Main Calendar */}
+          {/* Main Schedule / Calendar Content Area */}
           <div style={{ width: '100%' }}>
             <CalendarView
               onSelectEvent={handleSelectEvent}
@@ -165,7 +165,7 @@ const MainAppContent: React.FC = () => {
       }}>
         <button
           type="button"
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          onClick={() => setFilterState((prev) => ({ ...prev, tabFilter: 'schedule' }))}
           style={{
             background: 'transparent',
             border: 'none',
@@ -173,7 +173,27 @@ const MainAppContent: React.FC = () => {
             flexDirection: 'column',
             alignItems: 'center',
             gap: '2px',
-            color: 'var(--accent-primary)',
+            color: activeTab === 'schedule' ? 'var(--accent-primary)' : 'var(--text-muted)',
+            fontSize: '0.7rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+          }}
+        >
+          <GraduationCap size={20} />
+          Schedule
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setFilterState((prev) => ({ ...prev, tabFilter: 'calendar' }))}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '2px',
+            color: activeTab === 'calendar' ? 'var(--accent-primary)' : 'var(--text-muted)',
             fontSize: '0.7rem',
             fontWeight: 700,
             cursor: 'pointer',
@@ -193,32 +213,12 @@ const MainAppContent: React.FC = () => {
           className="btn btn-primary"
           style={{
             borderRadius: '999px',
-            padding: '0.5rem 1.25rem',
-            fontSize: '0.85rem',
+            padding: '0.45rem 1.1rem',
+            fontSize: '0.825rem',
             boxShadow: '0 4px 14px rgba(236,72,153,0.4)',
           }}
         >
-          <Plus size={18} /> Add Event
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setIsMobileSidebarOpen(true)}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '2px',
-            color: 'var(--text-secondary)',
-            fontSize: '0.7rem',
-            fontWeight: 700,
-            cursor: 'pointer',
-          }}
-        >
-          <Filter size={20} />
-          Filters
+          <Plus size={16} /> Add Event
         </button>
       </div>
 

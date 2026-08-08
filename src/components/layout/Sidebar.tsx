@@ -1,8 +1,8 @@
 import React from 'react';
 import { useCalendar } from '../../context/CalendarContext';
-import { useAuth } from '../../context/AuthContext';
 import { CATEGORY_COLORS } from '../../types';
 import {
+  GraduationCap,
   Calendar as CalendarIcon,
   ClipboardList,
   Star,
@@ -10,12 +10,9 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
-  Download,
-  Copy,
   Check,
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isToday } from 'date-fns';
-import { exportEventsToICS } from '../../lib/icsExport';
 
 interface SidebarProps {
   onOpenAddEvent?: () => void;
@@ -25,32 +22,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenAddEvent }) => {
   const {
     filterState,
     setFilterState,
-    activeCalendar,
-    members,
     events,
-    filteredEvents,
     currentDate,
     setCurrentDate,
-    addToast,
   } = useCalendar();
-  const { userProfile } = useAuth();
-  const [copiedCode, setCopiedCode] = React.useState(false);
 
-  const activeTab = filterState.tabFilter || 'calendar';
-
-  const handleCopyInviteCode = () => {
-    if (activeCalendar?.invite_code) {
-      navigator.clipboard.writeText(activeCalendar.invite_code);
-      setCopiedCode(true);
-      addToast('Invite code copied!', 'success');
-      setTimeout(() => setCopiedCode(false), 2000);
-    }
-  };
-
-  const handleExport = () => {
-    exportEventsToICS(filteredEvents, `${activeCalendar?.name || 'calender'}.ics`);
-    addToast('Calendar exported to .ics file', 'success');
-  };
+  const activeTab = filterState.tabFilter || 'schedule';
 
   // Mini Calendar Generation
   const miniMonthStart = startOfMonth(currentDate);
@@ -79,9 +56,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenAddEvent }) => {
         </button>
       )}
 
-      {/* Navigation Links */}
+      {/* Navigation Links with Schedule First */}
       <div className="glass-card" style={{ padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '2px' }}>
         {[
+          { id: 'schedule', label: 'Schedule / Daily Plan', icon: GraduationCap, color: '#8B5CF6' },
           { id: 'calendar', label: 'Calendar', icon: CalendarIcon, color: '#4F46E5' },
           { id: 'upcoming', label: 'Upcoming', icon: ClipboardList, color: '#10B981' },
           { id: 'important', label: 'Important', icon: Star, color: '#EF4444' },
@@ -187,7 +165,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenAddEvent }) => {
         </div>
       </div>
 
-      {/* Color Legend & Category Filter */}
+      {/* Color Legend */}
       <div className="glass-card" style={{ padding: '0.85rem 1rem' }}>
         <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.6rem', letterSpacing: '0.04em' }}>
           Color Categories
@@ -231,20 +209,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenAddEvent }) => {
           })}
         </div>
       </div>
-
-      {/* Shared Calendar Invite Code */}
-      {activeCalendar?.invite_code && (
-        <div className="glass-card" style={{ padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Code: <strong style={{ color: 'var(--text-primary)' }}>{activeCalendar.invite_code}</strong></span>
-          <button
-            type="button"
-            onClick={handleCopyInviteCode}
-            style={{ background: 'transparent', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', padding: 0 }}
-          >
-            {copiedCode ? <Check size={14} style={{ color: '#10B981' }} /> : <Copy size={14} />}
-          </button>
-        </div>
-      )}
     </aside>
   );
 };

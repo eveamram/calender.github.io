@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useCalendar } from '../../context/CalendarContext';
-import { Calendar as CalendarIcon, Plus, Moon, Sun, Settings } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, Moon, Sun, Settings, GraduationCap } from 'lucide-react';
 
 interface HeaderProps {
   onOpenAddEvent: () => void;
@@ -17,11 +17,11 @@ export const Header: React.FC<HeaderProps> = ({
   toggleDarkMode,
 }) => {
   const { userProfile, switchUserPersona } = useAuth();
-  const { setFilterState } = useCalendar();
+  const { filterState, setFilterState } = useCalendar();
 
   const activePersona = userProfile?.display_name || 'Eve';
   const profileColor = userProfile?.profile_color || (activePersona === 'Eve' ? '#3B82F6' : '#EC4899');
-  const initial = activePersona.charAt(0).toUpperCase();
+  const activeTab = filterState.tabFilter || 'calendar';
 
   return (
     <header style={{
@@ -39,27 +39,85 @@ export const Header: React.FC<HeaderProps> = ({
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: '1rem',
+        flexWrap: 'wrap',
       }}>
-        {/* Brand Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-          <div style={{
-            width: '34px',
-            height: '34px',
-            borderRadius: '10px',
-            backgroundColor: 'var(--accent-primary)',
-            color: '#FFFFFF',
+        {/* Brand & Main Navigation Tabs */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer' }}
+               onClick={() => setFilterState(prev => ({ ...prev, tabFilter: 'calendar' }))}>
+            <div style={{
+              width: '34px',
+              height: '34px',
+              borderRadius: '10px',
+              backgroundColor: 'var(--accent-primary)',
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <CalendarIcon size={19} />
+            </div>
+            <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+              calender
+            </h1>
+          </div>
+
+          {/* Top Menu Bar Navigation */}
+          <nav style={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
+            gap: '0.25rem',
+            backgroundColor: 'var(--bg-hover)',
+            padding: '3px',
+            borderRadius: '12px',
           }}>
-            <CalendarIcon size={19} />
-          </div>
-          <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-            calender
-          </h1>
+            <button
+              type="button"
+              onClick={() => setFilterState((prev) => ({ ...prev, tabFilter: 'calendar' }))}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.4rem 0.85rem',
+                borderRadius: '9px',
+                border: 'none',
+                backgroundColor: activeTab === 'calendar' ? 'var(--bg-card)' : 'transparent',
+                color: activeTab === 'calendar' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                fontWeight: activeTab === 'calendar' ? 800 : 600,
+                fontSize: '0.825rem',
+                cursor: 'pointer',
+                boxShadow: activeTab === 'calendar' ? 'var(--shadow-sm)' : 'none',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <CalendarIcon size={15} /> Calendar
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setFilterState((prev) => ({ ...prev, tabFilter: 'schedule' }))}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.4rem 0.85rem',
+                borderRadius: '9px',
+                border: 'none',
+                backgroundColor: activeTab === 'schedule' ? 'var(--bg-card)' : 'transparent',
+                color: activeTab === 'schedule' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                fontWeight: activeTab === 'schedule' ? 800 : 600,
+                fontSize: '0.825rem',
+                cursor: 'pointer',
+                boxShadow: activeTab === 'schedule' ? 'var(--shadow-sm)' : 'none',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <GraduationCap size={16} /> Schedule / Plan
+            </button>
+          </nav>
         </div>
 
-        {/* Person Selector & Customizer */}
+        {/* Person Selector & Action Controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div style={{
             display: 'flex',
@@ -154,10 +212,10 @@ export const Header: React.FC<HeaderProps> = ({
             title="Change Person Icon & Color"
             style={{ padding: '0.45rem 0.75rem', fontSize: '0.8rem', borderRadius: '10px' }}
           >
-            <Settings size={14} /> Customize Icon
+            <Settings size={14} /> Customize
           </button>
 
-          {/* Quick Add Button */}
+          {/* Add Event Button */}
           <button
             type="button"
             className="btn btn-primary"

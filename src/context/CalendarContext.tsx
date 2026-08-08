@@ -182,6 +182,7 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     personFilter: 'all',
     eventTypeFilter: 'all',
     courseFilter: 'all',
+    tabFilter: 'schedule',
   });
 
   const addToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {

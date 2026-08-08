@@ -3,8 +3,9 @@ import { useCalendar } from '../../context/CalendarContext';
 import { MonthGrid } from './MonthGrid';
 import { WeekView } from './WeekView';
 import { AgendaView } from './AgendaView';
-import { CalendarEvent, CATEGORY_COLORS } from '../../types';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Plus, Sparkles } from 'lucide-react';
+import { ScheduleView } from '../schedule/ScheduleView';
+import { CalendarEvent } from '../../types';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { format, addMonths, subMonths, addWeeks, subWeeks } from 'date-fns';
 
 interface CalendarViewProps {
@@ -18,7 +19,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   onSelectDate,
   onOpenAddEvent,
 }) => {
-  const { viewMode, setViewMode, currentDate, setCurrentDate, filterState, setFilterState } = useCalendar();
+  const { viewMode, setViewMode, currentDate, setCurrentDate, filterState } = useCalendar();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -37,7 +38,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     if (viewMode === 'week') {
       setCurrentDate((prev) => subWeeks(prev, 1));
     } else {
-      setCurrentDate((prev) => addMonths(prev, 1));
+      setCurrentDate((prev) => subMonths(prev, 1));
     }
   };
 
@@ -54,6 +55,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   };
 
   const activeTab = filterState.tabFilter || 'calendar';
+
+  if (activeTab === 'schedule') {
+    return <ScheduleView onSelectEvent={onSelectEvent} onOpenAddEvent={onOpenAddEvent} />;
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
@@ -139,7 +144,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 className="btn"
                 onClick={() => setViewMode(mode)}
                 style={{
-                  borderRadius: '9px',
+                  borderRadius: '999px',
                   padding: '0.4rem 0.85rem',
                   fontSize: '0.85rem',
                   textTransform: 'capitalize',

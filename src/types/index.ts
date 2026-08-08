@@ -57,14 +57,14 @@ export interface UserProfile {
   profile_color: string;
 }
 
-export type ViewMode = 'month' | 'week' | 'agenda';
+export type ViewMode = 'month' | 'week' | 'agenda' | 'schedule';
 
 export interface FilterState {
   search: string;
   personFilter: 'all' | 'me' | 'friend' | string;
   eventTypeFilter: EventType | 'all';
   courseFilter: string | 'all';
-  tabFilter?: 'calendar' | 'upcoming' | 'important' | 'settings';
+  tabFilter?: 'calendar' | 'schedule' | 'upcoming' | 'important' | 'settings';
 }
 
 export const CATEGORY_COLORS: { label: EventCategory; color: string; emoji: string; symbol: string }[] = [
