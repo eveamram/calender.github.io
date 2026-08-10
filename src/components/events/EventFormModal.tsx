@@ -3,7 +3,7 @@ import { useCalendar } from '../../context/CalendarContext';
 import { useAuth } from '../../context/AuthContext';
 import { CalendarEvent, EventCategory, CATEGORY_COLORS } from '../../types';
 import { format } from 'date-fns';
-import { X, Calendar as CalendarIcon, Clock, MapPin, AlignLeft, Tag } from 'lucide-react';
+import { X } from 'lucide-react';
 
 interface EventFormModalProps {
   isOpen: boolean;
@@ -18,7 +18,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
   initialDate,
   eventToEdit,
 }) => {
-  const { addEvent, updateEvent, activeCalendar } = useCalendar();
+  const { addEvent, updateEvent } = useCalendar();
   const { userProfile } = useAuth();
 
   const [title, setTitle] = useState('');
@@ -106,6 +106,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
       justifyContent: 'center',
       zIndex: 10000,
       padding: '1rem',
+      fontFamily: "'Plus Jakarta Sans', sans-serif",
     }} onClick={onClose}>
       <div style={{
         backgroundColor: 'var(--bg-secondary)',
@@ -123,7 +124,12 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
           justifyContent: 'space-between',
           marginBottom: '1.25rem',
         }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+          <h3 style={{
+            fontSize: '1.15rem',
+            fontWeight: 800,
+            color: 'var(--text-primary)',
+            letterSpacing: '-0.02em',
+          }}>
             {eventToEdit ? 'Edit Event' : 'New Event'}
           </h3>
 
@@ -142,9 +148,9 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
           </button>
         </div>
 
-        {/* Clean Minimal Form */}
+        {/* Form Body */}
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {/* Title Input */}
+          {/* Event Title Input */}
           <div>
             <input
               type="text"
@@ -154,14 +160,19 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
               onChange={(e) => setTitle(e.target.value)}
               autoFocus
               required
-              style={{ fontSize: '0.95rem', fontWeight: 600 }}
+              style={{
+                fontSize: '0.975rem',
+                fontWeight: 700,
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                padding: '0.75rem 1rem',
+              }}
             />
           </div>
 
           {/* Date & Time */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
             <div>
-              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
                 Date
               </label>
               <input
@@ -174,7 +185,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
             </div>
 
             <div>
-              <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
                 Start Time
               </label>
               <input
@@ -188,7 +199,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
 
           {/* Category Color Swatches */}
           <div>
-            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
               Category
             </label>
             <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
@@ -201,17 +212,18 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
                     setColor(cat.color);
                   }}
                   style={{
-                    padding: '0.3rem 0.65rem',
+                    padding: '0.35rem 0.7rem',
                     borderRadius: '6px',
                     border: category === cat.label ? `2px solid ${cat.color}` : '1px solid var(--border-color)',
                     backgroundColor: category === cat.label ? `${cat.color}15` : 'transparent',
                     color: 'var(--text-primary)',
                     fontSize: '0.775rem',
-                    fontWeight: 600,
+                    fontWeight: 700,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px',
+                    gap: '5px',
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
                   }}
                 >
                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: cat.color }} />
@@ -221,7 +233,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
             </div>
           </div>
 
-          {/* Optional Location */}
+          {/* Location Input */}
           <div>
             <input
               type="text"
@@ -232,7 +244,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
             />
           </div>
 
-          {/* Action Buttons */}
+          {/* Actions */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -252,6 +264,10 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
               type="submit"
               className="btn btn-primary"
               disabled={isSubmitting || !title.trim()}
+              style={{
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontWeight: 800,
+              }}
             >
               {isSubmitting ? 'Saving...' : eventToEdit ? 'Save Changes' : 'Create Event'}
             </button>

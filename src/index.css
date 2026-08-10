@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
   /* Apple Calendar / Linear Quiet Premium Palette */
@@ -61,6 +61,11 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+  letter-spacing: -0.015em;
+}
+
 /* Minimal Input */
 .input-field {
   width: 100%;
@@ -69,8 +74,9 @@ body {
   border: 1px solid var(--border-color);
   background-color: var(--bg-secondary);
   color: var(--text-primary);
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
   outline: none;
   transition: border-color 0.15s ease;
 }
@@ -86,7 +92,8 @@ body {
   justify-content: center;
   gap: 0.4rem;
   padding: 0.5rem 0.9rem;
-  font-weight: 600;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
   font-size: 0.85rem;
   border-radius: var(--radius-sm);
   border: none;
