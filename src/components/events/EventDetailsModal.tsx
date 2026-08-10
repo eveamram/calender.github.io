@@ -116,6 +116,12 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
           <div style={{ fontSize: '0.775rem', fontWeight: 700, color: ownerName === 'Eve' ? '#1E40AF' : '#9D174D', marginTop: '4px' }}>
             Added by {ownerName}
           </div>
+
+          {event.image_url && (
+            <div style={{ marginTop: '0.75rem', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-color)', maxHeight: '180px' }}>
+              <img src={event.image_url} alt="Attachment" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            </div>
+          )}
         </div>
 
         {/* Footer Actions */}

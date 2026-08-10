@@ -142,6 +142,8 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
               ownerName === 'Eve' ? { bg: '#EFF6FF', color: '#1E40AF', border: '1px solid #BFDBFE' } :
               { bg: '#FDF2F8', color: '#9D174D', border: '1px solid #FBCFE8' };
 
+            const itemColor = evt.color || '#3B82F6';
+
             return (
               <div
                 key={evt.id}
@@ -156,6 +158,7 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
                   borderRadius: 'var(--radius-md)',
                   backgroundColor: isCompleted ? 'var(--bg-hover)' : 'var(--bg-primary)',
                   border: '1px solid var(--border-subtle)',
+                  borderLeft: `4px solid ${itemColor}`,
                   transition: 'background-color 0.12s ease',
                   opacity: isCompleted ? 0.6 : 1,
                 }}

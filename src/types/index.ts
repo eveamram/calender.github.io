@@ -67,8 +67,11 @@ export interface CalendarEvent {
   is_completed?: boolean;
   show_on_calendar?: boolean; // Specific toggle per to-do item
   priority?: 'high' | 'normal' | 'low';
-  recurrence_days?: number[];
+  recurrence_days?: number[]; // 1 = Mon, 2 = Tue, 3 = Wed, 4 = Thu, 5 = Fri, 6 = Sat, 7 = Sun
+  term_start_date?: string; // e.g. "2026-08-24"
+  term_end_date?: string; // e.g. "2026-12-04"
   notes?: string;
+  image_url?: string;
   reminder_minutes?: number;
   created_at?: string;
   updated_at?: string;

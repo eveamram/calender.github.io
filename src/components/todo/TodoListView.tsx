@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useCalendar } from '../../context/CalendarContext';
 import { CalendarEvent } from '../../types';
 import { format, parseISO } from 'date-fns';
-import { Plus, CheckCircle2, Circle, Trash2, Calendar as CalendarIcon, Eye, EyeOff, Edit3, User, Sparkles, Check } from 'lucide-react';
+import { Plus, Circle, Trash2, Calendar as CalendarIcon, Edit3, User, ChevronDown, ChevronRight, Check, Sparkles, Flame, CheckCircle2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 interface TodoListViewProps {
@@ -10,14 +10,25 @@ interface TodoListViewProps {
   onEditTask?: (task: CalendarEvent) => void;
 }
 
-export const TodoListView: React.FC<TodoListViewProps> = ({ onOpenAddEvent, onEditTask }) => {
-  const { filteredEvents, members, toggleEventCompleted, deleteEvent, updateEvent, addEvent, activePersonaFilter, setActivePersonaFilter } = useCalendar();
+const CATEGORY_TAGS = [
+  { label: 'General', emoji: '✨' },
+  { label: 'School', emoji: '📚' },
+  { label: 'Work', emoji: '💼' },
+  { label: 'Personal', emoji: '☕' },
+  { label: 'Health', emoji: '🩺' },
+  { label: 'Shopping', emoji: '🛍️' },
+];
+
+export const TodoListView: React.FC<TodoListViewProps> = ({ onEditTask }) => {
+  const { filteredEvents, members, toggleEventCompleted, deleteEvent, addEvent, activePersonaFilter } = useCalendar();
 
   const [newTaskText, setNewTaskText] = useState('');
   const [newTaskDueDate, setNewTaskDueDate] = useState('');
-  const [newTaskShowOnCalendar, setNewTaskShowOnCalendar] = useState(false);
+  const [newTaskCategory, setNewTaskCategory] = useState('General');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCompletedOpen, setIsCompletedOpen] = useState(false); // Collapsed by default
 
-  // Filter unified events strictly for tasks
+  // Filter unified events strictly for tasks (type === 'task')
   const allTasks = filteredEvents.filter((evt) => evt.event_type === 'task');
 
   const activeTasks = allTasks.filter((t) => !t.is_completed);
@@ -25,28 +36,29 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onOpenAddEvent, onEd
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
 
-  // Today tasks
+  // Today Tasks
   const todayTasks = activeTasks.filter((t) => {
-    const d = t.event_date || t.due_date;
+    const d = t.due_date || t.event_date;
     return d === todayStr;
   });
 
   const todayAllTasks = allTasks.filter((t) => {
-    const d = t.event_date || t.due_date;
+    const d = t.due_date || t.event_date;
     return d === todayStr;
   });
 
   const todayCompletedCount = todayAllTasks.filter((t) => t.is_completed).length;
+  const todayProgressPercentage = todayAllTasks.length > 0 ? Math.round((todayCompletedCount / todayAllTasks.length) * 100) : 0;
 
-  // Upcoming tasks
+  // Upcoming Tasks
   const upcomingTasks = activeTasks.filter((t) => {
-    const d = t.event_date || t.due_date;
+    const d = t.due_date || t.event_date;
     if (!d) return false;
     return d > todayStr;
   });
 
-  // No Date tasks
-  const noDateTasks = activeTasks.filter((t) => !t.event_date && !t.due_date);
+  // No Date Tasks
+  const noDateTasks = activeTasks.filter((t) => !t.due_date && !t.event_date);
 
   const getOwnerName = (evt: CalendarEvent) => {
     if (evt.owner_user_id) {
@@ -62,49 +74,60 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onOpenAddEvent, onEd
 
   const handleQuickAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTaskText.trim()) return;
+    if (!newTaskText.trim() || isSubmitting) return;
 
-    await addEvent({
-      title: newTaskText.trim(),
-      event_type: 'task',
-      event_date: newTaskDueDate || undefined,
-      due_date: newTaskDueDate || undefined,
-      show_on_calendar: newTaskShowOnCalendar,
-      is_completed: false,
-    });
+    setIsSubmitting(true);
+    try {
+      const selectedCat = CATEGORY_TAGS.find((c) => c.label === newTaskCategory);
+      await addEvent({
+        title: newTaskText.trim(),
+        event_type: 'task',
+        event_date: newTaskDueDate || undefined,
+        due_date: newTaskDueDate || undefined,
+        emoji: selectedCat?.emoji || '📝',
+        show_on_calendar: !!newTaskDueDate,
+        is_completed: false,
+      });
 
-    setNewTaskText('');
-    setNewTaskDueDate('');
+      setNewTaskText('');
+      setNewTaskDueDate('');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleToggleTask = async (task: CalendarEvent) => {
     if (!task.is_completed) {
-      // Confetti burst on completion!
-      confetti({ particleCount: 45, spread: 60, origin: { y: 0.7 } });
+      // Fun Confetti Explosions!
+      confetti({
+        particleCount: 50,
+        spread: 60,
+        origin: { y: 0.7 },
+        colors: ['#3B82F6', '#EC4899', '#10B981', '#F59E0B'],
+      });
+
+      // Special grand celebration when all today's tasks are done!
       if (todayTasks.length === 1 && todayTasks[0].id === task.id) {
-        // Extra celebration when all today's tasks are complete!
         setTimeout(() => {
-          confetti({ particleCount: 80, spread: 90, origin: { y: 0.5 } });
-        }, 250);
+          confetti({
+            particleCount: 100,
+            spread: 100,
+            origin: { y: 0.5 },
+          });
+        }, 200);
       }
     }
     await toggleEventCompleted(task.id);
   };
 
-  const handleToggleShowOnCalendar = (task: CalendarEvent) => {
-    const currentVal = task.show_on_calendar !== false;
-    updateEvent(task.id, { show_on_calendar: !currentVal });
-  };
-
-  const renderTaskItem = (task: CalendarEvent) => {
+  const renderTaskRow = (task: CalendarEvent) => {
     const isCompleted = task.is_completed;
-    const dueDateStr = task.event_date || task.due_date;
-    const isShownOnCalendar = task.show_on_calendar !== false;
+    const dueDateStr = task.due_date || task.event_date;
     const ownerName = getOwnerName(task);
 
-    const ownerStyle =
-      ownerName === 'Eve' ? { bg: '#EFF6FF', color: '#1E40AF' } :
-      { bg: '#FDF2F8', color: '#9D174D' };
+    const ownerStyle = ownerName === 'Eve'
+      ? { bg: '#EFF6FF', color: '#1E40AF' }
+      : { bg: '#FDF2F8', color: '#9D174D' };
 
     return (
       <div
@@ -116,13 +139,16 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onOpenAddEvent, onEd
           gap: '0.75rem',
           padding: '0.7rem 0.9rem',
           borderRadius: 'var(--radius-md)',
-          backgroundColor: isCompleted ? 'var(--bg-hover)' : 'var(--bg-primary)',
-          borderBottom: '1px solid var(--border-subtle)',
+          backgroundColor: isCompleted ? 'var(--bg-hover)' : 'var(--bg-secondary)',
+          border: '1px solid var(--border-subtle)',
+          borderLeft: `3.5px solid ${task.color || '#F59E0B'}`,
           opacity: isCompleted ? 0.55 : 1,
-          transition: 'all 0.15s ease',
+          transition: 'all 0.18s cubic-bezier(0.4, 0, 0.2, 1)',
+          transform: 'translateZ(0)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
+          {/* Checkbox with scale effect */}
           <button
             type="button"
             onClick={() => handleToggleTask(task)}
@@ -135,29 +161,35 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onOpenAddEvent, onEd
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              transition: 'transform 0.12s ease',
             }}
+            title={isCompleted ? "Mark incomplete" : "Mark complete! 🎉"}
           >
             {isCompleted ? (
               <div style={{
-                width: '20px',
-                height: '20px',
+                width: '22px',
+                height: '22px',
                 borderRadius: '50%',
                 backgroundColor: '#10B981',
                 color: '#FFFFFF',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)',
               }}>
-                <Check size={13} strokeWidth={3} />
+                <Check size={14} strokeWidth={3} />
               </div>
             ) : (
-              <Circle size={20} />
+              <Circle size={21} strokeWidth={1.8} />
             )}
           </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', minWidth: 0, flexWrap: 'wrap' }}>
+          {/* Task Title & Tags */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, flexWrap: 'wrap' }}>
+            {task.emoji && <span style={{ fontSize: '0.9rem' }}>{task.emoji}</span>}
+
             <span style={{
-              fontSize: '0.9rem',
+              fontSize: '0.925rem',
               fontWeight: 600,
               color: 'var(--text-primary)',
               textDecoration: isCompleted ? 'line-through' : 'none',
@@ -166,15 +198,25 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onOpenAddEvent, onEd
             </span>
 
             {dueDateStr && (
-              <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                <CalendarIcon size={11} /> {format(parseISO(dueDateStr), 'MMM d')}
+              <span style={{
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                color: 'var(--text-muted)',
+                backgroundColor: 'var(--bg-hover)',
+                padding: '0.15rem 0.45rem',
+                borderRadius: '4px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+              }}>
+                <CalendarIcon size={10} /> {format(parseISO(dueDateStr), 'MMM d')}
               </span>
             )}
 
-            {/* Owner Badge rendered ONLY when persona filter is set to "Both" */}
+            {/* Owner badge ONLY shown when viewing persona filter "Both" */}
             {activePersonaFilter === 'all' && (
               <span style={{
-                fontSize: '0.675rem',
+                fontSize: '0.65rem',
                 fontWeight: 800,
                 padding: '0.1rem 0.45rem',
                 borderRadius: '999px',
@@ -184,37 +226,14 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onOpenAddEvent, onEd
                 alignItems: 'center',
                 gap: '2px',
               }}>
-                <User size={10} /> {ownerName}
+                <User size={9} /> {ownerName}
               </span>
             )}
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {/* Specific Show/Hide on Calendar Toggle */}
-          <button
-            type="button"
-            onClick={() => handleToggleShowOnCalendar(task)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '3px',
-              padding: '0.2rem 0.45rem',
-              borderRadius: '4px',
-              border: 'none',
-              backgroundColor: isShownOnCalendar ? '#EFF6FF' : 'transparent',
-              color: isShownOnCalendar ? '#2563EB' : 'var(--text-muted)',
-              fontSize: '0.7rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-            title={isShownOnCalendar ? "Shown on Calendar (click to hide)" : "Hidden from Calendar (click to show)"}
-          >
-            {isShownOnCalendar ? <Eye size={12} /> : <EyeOff size={12} />}
-            {isShownOnCalendar ? 'On Cal' : 'Off Cal'}
-          </button>
-
-          {/* Edit Task Button */}
+        {/* Actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
           {onEditTask && (
             <button
               type="button"
@@ -224,7 +243,8 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onOpenAddEvent, onEd
                 border: 'none',
                 color: 'var(--text-muted)',
                 cursor: 'pointer',
-                padding: '2px',
+                padding: '3px',
+                borderRadius: '4px',
               }}
               title="Edit Task"
             >
@@ -232,7 +252,6 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onOpenAddEvent, onEd
             </button>
           )}
 
-          {/* Delete Task Button */}
           <button
             type="button"
             onClick={() => deleteEvent(task.id)}
@@ -241,7 +260,8 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onOpenAddEvent, onEd
               border: 'none',
               color: 'var(--text-muted)',
               cursor: 'pointer',
-              padding: '2px',
+              padding: '3px',
+              borderRadius: '4px',
             }}
             title="Delete Task"
           >
@@ -257,14 +277,14 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onOpenAddEvent, onEd
       backgroundColor: 'var(--bg-secondary)',
       border: '1px solid var(--border-color)',
       borderRadius: 'var(--radius-lg)',
-      padding: '1.5rem 1.75rem',
+      padding: '1.75rem',
       width: '100%',
-      maxWidth: '780px',
+      maxWidth: '740px',
       margin: '0 auto',
       boxShadow: 'var(--shadow-subtle)',
       fontFamily: "'Plus Jakarta Sans', sans-serif",
     }}>
-      {/* Minimal Header */}
+      {/* Header with Fun Progress Progress Gauge */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -272,85 +292,66 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onOpenAddEvent, onEd
         flexWrap: 'wrap',
         gap: '1rem',
         marginBottom: '1.25rem',
-        paddingBottom: '0.85rem',
+        paddingBottom: '1rem',
         borderBottom: '1px solid var(--border-color)',
       }}>
         <div>
-          <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-            {activePersonaFilter === 'all' ? 'To-Do List' : `${activePersonaFilter}'s Tasks`}
+          <h2 style={{
+            fontSize: '1.5rem',
+            fontWeight: 800,
+            color: 'var(--text-primary)',
+            letterSpacing: '-0.02em',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+          }}>
+            To-Do List <Sparkles size={18} color="#F59E0B" />
           </h2>
-          {todayCompletedCount > 0 && (
-            <span style={{ fontSize: '0.775rem', fontWeight: 700, color: '#10B981', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-              <Sparkles size={13} /> {todayCompletedCount} task{todayCompletedCount > 1 ? 's' : ''} accomplished today!
-            </span>
-          )}
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+            {activePersonaFilter === 'all' ? 'Tasks for Eve & Abbie' : `Tasks for ${activePersonaFilter}`}
+          </p>
         </div>
 
-        {/* Persona Selector (Eve -> Abbie -> Both) */}
-        <div style={{
-          display: 'flex',
-          backgroundColor: 'var(--bg-hover)',
-          padding: '2px',
-          borderRadius: '999px',
-          border: '1px solid var(--border-color)',
-        }}>
-          {(['Eve', 'Abbie', 'all'] as const).map((p) => (
-            <button
-              key={p}
-              type="button"
-              onClick={() => setActivePersonaFilter(p)}
-              style={{
-                padding: '0.3rem 0.85rem',
-                borderRadius: '999px',
-                border: 'none',
-                backgroundColor: activePersonaFilter === p
-                  ? (p === 'Eve' ? '#3B82F6' : p === 'Abbie' ? '#EC4899' : 'var(--text-primary)')
-                  : 'transparent',
-                color: activePersonaFilter === p ? '#FFFFFF' : 'var(--text-secondary)',
-                fontWeight: 700,
-                fontSize: '0.775rem',
-                cursor: 'pointer',
-                transition: 'all 0.12s ease',
-              }}
-            >
-              {p === 'all' ? 'Both' : p}
-            </button>
-          ))}
-        </div>
+        {/* Daily Completion Meter */}
+        {todayAllTasks.length > 0 && (
+          <div style={{
+            backgroundColor: 'var(--bg-hover)',
+            padding: '0.5rem 0.85rem',
+            borderRadius: '10px',
+            border: '1px solid var(--border-color)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+          }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                Today's Goal
+              </span>
+              <span style={{ fontSize: '0.825rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                {todayCompletedCount} / {todayAllTasks.length} Done ({todayProgressPercentage}%)
+              </span>
+            </div>
+
+            {/* Mini Progress Bar */}
+            <div style={{
+              width: '42px',
+              height: '8px',
+              borderRadius: '999px',
+              backgroundColor: 'var(--border-color)',
+              overflow: 'hidden',
+            }}>
+              <div style={{
+                height: '100%',
+                width: `${todayProgressPercentage}%`,
+                backgroundColor: todayProgressPercentage === 100 ? '#10B981' : 'var(--accent-primary)',
+                transition: 'width 0.3s ease',
+              }} />
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Clean Quick Add Input */}
-      <form onSubmit={handleQuickAdd} style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.6rem',
-        marginBottom: '1.5rem',
-        flexWrap: 'wrap',
-      }}>
-        <input
-          type="text"
-          className="input-field"
-          placeholder="New task..."
-          value={newTaskText}
-          onChange={(e) => setNewTaskText(e.target.value)}
-          style={{ flex: 1, minWidth: '200px' }}
-        />
-
-        <input
-          type="date"
-          className="input-field"
-          value={newTaskDueDate}
-          onChange={(e) => setNewTaskDueDate(e.target.value)}
-          style={{ width: 'auto', minWidth: '125px' }}
-          title="Due Date (optional)"
-        />
-
-        <button type="submit" className="btn btn-primary" style={{ padding: '0.55rem 1rem', fontSize: '0.825rem' }}>
-          <Plus size={15} /> Add
-        </button>
-      </form>
-
-      {/* All Today's Tasks Completed Banner */}
+      {/* Motivational Celebration Banner if Today's Tasks Complete */}
       {todayAllTasks.length > 0 && todayTasks.length === 0 && (
         <div style={{
           backgroundColor: '#ECFDF5',
@@ -361,61 +362,149 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onOpenAddEvent, onEd
           marginBottom: '1.25rem',
           display: 'flex',
           alignItems: 'center',
-          gap: '0.5rem',
+          gap: '0.6rem',
           fontSize: '0.875rem',
           fontWeight: 700,
         }}>
-          <Sparkles size={18} color="#10B981" /> All tasks completed for today! Awesome job! 🎉
+          <Flame size={20} color="#10B981" />
+          <span>All today's tasks completed! You're crushing it today! 🎉</span>
         </div>
       )}
 
-      {/* Clean Task Sections */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-        {/* Today Section */}
+      {/* Quick Add Form */}
+      <form onSubmit={handleQuickAdd} style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.6rem',
+        marginBottom: '1.75rem',
+        backgroundColor: 'var(--bg-primary)',
+        padding: '0.85rem',
+        borderRadius: 'var(--radius-md)',
+        border: '1px solid var(--border-subtle)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <input
+            type="text"
+            className="input-field"
+            placeholder="+ What do you need to get done?"
+            value={newTaskText}
+            onChange={(e) => setNewTaskText(e.target.value)}
+            style={{ flex: 1, minWidth: '220px', fontSize: '0.9rem' }}
+          />
+
+          <input
+            type="date"
+            className="input-field"
+            value={newTaskDueDate}
+            onChange={(e) => setNewTaskDueDate(e.target.value)}
+            style={{ width: 'auto', minWidth: '130px' }}
+            title="Due Date (optional)"
+          />
+
+          <select
+            className="input-field"
+            value={newTaskCategory}
+            onChange={(e) => setNewTaskCategory(e.target.value)}
+            style={{ width: 'auto', minWidth: '110px' }}
+          >
+            {CATEGORY_TAGS.map((c) => (
+              <option key={c.label} value={c.label}>
+                {c.emoji} {c.label}
+              </option>
+            ))}
+          </select>
+
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={isSubmitting || !newTaskText.trim()}
+            style={{ padding: '0.55rem 1rem', fontSize: '0.825rem' }}
+          >
+            <Plus size={15} /> Add Task
+          </button>
+        </div>
+      </form>
+
+      {/* Task Sections */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        {/* TODAY */}
         <div>
-          <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.4rem' }}>
-            Today ({todayTasks.length})
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+            <h3 style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Today ({todayTasks.length})
+            </h3>
           </div>
+
           {todayTasks.length === 0 ? (
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: '0.3rem 0' }}>
-              No remaining tasks for today!
+            <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: '0.25rem 0' }}>
+              No tasks due today.
             </div>
           ) : (
-            <div>{todayTasks.map(renderTaskItem)}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+              {todayTasks.map(renderTaskRow)}
+            </div>
           )}
         </div>
 
-        {/* Upcoming Section */}
+        {/* UPCOMING */}
         <div>
-          <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.4rem' }}>
+          <h3 style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
             Upcoming ({upcomingTasks.length})
-          </div>
+          </h3>
           {upcomingTasks.length === 0 ? (
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: '0.3rem 0' }}>
+            <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: '0.25rem 0' }}>
               No upcoming tasks.
             </div>
           ) : (
-            <div>{upcomingTasks.map(renderTaskItem)}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+              {upcomingTasks.map(renderTaskRow)}
+            </div>
           )}
         </div>
 
-        {/* No Date Section */}
+        {/* NO DATE */}
         {noDateTasks.length > 0 && (
           <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.4rem' }}>
-              Someday ({noDateTasks.length})
+            <h3 style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+              No Date ({noDateTasks.length})
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+              {noDateTasks.map(renderTaskRow)}
             </div>
-            <div>{noDateTasks.map(renderTaskItem)}</div>
           </div>
         )}
 
-        {/* Completed Section */}
+        {/* COMPLETED (COLLAPSED BY DEFAULT) */}
         {completedTasks.length > 0 && (
           <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.4rem' }}>
-              Completed ({completedTasks.length})
-            </div>
-            <div>{completedTasks.map(renderTaskItem)}</div>
+            <button
+              type="button"
+              onClick={() => setIsCompletedOpen(!isCompletedOpen)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '0.75rem',
+                fontWeight: 800,
+                color: 'var(--text-muted)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                marginBottom: isCompletedOpen ? '0.65rem' : 0,
+                padding: 0,
+              }}
+            >
+              {isCompletedOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+              <CheckCircle2 size={13} color="#10B981" /> Completed ({completedTasks.length})
+            </button>
+
+            {isCompletedOpen && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                {completedTasks.map(renderTaskRow)}
+              </div>
+            )}
           </div>
         )}
       </div>

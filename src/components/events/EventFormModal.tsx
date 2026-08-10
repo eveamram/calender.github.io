@@ -3,7 +3,7 @@ import { useCalendar } from '../../context/CalendarContext';
 import { useAuth } from '../../context/AuthContext';
 import { CalendarEvent, EventType, CATEGORY_COLORS } from '../../types';
 import { format } from 'date-fns';
-import { X, Calendar as CalendarIcon, CheckSquare, GraduationCap } from 'lucide-react';
+import { X, Calendar as CalendarIcon, CheckSquare, GraduationCap, Image as ImageIcon, Check, Palette } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 interface EventFormModalProps {
@@ -36,6 +36,9 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
   const [location, setLocation] = useState('');
   const [priority, setPriority] = useState<'high' | 'normal' | 'low'>('normal');
   const [taskOwner, setTaskOwner] = useState<'Eve' | 'Abbie'>(activePersonaName);
+  const [recurrenceDays, setRecurrenceDays] = useState<number[]>([1, 3]); // Mon + Wed default for class
+  const [selectedColor, setSelectedColor] = useState<string>('#3B82F6');
+  const [imageUrl, setImageUrl] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -58,6 +61,9 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
       setEventType(eventToEdit.event_type as EventType);
       setLocation(eventToEdit.location || '');
       setPriority(eventToEdit.priority || 'normal');
+      setRecurrenceDays(eventToEdit.recurrence_days || [1, 3]);
+      setSelectedColor(eventToEdit.color || '#3B82F6');
+      setImageUrl(eventToEdit.image_url || '');
     } else {
       setTitle('');
       setEventDate(format(initialDate || new Date(), 'yyyy-MM-dd'));
@@ -65,15 +71,21 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
       setEndTime('11:00');
       setLocation('');
       setPriority('normal');
+      setRecurrenceDays([1, 3]);
+      setSelectedColor('#3B82F6');
+      setImageUrl('');
       if (defaultCategory === 'class' || defaultCategory === 'School') {
         setFormMode('class');
         setEventType('class');
+        setSelectedColor('#3B82F6');
       } else if (defaultCategory === 'task') {
         setFormMode('task');
         setEventType('task');
+        setSelectedColor('#F59E0B');
       } else {
         setFormMode('event');
         setEventType('personal');
+        setSelectedColor('#8B5CF6');
       }
     }
   }, [eventToEdit, initialDate, isOpen, defaultCategory]);
@@ -102,15 +114,11 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
         end_time: endTime || undefined,
         location: location.trim() || undefined,
         priority: formMode === 'task' ? priority : undefined,
+        recurrence_days: formMode === 'class' ? recurrenceDays : undefined,
         owner_user_id: ownerId,
         created_by: ownerId || undefined,
-        color:
-          finalType === 'class' ? '#3B82F6' :
-          finalType === 'task' ? '#F59E0B' :
-          finalType === 'exam' ? '#EF4444' :
-          finalType === 'appointment' ? '#10B981' :
-          finalType === 'birthday' ? '#EC4899' :
-          finalType === 'trip' ? '#8B5CF6' : '#3B82F6',
+        color: selectedColor,
+        image_url: imageUrl || undefined,
         is_completed: false,
       };
 
@@ -356,10 +364,59 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
               <input
                 type="text"
                 className="input-field"
-                placeholder="Location (e.g. Room 204 or Cafe)..."
+                placeholder="Location (e.g. Room 204 or Science Hall)..."
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
               />
+            </div>
+          )}
+
+          {/* Recurring Schedule Days (Class mode) */}
+          {formMode === 'class' && (
+            <div>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                Recurring Days
+              </label>
+              <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                {[
+                  { label: 'M', day: 1 },
+                  { label: 'T', day: 2 },
+                  { label: 'W', day: 3 },
+                  { label: 'Th', day: 4 },
+                  { label: 'F', day: 5 },
+                  { label: 'S', day: 6 },
+                  { label: 'Su', day: 7 },
+                ].map(({ label, day }) => {
+                  const isSelected = recurrenceDays.includes(day);
+                  return (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => {
+                        if (isSelected) {
+                          setRecurrenceDays(recurrenceDays.filter((d) => d !== day));
+                        } else {
+                          setRecurrenceDays([...recurrenceDays, day].sort());
+                        }
+                      }}
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '6px',
+                        border: isSelected ? '1px solid var(--accent-primary)' : '1px solid var(--border-color)',
+                        backgroundColor: isSelected ? 'var(--accent-light)' : 'var(--bg-secondary)',
+                        color: isSelected ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                        fontWeight: 700,
+                        fontSize: '0.775rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.12s ease',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 
@@ -380,6 +437,159 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
               </select>
             </div>
           )}
+
+          {/* Color Selector */}
+          <div>
+            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+              Item Color (Choose any color)
+            </label>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              {[
+                { name: 'Blue', hex: '#3B82F6' },
+                { name: 'Pink', hex: '#EC4899' },
+                { name: 'Green', hex: '#10B981' },
+                { name: 'Purple', hex: '#8B5CF6' },
+                { name: 'Amber', hex: '#F59E0B' },
+                { name: 'Red', hex: '#EF4444' },
+                { name: 'Cyan', hex: '#06B6D4' },
+                { name: 'Dark', hex: '#3F3F46' },
+              ].map((col) => (
+                <button
+                  key={col.hex}
+                  type="button"
+                  onClick={() => setSelectedColor(col.hex)}
+                  style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
+                    backgroundColor: col.hex,
+                    border: selectedColor === col.hex ? '2.5px solid var(--text-primary)' : 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#FFFFFF',
+                    transition: 'transform 0.12s ease',
+                    transform: selectedColor === col.hex ? 'scale(1.1)' : 'scale(1)',
+                  }}
+                  title={col.name}
+                >
+                  {selectedColor === col.hex && <Check size={13} strokeWidth={3} />}
+                </button>
+              ))}
+
+              {/* Custom Color Wheel Picker */}
+              <label
+                style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '50%',
+                  background: 'conic-gradient(red, yellow, lime, cyan, blue, magenta, red)',
+                  border: '2px solid var(--border-color)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}
+                title="Choose custom color..."
+              >
+                <input
+                  type="color"
+                  value={selectedColor}
+                  onChange={(e) => setSelectedColor(e.target.value)}
+                  style={{
+                    position: 'absolute',
+                    opacity: 0,
+                    width: '100%',
+                    height: '100%',
+                    cursor: 'pointer',
+                  }}
+                />
+                <Palette size={12} color="#FFFFFF" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))' }} />
+              </label>
+            </div>
+          </div>
+
+          {/* Image Attachment (from Downloads / Pictures) */}
+          <div>
+            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+              Attach Picture (from Downloads / Pictures)
+            </label>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <input
+                type="text"
+                className="input-field"
+                placeholder="Image URL or upload from device..."
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                style={{ flex: 1 }}
+              />
+
+              <label style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.3rem',
+                padding: '0.65rem 0.85rem',
+                borderRadius: 'var(--radius-sm)',
+                backgroundColor: 'var(--bg-hover)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-primary)',
+                fontWeight: 700,
+                fontSize: '0.775rem',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}>
+                <ImageIcon size={15} /> Upload
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = (evt) => {
+                        if (evt.target?.result) {
+                          setImageUrl(evt.target.result as string);
+                        }
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                />
+              </label>
+            </div>
+
+            {imageUrl && (
+              <div style={{ marginTop: '0.5rem', position: 'relative', width: '60px', height: '60px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                <img src={imageUrl} alt="Attachment Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <button
+                  type="button"
+                  onClick={() => setImageUrl('')}
+                  style={{
+                    position: 'absolute',
+                    top: '2px',
+                    right: '2px',
+                    backgroundColor: 'rgba(0,0,0,0.6)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '16px',
+                    height: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <X size={10} />
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* Action Buttons */}
           <div style={{

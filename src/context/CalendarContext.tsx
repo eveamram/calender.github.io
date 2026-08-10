@@ -41,6 +41,9 @@ interface CalendarContextType {
   activePersonaFilter: 'Eve' | 'Abbie' | 'all';
   setActivePersonaFilter: (persona: 'Eve' | 'Abbie' | 'all') => void;
 
+  themeColor: string;
+  setThemeColor: (color: string) => void;
+
   showTodosOnCalendar: boolean;
   setShowTodosOnCalendar: (show: boolean) => void;
 }
@@ -148,6 +151,24 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const activePersonaName = (userProfile?.display_name as 'Eve' | 'Abbie') || 'Eve';
 
   const [activePersonaFilter, setActivePersonaFilter] = useState<'Eve' | 'Abbie' | 'all'>(activePersonaName);
+  const [themeColor, setThemeColorState] = useState<string>(() => {
+    try {
+      return localStorage.getItem('calender_theme_color') || '#3B82F6';
+    } catch {
+      return '#3B82F6';
+    }
+  });
+
+  const setThemeColor = (color: string) => {
+    setThemeColorState(color);
+    localStorage.setItem('calender_theme_color', color);
+  };
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--accent-primary', themeColor);
+    document.documentElement.style.setProperty('--accent-light', `${themeColor}15`);
+  }, [themeColor]);
+
   const [showTodosOnCalendar, setShowTodosOnCalendar] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem('calender_show_todos');
@@ -296,6 +317,8 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         removeToast,
         activePersonaFilter,
         setActivePersonaFilter,
+        themeColor,
+        setThemeColor,
         showTodosOnCalendar,
         setShowTodosOnCalendar,
       }}

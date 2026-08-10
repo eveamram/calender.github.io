@@ -154,18 +154,56 @@ export const PersonCustomizeModal: React.FC<PersonCustomizeModalProps> = ({
             </div>
           </div>
 
-          {/* Custom Picture URL Input */}
+          {/* Image Upload & URL Input */}
           <div>
-            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
-              Image URL (Optional)
+            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+              Profile Photo (Upload from Pictures / Downloads)
             </label>
-            <input
-              type="text"
-              className="input-field"
-              placeholder="https://example.com/my-photo.jpg"
-              value={avatarUrl.startsWith('http') ? avatarUrl : ''}
-              onChange={(e) => setAvatarUrl(e.target.value)}
-            />
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <input
+                type="text"
+                className="input-field"
+                placeholder="https://example.com/photo.jpg or upload..."
+                value={avatarUrl.startsWith('http') || avatarUrl.startsWith('data:') ? avatarUrl : ''}
+                onChange={(e) => setAvatarUrl(e.target.value)}
+                style={{ flex: 1 }}
+              />
+
+              <label style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.3rem',
+                padding: '0.65rem 0.85rem',
+                borderRadius: 'var(--radius-sm)',
+                backgroundColor: 'var(--bg-hover)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-primary)',
+                fontWeight: 700,
+                fontSize: '0.775rem',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}>
+                <ImageIcon size={15} /> Upload File
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = (evt) => {
+                        if (evt.target?.result) {
+                          setAvatarUrl(evt.target.result as string);
+                        }
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                />
+              </label>
+            </div>
           </div>
 
           {/* Display Name */}
