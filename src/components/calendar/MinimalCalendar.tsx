@@ -18,7 +18,7 @@ import {
   isBefore,
   startOfDay,
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, CheckSquare } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckSquare, User } from 'lucide-react';
 
 interface MinimalCalendarProps {
   selectedDate: Date;
@@ -37,6 +37,7 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
     currentDate,
     setCurrentDate,
     filteredEvents,
+    members,
     activePersonaFilter,
     setActivePersonaFilter,
     showTodosOnCalendar,
@@ -46,6 +47,18 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
   const [calendarMode, setCalendarMode] = useState<'month' | 'week'>('month');
 
   const todayStart = startOfDay(new Date());
+
+  const getOwnerName = (evt: CalendarEvent) => {
+    if (evt.owner_user_id) {
+      const owner = members.find((m) => m.user_id === evt.owner_user_id || m.id === evt.owner_user_id);
+      if (owner) return owner.display_name;
+    }
+    if (evt.created_by) {
+      const creator = members.find((m) => m.user_id === evt.created_by || m.id === evt.created_by);
+      if (creator) return creator.display_name;
+    }
+    return 'Eve';
+  };
 
   // Helper to filter events for a given date
   const getEventsForDate = (date: Date) => {
@@ -114,7 +127,7 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
         </h2>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-          {/* Week / Month Mode Switcher (No Day option per request) */}
+          {/* Week / Month Mode Switcher */}
           <div style={{
             display: 'flex',
             backgroundColor: 'var(--bg-hover)',
@@ -338,6 +351,8 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flex: 1, overflow: 'hidden' }}>
                   {visibleEvents.map((evt) => {
                     const isCompletedOrPast = evt.is_completed || isPastDay;
+                    const ownerName = getOwnerName(evt);
+
                     return (
                       <div
                         key={evt.id}
@@ -358,9 +373,27 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
                           textOverflow: 'ellipsis',
                           textDecoration: isCompletedOrPast ? 'line-through' : 'none',
                           opacity: isCompletedOrPast ? 0.6 : 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '2px',
                         }}
                       >
-                        {evt.title}
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{evt.title}</span>
+                        {/* Owner Badge rendered ONLY when persona filter is "Both" */}
+                        {activePersonaFilter === 'all' && (
+                          <span style={{
+                            fontSize: '0.6rem',
+                            fontWeight: 800,
+                            padding: '0 0.3rem',
+                            borderRadius: '999px',
+                            backgroundColor: ownerName === 'Eve' ? '#DBEAFE' : '#FCE7F3',
+                            color: ownerName === 'Eve' ? '#1E40AF' : '#9D174D',
+                            flexShrink: 0,
+                          }}>
+                            {ownerName[0]}
+                          </span>
+                        )}
                       </div>
                     );
                   })}
@@ -416,26 +449,47 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
-                  {dayEvents.map((evt) => (
-                    <div
-                      key={evt.id}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectEvent(evt);
-                      }}
-                      style={{
-                        padding: '0.35rem 0.5rem',
-                        borderRadius: '6px',
-                        backgroundColor: `${evt.color || '#3B82F6'}15`,
-                        borderLeft: `3px solid ${evt.color || '#3B82F6'}`,
-                        fontSize: '0.725rem',
-                        fontWeight: 700,
-                        color: 'var(--text-primary)',
-                      }}
-                    >
-                      {evt.title}
-                    </div>
-                  ))}
+                  {dayEvents.map((evt) => {
+                    const ownerName = getOwnerName(evt);
+                    return (
+                      <div
+                        key={evt.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectEvent(evt);
+                        }}
+                        style={{
+                          padding: '0.35rem 0.5rem',
+                          borderRadius: '6px',
+                          backgroundColor: `${evt.color || '#3B82F6'}15`,
+                          borderLeft: `3px solid ${evt.color || '#3B82F6'}`,
+                          fontSize: '0.725rem',
+                          fontWeight: 700,
+                          color: 'var(--text-primary)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '2px',
+                        }}
+                      >
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{evt.title}</span>
+                        {/* Owner Badge rendered ONLY when persona filter is "Both" */}
+                        {activePersonaFilter === 'all' && (
+                          <span style={{
+                            fontSize: '0.6rem',
+                            fontWeight: 800,
+                            padding: '0.1rem 0.35rem',
+                            borderRadius: '999px',
+                            backgroundColor: ownerName === 'Eve' ? '#DBEAFE' : '#FCE7F3',
+                            color: ownerName === 'Eve' ? '#1E40AF' : '#9D174D',
+                            flexShrink: 0,
+                          }}>
+                            {ownerName}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );
