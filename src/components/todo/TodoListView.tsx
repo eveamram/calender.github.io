@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useCalendar } from '../../context/CalendarContext';
 import { CalendarEvent } from '../../types';
 import { format, parseISO } from 'date-fns';
-import { Plus, CheckCircle2, Circle, Trash2, Calendar as CalendarIcon, Eye, EyeOff, Edit3, User } from 'lucide-react';
+import { Plus, CheckCircle2, Circle, Trash2, Calendar as CalendarIcon, Eye, EyeOff, Edit3, User, Sparkles, Check } from 'lucide-react';
+import confetti from 'canvas-confetti';
 
 interface TodoListViewProps {
   onOpenAddEvent?: () => void;
@@ -29,6 +30,13 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onOpenAddEvent, onEd
     const d = t.event_date || t.due_date;
     return d === todayStr;
   });
+
+  const todayAllTasks = allTasks.filter((t) => {
+    const d = t.event_date || t.due_date;
+    return d === todayStr;
+  });
+
+  const todayCompletedCount = todayAllTasks.filter((t) => t.is_completed).length;
 
   // Upcoming tasks
   const upcomingTasks = activeTasks.filter((t) => {
@@ -69,6 +77,20 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onOpenAddEvent, onEd
     setNewTaskDueDate('');
   };
 
+  const handleToggleTask = async (task: CalendarEvent) => {
+    if (!task.is_completed) {
+      // Confetti burst on completion!
+      confetti({ particleCount: 45, spread: 60, origin: { y: 0.7 } });
+      if (todayTasks.length === 1 && todayTasks[0].id === task.id) {
+        // Extra celebration when all today's tasks are complete!
+        setTimeout(() => {
+          confetti({ particleCount: 80, spread: 90, origin: { y: 0.5 } });
+        }, 250);
+      }
+    }
+    await toggleEventCompleted(task.id);
+  };
+
   const handleToggleShowOnCalendar = (task: CalendarEvent) => {
     const currentVal = task.show_on_calendar !== false;
     updateEvent(task.id, { show_on_calendar: !currentVal });
@@ -92,21 +114,45 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onOpenAddEvent, onEd
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: '0.75rem',
-          padding: '0.65rem 0.85rem',
+          padding: '0.7rem 0.9rem',
           borderRadius: 'var(--radius-md)',
-          backgroundColor: 'transparent',
+          backgroundColor: isCompleted ? 'var(--bg-hover)' : 'var(--bg-primary)',
           borderBottom: '1px solid var(--border-subtle)',
-          opacity: isCompleted ? 0.5 : 1,
-          transition: 'all 0.12s ease',
+          opacity: isCompleted ? 0.55 : 1,
+          transition: 'all 0.15s ease',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
           <button
             type="button"
-            onClick={() => toggleEventCompleted(task.id)}
-            style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: isCompleted ? '#10B981' : 'var(--text-muted)', padding: 0 }}
+            onClick={() => handleToggleTask(task)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: isCompleted ? '#10B981' : 'var(--text-muted)',
+              padding: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
           >
-            {isCompleted ? <CheckCircle2 size={18} color="#10B981" /> : <Circle size={18} />}
+            {isCompleted ? (
+              <div style={{
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                backgroundColor: '#10B981',
+                color: '#FFFFFF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Check size={13} strokeWidth={3} />
+              </div>
+            ) : (
+              <Circle size={20} />
+            )}
           </button>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', minWidth: 0, flexWrap: 'wrap' }}>
@@ -229,9 +275,16 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onOpenAddEvent, onEd
         paddingBottom: '0.85rem',
         borderBottom: '1px solid var(--border-color)',
       }}>
-        <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-          {activePersonaFilter === 'all' ? 'To-Do List' : `${activePersonaFilter}'s Tasks`}
-        </h2>
+        <div>
+          <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+            {activePersonaFilter === 'all' ? 'To-Do List' : `${activePersonaFilter}'s Tasks`}
+          </h2>
+          {todayCompletedCount > 0 && (
+            <span style={{ fontSize: '0.775rem', fontWeight: 700, color: '#10B981', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+              <Sparkles size={13} /> {todayCompletedCount} task{todayCompletedCount > 1 ? 's' : ''} accomplished today!
+            </span>
+          )}
+        </div>
 
         {/* Persona Selector (Eve -> Abbie -> Both) */}
         <div style={{
@@ -297,6 +350,25 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onOpenAddEvent, onEd
         </button>
       </form>
 
+      {/* All Today's Tasks Completed Banner */}
+      {todayAllTasks.length > 0 && todayTasks.length === 0 && (
+        <div style={{
+          backgroundColor: '#ECFDF5',
+          border: '1px solid #A7F3D0',
+          color: '#065F46',
+          borderRadius: 'var(--radius-md)',
+          padding: '0.85rem 1rem',
+          marginBottom: '1.25rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          fontSize: '0.875rem',
+          fontWeight: 700,
+        }}>
+          <Sparkles size={18} color="#10B981" /> All tasks completed for today! Awesome job! 🎉
+        </div>
+      )}
+
       {/* Clean Task Sections */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         {/* Today Section */}
@@ -306,7 +378,7 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onOpenAddEvent, onEd
           </div>
           {todayTasks.length === 0 ? (
             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: '0.3rem 0' }}>
-              No tasks due today.
+              No remaining tasks for today!
             </div>
           ) : (
             <div>{todayTasks.map(renderTaskItem)}</div>
@@ -341,7 +413,7 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onOpenAddEvent, onEd
         {completedTasks.length > 0 && (
           <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
             <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.4rem' }}>
-              Done ({completedTasks.length})
+              Completed ({completedTasks.length})
             </div>
             <div>{completedTasks.map(renderTaskItem)}</div>
           </div>

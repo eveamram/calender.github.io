@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar as CalendarIcon, GraduationCap, CheckSquare, Settings, Plus } from 'lucide-react';
+import { Calendar as CalendarIcon, GraduationCap, CheckSquare, Settings, Plus, Sparkles } from 'lucide-react';
 import { useCalendar } from '../../context/CalendarContext';
 
 interface HeaderProps {
@@ -41,26 +41,61 @@ export const Header: React.FC<HeaderProps> = ({
         flexWrap: 'wrap',
         gap: '1rem',
       }}>
-        {/* Creative Logo Badge */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        {/* Playful & Creative Logo */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.65rem',
+          cursor: 'pointer',
+        }}>
+          {/* Creative Calendar Tear-off Icon */}
           <div style={{
-            width: '34px',
-            height: '34px',
-            borderRadius: '9px',
-            background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
+            position: 'relative',
+            width: '38px',
+            height: '38px',
+            borderRadius: '11px',
+            background: 'linear-gradient(135deg, #3B82F6 0%, #EC4899 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: '#FFFFFF',
-            fontWeight: 800,
-            fontSize: '0.95rem',
-            boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+            boxShadow: '0 6px 16px rgba(236, 72, 153, 0.25)',
+            transform: 'rotate(-3deg)',
+            transition: 'transform 0.2s ease',
           }}>
-            {new Date().getDate()}
+            <span style={{ fontWeight: 900, fontSize: '1.05rem', letterSpacing: '-0.02em' }}>
+              {new Date().getDate()}
+            </span>
+            <div style={{
+              position: 'absolute',
+              top: '-4px',
+              right: '-4px',
+              backgroundColor: '#F59E0B',
+              borderRadius: '50%',
+              padding: '2px',
+              color: '#FFFFFF',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+            }}>
+              <Sparkles size={10} />
+            </div>
           </div>
-          <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-            calender
-          </span>
+
+          <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
+            <span style={{
+              fontSize: '1.3rem',
+              fontWeight: 900,
+              color: 'var(--text-primary)',
+              letterSpacing: '-0.03em',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '2px',
+            }}>
+              calender<span style={{ color: '#EC4899' }}>.</span>
+            </span>
+            <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: '2px' }}>
+              Eve & Abbie
+            </span>
+          </div>
         </div>
 
         {/* 3 Core Connected Views: Calendar | Class Schedule | To-Do List */}
