@@ -198,22 +198,24 @@ export const WeeklyClassScheduleView: React.FC<WeeklyClassScheduleViewProps> = (
                           </div>
                         )}
 
-                        {/* Owner Badge (Eve / Abbie) */}
-                        <div style={{ marginTop: '4px' }}>
-                          <span style={{
-                            fontSize: '0.65rem',
-                            fontWeight: 800,
-                            padding: '0.1rem 0.4rem',
-                            borderRadius: '999px',
-                            backgroundColor: ownerStyle.bg,
-                            color: ownerStyle.color,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '2px',
-                          }}>
-                            <User size={9} /> {ownerName}
-                          </span>
-                        </div>
+                        {/* Owner Badge (Rendered ONLY when persona filter is set to "Both") */}
+                        {activePersonaFilter === 'all' && (
+                          <div style={{ marginTop: '4px' }}>
+                            <span style={{
+                              fontSize: '0.65rem',
+                              fontWeight: 800,
+                              padding: '0.1rem 0.4rem',
+                              borderRadius: '999px',
+                              backgroundColor: ownerStyle.bg,
+                              color: ownerStyle.color,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '2px',
+                            }}>
+                              <User size={9} /> {ownerName}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     );
                   })

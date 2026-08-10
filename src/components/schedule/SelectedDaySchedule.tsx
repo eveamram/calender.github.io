@@ -187,21 +187,23 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
                       {typeBadge.label}
                     </span>
 
-                    {/* Owner Badge (Always shown so users know who's is who's!) */}
-                    <span style={{
-                      fontSize: '0.675rem',
-                      fontWeight: 800,
-                      padding: '0.15rem 0.5rem',
-                      borderRadius: '999px',
-                      backgroundColor: ownerStyle.bg,
-                      color: ownerStyle.color,
-                      border: ownerStyle.border,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '3px',
-                    }}>
-                      <User size={10} /> {ownerName}
-                    </span>
+                    {/* Owner Badge (Rendered ONLY when persona filter is set to "Both") */}
+                    {activePersonaFilter === 'all' && (
+                      <span style={{
+                        fontSize: '0.675rem',
+                        fontWeight: 800,
+                        padding: '0.15rem 0.5rem',
+                        borderRadius: '999px',
+                        backgroundColor: ownerStyle.bg,
+                        color: ownerStyle.color,
+                        border: ownerStyle.border,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                      }}>
+                        <User size={10} /> {ownerName}
+                      </span>
+                    )}
 
                     {evt.location && (
                       <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '2px' }}>
