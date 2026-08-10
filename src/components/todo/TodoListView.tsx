@@ -1,89 +1,199 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { Plus, CheckCircle2, Circle, Trash2, Sparkles } from 'lucide-react';
-import confetti from 'canvas-confetti';
+import React, { useState } from 'react';
+import { useCalendar } from '../../context/CalendarContext';
+import { CalendarEvent } from '../../types';
+import { format, parseISO } from 'date-fns';
+import { Plus, CheckCircle2, Circle, Trash2, CheckSquare, ChevronDown, ChevronRight, Calendar as CalendarIcon, Eye, EyeOff, Edit3 } from 'lucide-react';
 
-export interface TodoItem {
-  id: string;
-  owner: 'Eve' | 'Abbie';
-  text: string;
-  priority: 'high' | 'normal' | 'low';
-  is_completed: boolean;
-  created_at: string;
+interface TodoListViewProps {
+  onOpenAddEvent?: () => void;
+  onEditTask?: (task: CalendarEvent) => void;
 }
 
-export const TodoListView: React.FC = () => {
-  const { userProfile } = useAuth();
-  const activePersona = (userProfile?.display_name as 'Eve' | 'Abbie') || 'Eve';
+export const TodoListView: React.FC<TodoListViewProps> = ({ onOpenAddEvent, onEditTask }) => {
+  const { filteredEvents, toggleEventCompleted, deleteEvent, updateEvent, addEvent, activePersonaFilter, setActivePersonaFilter } = useCalendar();
 
-  const [todos, setTodos] = useState<TodoItem[]>(() => {
-    try {
-      const saved = localStorage.getItem('calender_todos');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error(e);
-    }
-    return [
-      { id: '1', owner: 'Eve', text: 'Submit Bio Lab Report', priority: 'high', is_completed: false, created_at: new Date().toISOString() },
-      { id: '2', owner: 'Eve', text: 'Buy textbooks for semester', priority: 'normal', is_completed: true, created_at: new Date().toISOString() },
-      { id: '3', owner: 'Abbie', text: 'Math 202 Problem Set 3', priority: 'high', is_completed: false, created_at: new Date().toISOString() },
-      { id: '4', owner: 'Abbie', text: 'Schedule study group meeting', priority: 'low', is_completed: false, created_at: new Date().toISOString() },
-    ];
+  const [newTaskText, setNewTaskText] = useState('');
+  const [newTaskDueDate, setNewTaskDueDate] = useState('');
+  const [newTaskPriority, setNewTaskPriority] = useState<'high' | 'normal' | 'low'>('normal');
+  const [newTaskShowOnCalendar, setNewTaskShowOnCalendar] = useState(true);
+  const [showCompletedSection, setShowCompletedSection] = useState(false);
+
+  // Filter unified events strictly for tasks
+  const allTasks = filteredEvents.filter((evt) => evt.event_type === 'task');
+
+  const activeTasks = allTasks.filter((t) => !t.is_completed);
+  const completedTasks = allTasks.filter((t) => t.is_completed);
+
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+
+  // Today tasks
+  const todayTasks = activeTasks.filter((t) => {
+    const d = t.event_date || t.due_date;
+    return d === todayStr;
   });
 
-  const [selectedOwnerFilter, setSelectedOwnerFilter] = useState<'Eve' | 'Abbie' | 'all'>(activePersona);
-  const [newText, setNewText] = useState('');
-  const [newPriority, setNewPriority] = useState<'high' | 'normal' | 'low'>('normal');
+  // Upcoming tasks
+  const upcomingTasks = activeTasks.filter((t) => {
+    const d = t.event_date || t.due_date;
+    if (!d) return false;
+    return d > todayStr;
+  });
 
-  // Automatically update view filter when active persona is clicked in header
-  useEffect(() => {
-    if (activePersona === 'Eve' || activePersona === 'Abbie') {
-      setSelectedOwnerFilter(activePersona);
-    }
-  }, [activePersona]);
+  // No Date tasks
+  const noDateTasks = activeTasks.filter((t) => !t.event_date && !t.due_date);
 
-  useEffect(() => {
-    localStorage.setItem('calender_todos', JSON.stringify(todos));
-  }, [todos]);
-
-  const handleAddTodo = (e: React.FormEvent) => {
+  const handleQuickAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newText.trim()) return;
+    if (!newTaskText.trim()) return;
 
-    const newItem: TodoItem = {
-      id: Date.now().toString(),
-      owner: activePersona,
-      text: newText.trim(),
-      priority: newPriority,
+    await addEvent({
+      title: newTaskText.trim(),
+      event_type: 'task',
+      event_date: newTaskDueDate || undefined,
+      due_date: newTaskDueDate || undefined,
+      priority: newTaskPriority,
+      show_on_calendar: newTaskShowOnCalendar,
       is_completed: false,
-      created_at: new Date().toISOString(),
-    };
+    });
 
-    setTodos((prev) => [newItem, ...prev]);
-    setNewText('');
+    setNewTaskText('');
+    setNewTaskDueDate('');
   };
 
-  const handleToggleComplete = (id: string, isCompleted: boolean) => {
-    if (!isCompleted) {
-      confetti({ particleCount: 45, spread: 60, origin: { y: 0.7 } });
-    }
+  const handleToggleShowOnCalendar = (task: CalendarEvent) => {
+    const currentVal = task.show_on_calendar !== false;
+    updateEvent(task.id, { show_on_calendar: !currentVal });
+  };
 
-    setTodos((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, is_completed: !isCompleted } : t))
+  const renderTaskItem = (task: CalendarEvent) => {
+    const isCompleted = task.is_completed;
+    const dueDateStr = task.event_date || task.due_date;
+    const isShownOnCalendar = task.show_on_calendar !== false;
+
+    const priorityBadge =
+      task.priority === 'high' ? { label: 'High', color: '#EF4444', bg: '#FEF2F2' } :
+      task.priority === 'low' ? { label: 'Low', color: '#10B981', bg: '#ECFDF5' } :
+      { label: 'Normal', color: '#3B82F6', bg: '#EFF6FF' };
+
+    return (
+      <div
+        key={task.id}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '0.75rem',
+          padding: '0.75rem 1rem',
+          borderRadius: 'var(--radius-md)',
+          backgroundColor: isCompleted ? 'var(--bg-hover)' : 'var(--bg-primary)',
+          border: '1px solid var(--border-subtle)',
+          opacity: isCompleted ? 0.6 : 1,
+          transition: 'all 0.12s ease',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
+          <button
+            type="button"
+            onClick={() => toggleEventCompleted(task.id)}
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: isCompleted ? '#10B981' : 'var(--text-muted)', padding: 0 }}
+          >
+            {isCompleted ? <CheckCircle2 size={20} /> : <Circle size={20} />}
+          </button>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+            <span style={{
+              fontSize: '0.925rem',
+              fontWeight: 600,
+              color: 'var(--text-primary)',
+              textDecoration: isCompleted ? 'line-through' : 'none',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}>
+              {task.title}
+            </span>
+
+            {dueDateStr && (
+              <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <CalendarIcon size={11} /> Due {format(parseISO(dueDateStr), 'MMM d, yyyy')}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          {/* Specific Show/Hide on Calendar Toggle */}
+          <button
+            type="button"
+            onClick={() => handleToggleShowOnCalendar(task)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '0.2rem 0.5rem',
+              borderRadius: '6px',
+              border: 'none',
+              backgroundColor: isShownOnCalendar ? '#EFF6FF' : 'var(--bg-hover)',
+              color: isShownOnCalendar ? '#2563EB' : 'var(--text-muted)',
+              fontSize: '0.7rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+            title={isShownOnCalendar ? "Shown on Calendar (click to hide)" : "Hidden from Calendar (click to show)"}
+          >
+            {isShownOnCalendar ? <Eye size={12} /> : <EyeOff size={12} />}
+            {isShownOnCalendar ? 'On Calendar' : 'Off Calendar'}
+          </button>
+
+          {/* Priority Badge */}
+          <span style={{
+            fontSize: '0.725rem',
+            fontWeight: 700,
+            padding: '0.15rem 0.5rem',
+            borderRadius: '6px',
+            backgroundColor: priorityBadge.bg,
+            color: priorityBadge.color,
+          }}>
+            {priorityBadge.label}
+          </span>
+
+          {/* Edit Task Button */}
+          {onEditTask && (
+            <button
+              type="button"
+              onClick={() => onEditTask(task)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                padding: '2px',
+              }}
+              title="Edit Task"
+            >
+              <Edit3 size={15} />
+            </button>
+          )}
+
+          {/* Delete Task Button */}
+          <button
+            type="button"
+            onClick={() => deleteEvent(task.id)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              padding: '2px',
+            }}
+            title="Delete Task"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      </div>
     );
   };
-
-  const handleDelete = (id: string) => {
-    setTodos((prev) => prev.filter((t) => t.id !== id));
-  };
-
-  const filteredTodos = todos.filter((t) => {
-    if (selectedOwnerFilter === 'all') return true;
-    return t.owner === selectedOwnerFilter;
-  });
-
-  const activeCount = filteredTodos.filter((t) => !t.is_completed).length;
-  const completedCount = filteredTodos.filter((t) => t.is_completed).length;
 
   return (
     <div style={{
@@ -92,12 +202,12 @@ export const TodoListView: React.FC = () => {
       borderRadius: 'var(--radius-lg)',
       padding: '1.5rem',
       width: '100%',
-      maxWidth: '800px',
+      maxWidth: '820px',
       margin: '0 auto',
       boxShadow: 'var(--shadow-subtle)',
       fontFamily: "'Plus Jakarta Sans', sans-serif",
     }}>
-      {/* Header & Sleek Persona Selector */}
+      {/* Header */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -109,18 +219,18 @@ export const TodoListView: React.FC = () => {
         borderBottom: '1px solid var(--border-color)',
       }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--accent-primary)' }}>
-            <Sparkles size={18} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#F59E0B' }}>
+            <CheckSquare size={18} />
             <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Personal To-Do List
+              To-Do List
             </span>
           </div>
           <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '2px' }}>
-            {selectedOwnerFilter === 'all' ? 'Shared Tasks' : `${selectedOwnerFilter}'s Tasks`}
+            {activePersonaFilter === 'all' ? 'All Tasks' : `${activePersonaFilter}'s Tasks`}
           </h2>
         </div>
 
-        {/* Sleek Modern Persona Selector (Eve -> Abbie -> Both) */}
+        {/* Persona Selector (Eve -> Abbie -> Both) */}
         <div style={{
           display: 'flex',
           backgroundColor: 'var(--bg-hover)',
@@ -132,177 +242,148 @@ export const TodoListView: React.FC = () => {
             <button
               key={p}
               type="button"
-              onClick={() => setSelectedOwnerFilter(p)}
+              onClick={() => setActivePersonaFilter(p)}
               style={{
                 padding: '0.35rem 0.9rem',
                 borderRadius: '999px',
                 border: 'none',
-                backgroundColor: selectedOwnerFilter === p
+                backgroundColor: activePersonaFilter === p
                   ? (p === 'Eve' ? '#3B82F6' : p === 'Abbie' ? '#EC4899' : 'var(--text-primary)')
                   : 'transparent',
-                color: selectedOwnerFilter === p ? '#FFFFFF' : 'var(--text-secondary)',
+                color: activePersonaFilter === p ? '#FFFFFF' : 'var(--text-secondary)',
                 fontWeight: 700,
                 fontSize: '0.8rem',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
             >
-              {p === 'Eve' ? '🔵 Eve' : p === 'Abbie' ? '💗 Abbie' : '👥 Both'}
+              {p === 'all' ? 'Both' : p}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Quick Add Form */}
-      <form onSubmit={handleAddTodo} style={{
+      {/* Quick Add Inline Form */}
+      <form onSubmit={handleQuickAdd} style={{
         display: 'flex',
         gap: '0.6rem',
-        marginBottom: '1.25rem',
+        marginBottom: '1.5rem',
         flexWrap: 'wrap',
+        alignItems: 'center',
       }}>
         <input
           type="text"
           className="input-field"
-          placeholder={`Add a task for ${activePersona}...`}
-          value={newText}
-          onChange={(e) => setNewText(e.target.value)}
+          placeholder="Add a task..."
+          value={newTaskText}
+          onChange={(e) => setNewTaskText(e.target.value)}
           style={{ flex: 1, minWidth: '220px' }}
         />
 
-        {/* Priority Selector */}
-        <select
-          value={newPriority}
-          onChange={(e) => setNewPriority(e.target.value as 'high' | 'normal' | 'low')}
+        <input
+          type="date"
           className="input-field"
-          style={{ width: 'auto', minWidth: '110px' }}
-        >
-          <option value="high">🔥 High</option>
-          <option value="normal">⭐ Normal</option>
-          <option value="low">🍃 Low</option>
-        </select>
+          value={newTaskDueDate}
+          onChange={(e) => setNewTaskDueDate(e.target.value)}
+          style={{ width: 'auto', minWidth: '130px' }}
+          title="Due Date (optional)"
+        />
+
+        <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.775rem', fontWeight: 700, color: 'var(--text-secondary)', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={newTaskShowOnCalendar}
+            onChange={(e) => setNewTaskShowOnCalendar(e.target.checked)}
+          />
+          On Calendar
+        </label>
 
         <button type="submit" className="btn btn-primary" style={{ padding: '0.6rem 1.1rem' }}>
           <Plus size={16} /> Add Task
         </button>
       </form>
 
-      {/* Task List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-        {filteredTodos.length === 0 ? (
-          <div style={{
-            textAlign: 'center',
-            padding: '2.5rem 0',
-            color: 'var(--text-muted)',
-            fontSize: '0.875rem',
-            fontStyle: 'italic',
-          }}>
-            No tasks listed! All caught up 🎉
-          </div>
-        ) : (
-          filteredTodos.map((todo) => {
-            const isCompleted = todo.is_completed;
-            const priorityBadge =
-              todo.priority === 'high' ? { label: 'High', color: '#EF4444', bg: '#FEF2F2' } :
-              todo.priority === 'low' ? { label: 'Low', color: '#10B981', bg: '#ECFDF5' } :
-              { label: 'Normal', color: '#3B82F6', bg: '#EFF6FF' };
+      {/* Task Sections */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        {/* Today Section */}
+        <div>
+          <h3 style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.6rem' }}>
+            Today ({todayTasks.length})
+          </h3>
+          {todayTasks.length === 0 ? (
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: '0.4rem 0' }}>
+              No tasks due today.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {todayTasks.map(renderTaskItem)}
+            </div>
+          )}
+        </div>
 
-            return (
-              <div
-                key={todo.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '0.75rem',
-                  padding: '0.75rem 1rem',
-                  borderRadius: 'var(--radius-md)',
-                  backgroundColor: isCompleted ? 'var(--bg-hover)' : 'var(--bg-primary)',
-                  border: '1px solid var(--border-subtle)',
-                  opacity: isCompleted ? 0.65 : 1,
-                  transition: 'all 0.12s ease',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
-                  <button
-                    type="button"
-                    onClick={() => handleToggleComplete(todo.id, isCompleted)}
-                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: isCompleted ? '#10B981' : 'var(--text-muted)', padding: 0 }}
-                  >
-                    {isCompleted ? <CheckCircle2 size={20} /> : <Circle size={20} />}
-                  </button>
+        {/* Upcoming Section */}
+        <div>
+          <h3 style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.6rem' }}>
+            Upcoming ({upcomingTasks.length})
+          </h3>
+          {upcomingTasks.length === 0 ? (
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: '0.4rem 0' }}>
+              No upcoming tasks.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {upcomingTasks.map(renderTaskItem)}
+            </div>
+          )}
+        </div>
 
-                  <span style={{
-                    fontSize: '0.925rem',
-                    fontWeight: 600,
-                    color: 'var(--text-primary)',
-                    textDecoration: isCompleted ? 'line-through' : 'none',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}>
-                    {todo.text}
-                  </span>
-                </div>
+        {/* No Date Section */}
+        <div>
+          <h3 style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.6rem' }}>
+            No Date ({noDateTasks.length})
+          </h3>
+          {noDateTasks.length === 0 ? (
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: '0.4rem 0' }}>
+              No unscheduled tasks.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {noDateTasks.map(renderTaskItem)}
+            </div>
+          )}
+        </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                  {/* Persona Badge */}
-                  <span style={{
-                    fontSize: '0.7rem',
-                    fontWeight: 700,
-                    padding: '0.2rem 0.5rem',
-                    borderRadius: '999px',
-                    backgroundColor: todo.owner === 'Eve' ? '#DBEAFE' : '#FCE7F3',
-                    color: todo.owner === 'Eve' ? '#1E40AF' : '#9D174D',
-                  }}>
-                    {todo.owner}
-                  </span>
+        {/* Completed Section (Collapsible) */}
+        {completedTasks.length > 0 && (
+          <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+            <button
+              type="button"
+              onClick={() => setShowCompletedSection(!showCompletedSection)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-muted)',
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                padding: 0,
+                marginBottom: showCompletedSection ? '0.6rem' : 0,
+              }}
+            >
+              {showCompletedSection ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+              Completed ({completedTasks.length})
+            </button>
 
-                  {/* Priority Badge */}
-                  <span style={{
-                    fontSize: '0.7rem',
-                    fontWeight: 700,
-                    padding: '0.2rem 0.5rem',
-                    borderRadius: '6px',
-                    backgroundColor: priorityBadge.bg,
-                    color: priorityBadge.color,
-                  }}>
-                    {priorityBadge.label}
-                  </span>
-
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(todo.id)}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: 'var(--text-muted)',
-                      cursor: 'pointer',
-                      padding: '2px',
-                    }}
-                    title="Delete Task"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
+            {showCompletedSection && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {completedTasks.map(renderTaskItem)}
               </div>
-            );
-          })
+            )}
+          </div>
         )}
-      </div>
-
-      {/* Footer stats */}
-      <div style={{
-        marginTop: '1.25rem',
-        paddingTop: '0.85rem',
-        borderTop: '1px solid var(--border-color)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        fontSize: '0.75rem',
-        color: 'var(--text-muted)',
-        fontWeight: 600,
-      }}>
-        <span>{activeCount} tasks remaining</span>
-        <span>{completedCount} completed</span>
       </div>
     </div>
   );

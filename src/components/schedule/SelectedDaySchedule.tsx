@@ -1,8 +1,8 @@
 import React from 'react';
 import { useCalendar } from '../../context/CalendarContext';
 import { CalendarEvent } from '../../types';
-import { format } from 'date-fns';
-import { Plus, CheckCircle2, Circle, Clock } from 'lucide-react';
+import { format, isBefore, startOfDay, parseISO } from 'date-fns';
+import { Plus, CheckCircle2, Circle, Clock, MapPin, User } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 interface SelectedDayScheduleProps {
@@ -16,10 +16,15 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
   onSelectEvent,
   onOpenAddEvent,
 }) => {
-  const { filteredEvents, toggleEventCompleted } = useCalendar();
+  const { filteredEvents, members, toggleEventCompleted, activePersonaFilter } = useCalendar();
 
   const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
-  const dayEvents = filteredEvents.filter((e) => e.event_date === selectedDateStr);
+
+  // Filter all events/classes/tasks occurring on this selected date
+  const dayEvents = filteredEvents.filter((e) => {
+    const eventDate = e.event_date || e.due_date;
+    return eventDate === selectedDateStr;
+  });
 
   // Sort events chronologically by start time
   dayEvents.sort((a, b) => {
@@ -35,6 +40,40 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
     toggleEventCompleted(eventId);
   };
 
+  const getOwnerName = (evt: CalendarEvent) => {
+    if (evt.owner_user_id) {
+      const owner = members.find((m) => m.user_id === evt.owner_user_id || m.id === evt.owner_user_id);
+      if (owner) return owner.display_name;
+    }
+    if (evt.created_by) {
+      const creator = members.find((m) => m.user_id === evt.created_by || m.id === evt.created_by);
+      if (creator) return creator.display_name;
+    }
+    return 'Eve';
+  };
+
+  const todayStart = startOfDay(new Date());
+
+  const getEventTypeLabel = (type: string) => {
+    switch (type) {
+      case 'class':
+      case 'School':
+        return { label: 'Class', bg: '#DBEAFE', color: '#1E40AF' };
+      case 'task':
+        return { label: 'Task', bg: '#FEF3C7', color: '#92400E' };
+      case 'exam':
+        return { label: 'Exam', bg: '#FEE2E2', color: '#991B1B' };
+      case 'appointment':
+        return { label: 'Appointment', bg: '#D1FAE5', color: '#065F46' };
+      case 'birthday':
+        return { label: 'Birthday', bg: '#FCE7F3', color: '#9D174D' };
+      case 'trip':
+        return { label: 'Trip', bg: '#EDE9FE', color: '#5B21B6' };
+      default:
+        return { label: type, bg: '#F3F4F6', color: '#374151' };
+    }
+  };
+
   return (
     <div style={{
       backgroundColor: 'var(--bg-secondary)',
@@ -46,8 +85,9 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
       display: 'flex',
       flexDirection: 'column',
       boxShadow: 'var(--shadow-subtle)',
+      fontFamily: "'Plus Jakarta Sans', sans-serif",
     }}>
-      {/* Schedule Section Header */}
+      {/* Header */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -57,10 +97,10 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
         borderBottom: '1px solid var(--border-color)',
       }}>
         <div>
-          <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
             Daily Schedule
           </div>
-          <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
+          <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '2px' }}>
             {format(selectedDate, 'EEEE, MMM d')}
           </h3>
         </div>
@@ -75,8 +115,8 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
         </button>
       </div>
 
-      {/* Chronological Event List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
+      {/* Events List */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
         {dayEvents.length === 0 ? (
           <div style={{
             display: 'flex',
@@ -91,7 +131,17 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
           </div>
         ) : (
           dayEvents.map((evt) => {
-            const isCompleted = evt.is_completed;
+            const eventDateStr = evt.event_date || evt.due_date;
+            const eventDateObj = eventDateStr ? parseISO(eventDateStr) : new Date();
+            const isPastDay = isBefore(eventDateObj, todayStart);
+            const isCompleted = evt.is_completed || isPastDay;
+            const ownerName = getOwnerName(evt);
+            const typeBadge = getEventTypeLabel(evt.event_type);
+
+            const ownerStyle =
+              ownerName === 'Eve' ? { bg: '#EFF6FF', color: '#1E40AF', border: '1px solid #BFDBFE' } :
+              { bg: '#FDF2F8', color: '#9D174D', border: '1px solid #FBCFE8' };
+
             return (
               <div
                 key={evt.id}
@@ -102,37 +152,70 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
                   justifyContent: 'space-between',
                   gap: '0.75rem',
                   cursor: 'pointer',
-                  padding: '0.5rem 0.6rem',
-                  borderRadius: 'var(--radius-sm)',
-                  backgroundColor: isCompleted ? 'var(--bg-hover)' : 'transparent',
+                  padding: '0.65rem 0.85rem',
+                  borderRadius: 'var(--radius-md)',
+                  backgroundColor: isCompleted ? 'var(--bg-hover)' : 'var(--bg-primary)',
+                  border: '1px solid var(--border-subtle)',
                   transition: 'background-color 0.12s ease',
+                  opacity: isCompleted ? 0.6 : 1,
                 }}
               >
-                <div>
-                  <div style={{ fontSize: '0.725rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                    <Clock size={11} /> {evt.start_time ? evt.start_time : 'All Day'} {evt.end_time ? `- ${evt.end_time}` : ''}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <div style={{ fontSize: '0.725rem', fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Clock size={11} /> {evt.start_time ? evt.start_time : 'All Day'} {evt.end_time ? `– ${evt.end_time}` : ''}
                   </div>
+
                   <div style={{
-                    fontSize: '0.9rem',
-                    fontWeight: 600,
+                    fontSize: '0.925rem',
+                    fontWeight: 700,
                     color: 'var(--text-primary)',
                     textDecoration: isCompleted ? 'line-through' : 'none',
-                    opacity: isCompleted ? 0.5 : 1,
                   }}>
-                    {evt.emoji ? `${evt.emoji} ` : ''}{evt.title}
+                    {evt.title}
                   </div>
-                  {evt.location && (
-                    <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                      📍 {evt.location}
-                    </div>
-                  )}
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '4px', flexWrap: 'wrap' }}>
+                    {/* Category Type Badge */}
+                    <span style={{
+                      fontSize: '0.675rem',
+                      fontWeight: 700,
+                      padding: '0.15rem 0.45rem',
+                      borderRadius: '4px',
+                      backgroundColor: typeBadge.bg,
+                      color: typeBadge.color,
+                    }}>
+                      {typeBadge.label}
+                    </span>
+
+                    {/* Owner Badge (Always shown so users know who's is who's!) */}
+                    <span style={{
+                      fontSize: '0.675rem',
+                      fontWeight: 800,
+                      padding: '0.15rem 0.5rem',
+                      borderRadius: '999px',
+                      backgroundColor: ownerStyle.bg,
+                      color: ownerStyle.color,
+                      border: ownerStyle.border,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '3px',
+                    }}>
+                      <User size={10} /> {ownerName}
+                    </span>
+
+                    {evt.location && (
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                        <MapPin size={10} /> {evt.location}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleToggleComplete(evt.id, isCompleted);
+                    handleToggleComplete(evt.id, evt.is_completed);
                   }}
                   style={{
                     background: 'transparent',

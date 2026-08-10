@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useCalendar } from '../../context/CalendarContext';
 import { useAuth } from '../../context/AuthContext';
-import { CalendarEvent, EventCategory, CATEGORY_COLORS } from '../../types';
+import { CalendarEvent, EventType, CATEGORY_COLORS } from '../../types';
 import { format } from 'date-fns';
-import { X } from 'lucide-react';
+import { X, Calendar as CalendarIcon, CheckSquare, GraduationCap } from 'lucide-react';
+import confetti from 'canvas-confetti';
 
 interface EventFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialDate?: Date;
   eventToEdit?: CalendarEvent | null;
+  defaultCategory?: EventType;
 }
 
 export const EventFormModal: React.FC<EventFormModalProps> = ({
@@ -17,41 +19,64 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
   onClose,
   initialDate,
   eventToEdit,
+  defaultCategory = 'event',
 }) => {
-  const { addEvent, updateEvent } = useCalendar();
+  const { addEvent, updateEvent, members } = useCalendar();
   const { userProfile } = useAuth();
+  const activePersonaName = (userProfile?.display_name as 'Eve' | 'Abbie') || 'Eve';
 
+  const [formMode, setFormMode] = useState<'class' | 'task' | 'event'>('event');
+
+  // Form Fields
   const [title, setTitle] = useState('');
   const [eventDate, setEventDate] = useState('');
   const [startTime, setStartTime] = useState('10:00');
   const [endTime, setEndTime] = useState('11:00');
-  const [category, setCategory] = useState<EventCategory>('School');
-  const [color, setColor] = useState('#3B82F6');
+  const [eventType, setEventType] = useState<EventType>('personal');
   const [location, setLocation] = useState('');
-  const [notes, setNotes] = useState('');
+  const [priority, setPriority] = useState<'high' | 'normal' | 'low'>('normal');
+  const [taskOwner, setTaskOwner] = useState<'Eve' | 'Abbie'>(activePersonaName);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    setTaskOwner(activePersonaName);
+  }, [activePersonaName]);
+
+  useEffect(() => {
     if (eventToEdit) {
+      if (eventToEdit.event_type === 'class' || eventToEdit.event_type === 'School') {
+        setFormMode('class');
+      } else if (eventToEdit.event_type === 'task') {
+        setFormMode('task');
+      } else {
+        setFormMode('event');
+      }
       setTitle(eventToEdit.title);
-      setEventDate(eventToEdit.event_date);
+      setEventDate(eventToEdit.event_date || eventToEdit.due_date || format(new Date(), 'yyyy-MM-dd'));
       setStartTime(eventToEdit.start_time || '10:00');
       setEndTime(eventToEdit.end_time || '11:00');
-      setCategory((eventToEdit.event_type as EventCategory) || 'School');
-      setColor(eventToEdit.color || '#3B82F6');
+      setEventType(eventToEdit.event_type as EventType);
       setLocation(eventToEdit.location || '');
-      setNotes(eventToEdit.notes || '');
+      setPriority(eventToEdit.priority || 'normal');
     } else {
       setTitle('');
       setEventDate(format(initialDate || new Date(), 'yyyy-MM-dd'));
       setStartTime('10:00');
       setEndTime('11:00');
-      setCategory('School');
-      setColor('#3B82F6');
       setLocation('');
-      setNotes('');
+      setPriority('normal');
+      if (defaultCategory === 'class' || defaultCategory === 'School') {
+        setFormMode('class');
+        setEventType('class');
+      } else if (defaultCategory === 'task') {
+        setFormMode('task');
+        setEventType('task');
+      } else {
+        setFormMode('event');
+        setEventType('personal');
+      }
     }
-  }, [eventToEdit, initialDate, isOpen]);
+  }, [eventToEdit, initialDate, isOpen, defaultCategory]);
 
   if (!isOpen) return null;
 
@@ -61,31 +86,41 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
 
     setIsSubmitting(true);
     try {
+      const ownerUser = members.find((m) => m.display_name === taskOwner);
+      const ownerId = ownerUser ? ownerUser.user_id : userProfile?.id || null;
+
+      let finalType: EventType = eventType;
+      if (formMode === 'class') finalType = 'class';
+      if (formMode === 'task') finalType = 'task';
+
+      const eventPayload: Omit<CalendarEvent, 'id' | 'created_at' | 'updated_at'> = {
+        title: title.trim(),
+        event_type: finalType,
+        event_date: eventDate || undefined,
+        due_date: formMode === 'task' ? eventDate || undefined : undefined,
+        start_time: startTime || undefined,
+        end_time: endTime || undefined,
+        location: location.trim() || undefined,
+        priority: formMode === 'task' ? priority : undefined,
+        owner_user_id: ownerId,
+        created_by: ownerId || undefined,
+        color:
+          finalType === 'class' ? '#3B82F6' :
+          finalType === 'task' ? '#F59E0B' :
+          finalType === 'exam' ? '#EF4444' :
+          finalType === 'appointment' ? '#10B981' :
+          finalType === 'birthday' ? '#EC4899' :
+          finalType === 'trip' ? '#8B5CF6' : '#3B82F6',
+        is_completed: false,
+      };
+
       if (eventToEdit) {
-        await updateEvent(eventToEdit.id, {
-          title: title.trim(),
-          event_date: eventDate,
-          start_time: startTime,
-          end_time: endTime,
-          event_type: category,
-          color,
-          location: location.trim() || undefined,
-          notes: notes.trim() || undefined,
-        });
+        await updateEvent(eventToEdit.id, eventPayload);
       } else {
-        await addEvent({
-          owner_user_id: userProfile?.id || null,
-          title: title.trim(),
-          event_type: category,
-          event_date: eventDate,
-          start_time: startTime,
-          end_time: endTime,
-          is_all_day: false,
-          color,
-          location: location.trim() || undefined,
-          notes: notes.trim() || undefined,
-        });
+        await addEvent(eventPayload);
+        confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 } });
       }
+
       onClose();
     } finally {
       setIsSubmitting(false);
@@ -100,7 +135,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
       right: 0,
       bottom: 0,
       backgroundColor: 'rgba(9, 9, 11, 0.45)',
-      backdropFilter: 'blur(3px)',
+      backdropFilter: 'blur(4px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -115,23 +150,88 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
         width: '100%',
         maxWidth: '440px',
         padding: '1.5rem',
-        boxShadow: '0 20px 40px rgba(0,0,0,0.12)',
+        boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
       }} onClick={(e) => e.stopPropagation()}>
-        {/* Modal Header */}
+        {/* Header Tabs */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           marginBottom: '1.25rem',
         }}>
-          <h3 style={{
-            fontSize: '1.15rem',
-            fontWeight: 800,
-            color: 'var(--text-primary)',
-            letterSpacing: '-0.02em',
-          }}>
-            {eventToEdit ? 'Edit Event' : 'New Event'}
-          </h3>
+          {!eventToEdit ? (
+            <div style={{
+              display: 'flex',
+              backgroundColor: 'var(--bg-hover)',
+              padding: '2px',
+              borderRadius: '999px',
+              border: '1px solid var(--border-color)',
+            }}>
+              <button
+                type="button"
+                onClick={() => { setFormMode('event'); setEventType('personal'); }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.3rem 0.65rem',
+                  borderRadius: '999px',
+                  border: 'none',
+                  backgroundColor: formMode === 'event' ? 'var(--bg-secondary)' : 'transparent',
+                  color: formMode === 'event' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                  fontWeight: 700,
+                  fontSize: '0.775rem',
+                  cursor: 'pointer',
+                }}
+              >
+                <CalendarIcon size={13} /> Event
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setFormMode('class'); setEventType('class'); }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.3rem 0.65rem',
+                  borderRadius: '999px',
+                  border: 'none',
+                  backgroundColor: formMode === 'class' ? 'var(--bg-secondary)' : 'transparent',
+                  color: formMode === 'class' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                  fontWeight: 700,
+                  fontSize: '0.775rem',
+                  cursor: 'pointer',
+                }}
+              >
+                <GraduationCap size={13} /> Class
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setFormMode('task'); setEventType('task'); }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.3rem 0.65rem',
+                  borderRadius: '999px',
+                  border: 'none',
+                  backgroundColor: formMode === 'task' ? 'var(--bg-secondary)' : 'transparent',
+                  color: formMode === 'task' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                  fontWeight: 700,
+                  fontSize: '0.775rem',
+                  cursor: 'pointer',
+                }}
+              >
+                <CheckSquare size={13} /> Task
+              </button>
+            </div>
+          ) : (
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+              Edit Entry
+            </h3>
+          )}
 
           <button
             type="button"
@@ -148,24 +248,22 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
           </button>
         </div>
 
-        {/* Form Body */}
+        {/* Form */}
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {/* Event Title Input */}
+          {/* Title */}
           <div>
             <input
               type="text"
               className="input-field"
-              placeholder="Event title (e.g., CS 101 Lecture)..."
+              placeholder={
+                formMode === 'class' ? "Class Title (e.g. Calculus II)..." :
+                formMode === 'task' ? "Task description..." : "Event title..."
+              }
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               autoFocus
               required
-              style={{
-                fontSize: '0.975rem',
-                fontWeight: 700,
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                padding: '0.75rem 1rem',
-              }}
+              style={{ fontSize: '0.975rem', fontWeight: 700, padding: '0.75rem 1rem' }}
             />
           </div>
 
@@ -173,78 +271,117 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
             <div>
               <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
-                Date
+                {formMode === 'task' ? 'Due Date (Optional)' : 'Date'}
               </label>
               <input
                 type="date"
                 className="input-field"
                 value={eventDate}
                 onChange={(e) => setEventDate(e.target.value)}
-                required
+                required={formMode !== 'task'}
               />
             </div>
 
             <div>
               <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
-                Start Time
+                Owner
               </label>
-              <input
-                type="time"
+              <select
                 className="input-field"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
+                value={taskOwner}
+                onChange={(e) => setTaskOwner(e.target.value as 'Eve' | 'Abbie')}
+              >
+                <option value="Eve">Eve</option>
+                <option value="Abbie">Abbie</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Start & End Time (for Class or Event) */}
+          {formMode !== 'task' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                  Start Time
+                </label>
+                <input
+                  type="time"
+                  className="input-field"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                  End Time
+                </label>
+                <input
+                  type="time"
+                  className="input-field"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Event Category (If Event mode) */}
+          {formMode === 'event' && (
+            <div>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                Event Category
+              </label>
+              <select
+                className="input-field"
+                value={eventType}
+                onChange={(e) => setEventType(e.target.value as EventType)}
+              >
+                <option value="personal">☕ Personal</option>
+                <option value="exam">📝 Exam</option>
+                <option value="appointment">🩺 Appointment</option>
+                <option value="birthday">🎂 Birthday</option>
+                <option value="trip">✈️ Trip</option>
+                <option value="study">💡 Study Session</option>
+                <option value="meeting">🤝 Meeting</option>
+              </select>
+            </div>
+          )}
+
+          {/* Location Input (Class or Event) */}
+          {formMode !== 'task' && (
+            <div>
+              <input
+                type="text"
+                className="input-field"
+                placeholder="Location (e.g. Room 204 or Cafe)..."
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
               />
             </div>
-          </div>
+          )}
 
-          {/* Category Color Swatches */}
-          <div>
-            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
-              Category
-            </label>
-            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-              {CATEGORY_COLORS.map((cat) => (
-                <button
-                  key={cat.label}
-                  type="button"
-                  onClick={() => {
-                    setCategory(cat.label);
-                    setColor(cat.color);
-                  }}
-                  style={{
-                    padding: '0.35rem 0.7rem',
-                    borderRadius: '6px',
-                    border: category === cat.label ? `2px solid ${cat.color}` : '1px solid var(--border-color)',
-                    backgroundColor: category === cat.label ? `${cat.color}15` : 'transparent',
-                    color: 'var(--text-primary)',
-                    fontSize: '0.775rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '5px',
-                    fontFamily: "'Plus Jakarta Sans', sans-serif",
-                  }}
-                >
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: cat.color }} />
-                  {cat.label}
-                </button>
-              ))}
+          {/* Priority (If Task mode) */}
+          {formMode === 'task' && (
+            <div>
+              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                Priority
+              </label>
+              <select
+                className="input-field"
+                value={priority}
+                onChange={(e) => setPriority(e.target.value as 'high' | 'normal' | 'low')}
+              >
+                <option value="high">High Priority</option>
+                <option value="normal">Normal Priority</option>
+                <option value="low">Low Priority</option>
+              </select>
             </div>
-          </div>
+          )}
 
-          {/* Location Input */}
-          <div>
-            <input
-              type="text"
-              className="input-field"
-              placeholder="Location (optional)..."
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-            />
-          </div>
-
-          {/* Actions */}
+          {/* Action Buttons */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -264,12 +401,9 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
               type="submit"
               className="btn btn-primary"
               disabled={isSubmitting || !title.trim()}
-              style={{
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                fontWeight: 800,
-              }}
+              style={{ fontWeight: 800 }}
             >
-              {isSubmitting ? 'Saving...' : eventToEdit ? 'Save Changes' : 'Create Event'}
+              {isSubmitting ? 'Saving...' : formMode === 'class' ? 'Add Class' : formMode === 'task' ? 'Add Task' : 'Create Event'}
             </button>
           </div>
         </form>

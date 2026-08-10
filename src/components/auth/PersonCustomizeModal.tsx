@@ -1,38 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useCalendar } from '../../context/CalendarContext';
-import { X, Palette, User, Check } from 'lucide-react';
-import { PROFILE_COLORS } from '../../types';
+import { X, User, Palette, Image as ImageIcon, Check } from 'lucide-react';
 
 interface PersonCustomizeModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-export const PersonCustomizeModal: React.FC<PersonCustomizeModalProps> = ({ isOpen, onClose }) => {
-  const { userProfile, updateProfile } = useAuth();
-  const { members, updateMemberProfile, addToast } = useCalendar();
+const PRESET_AVATARS = ['👩‍🎓', '👩‍💻', '🌸', '🎨', '📚', '🌊', '⚡', '🌟', '🍒', '🔮'];
+const COLOR_PRESETS = [
+  { name: 'Blue', hex: '#3B82F6' },
+  { name: 'Pink', hex: '#EC4899' },
+  { name: 'Purple', hex: '#8B5CF6' },
+  { name: 'Teal', hex: '#14B8A6' },
+  { name: 'Amber', hex: '#F59E0B' },
+];
 
-  const [displayName, setDisplayName] = useState(userProfile?.display_name || 'Eve');
-  const [profileColor, setProfileColor] = useState(userProfile?.profile_color || '#3B82F6');
+export const PersonCustomizeModal: React.FC<PersonCustomizeModalProps> = ({
+  isOpen,
+  onClose,
+}) => {
+  const { userProfile, updateProfile } = useAuth();
+  const [displayName, setDisplayName] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [selectedColor, setSelectedColor] = useState('#3B82F6');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (userProfile) {
+      setDisplayName(userProfile.display_name || '');
+      setAvatarUrl(userProfile.avatar_url || '👩‍🎓');
+      setSelectedColor(userProfile.profile_color || '#3B82F6');
+    }
+  }, [userProfile, isOpen]);
 
   if (!isOpen) return null;
 
-  const handleSave = () => {
-    updateProfile({
-      display_name: displayName.trim() || userProfile?.display_name || 'Person',
-      profile_color: profileColor,
-    });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!displayName.trim() || isSubmitting) return;
 
-    if (userProfile?.id) {
-      updateMemberProfile(userProfile.id, {
-        display_name: displayName.trim() || 'Person',
-        profile_color: profileColor,
+    setIsSubmitting(true);
+    try {
+      await updateProfile({
+        display_name: displayName.trim(),
+        avatar_url: avatarUrl.trim() || undefined,
+        profile_color: selectedColor,
       });
+      onClose();
+    } finally {
+      setIsSubmitting(false);
     }
-
-    addToast(`Updated ${displayName}'s color & icon!`, 'success');
-    onClose();
   };
 
   return (
@@ -42,143 +60,184 @@ export const PersonCustomizeModal: React.FC<PersonCustomizeModalProps> = ({ isOp
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(15, 23, 42, 0.75)',
-      backdropFilter: 'blur(8px)',
+      backgroundColor: 'rgba(9, 9, 11, 0.45)',
+      backdropFilter: 'blur(4px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      zIndex: 9999,
+      zIndex: 10000,
       padding: '1rem',
-    }}>
-      <div className="glass-modal animate-scale-in" style={{
-        maxWidth: '420px',
+      fontFamily: "'Plus Jakarta Sans', sans-serif",
+    }} onClick={onClose}>
+      <div style={{
+        backgroundColor: 'var(--bg-secondary)',
+        border: '1px solid var(--border-color)',
+        borderRadius: 'var(--radius-lg)',
         width: '100%',
-        padding: '1.75rem',
-        position: 'relative',
-      }}>
+        maxWidth: '420px',
+        padding: '1.5rem',
+        boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
+      }} onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <Palette size={18} style={{ color: 'var(--accent-primary)' }} /> Customize Person Icon & Color
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Live Preview Badge */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
-          gap: '0.75rem',
-          padding: '1.25rem',
-          backgroundColor: 'var(--bg-hover)',
-          borderRadius: '16px',
+          justifyContent: 'space-between',
           marginBottom: '1.25rem',
         }}>
-          <div style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: '50%',
-            backgroundColor: profileColor,
-            color: '#FFFFFF',
-            fontSize: '1.2rem',
-            fontWeight: 800,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: 'var(--shadow-md)',
-          }}>
-            {displayName.charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <div style={{ fontSize: '1.05rem', fontWeight: 800 }}>{displayName}</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Calendar Member Avatar</div>
-          </div>
-        </div>
+          <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+            Profile & Settings
+          </h3>
 
-        {/* Display Name */}
-        <div style={{ marginBottom: '1.1rem' }}>
-          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.35rem' }}>
-            Display Name / Initial
-          </label>
-          <input
-            type="text"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            className="input-field"
-            placeholder="e.g. Eve or Abbie"
-          />
-        </div>
-
-        {/* Profile Color Palette Swatches */}
-        <div style={{ marginBottom: '1.5rem' }}>
-          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.4rem' }}>
-            Choose Profile Color
-          </label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>
-            {PROFILE_COLORS.map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => setProfileColor(c)}
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  backgroundColor: c,
-                  border: profileColor === c ? '3px solid var(--text-primary)' : '2px solid transparent',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#FFFFFF',
-                  boxShadow: 'var(--shadow-sm)',
-                  transition: 'transform 0.12s ease',
-                }}
-              >
-                {profileColor === c && <Check size={14} />}
-              </button>
-            ))}
-
-            {/* Custom Color Input */}
-            <label style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '50%',
-              backgroundColor: 'var(--bg-secondary)',
-              border: '1px solid var(--border-color)',
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-muted)',
               cursor: 'pointer',
-              display: 'inline-flex',
+              padding: '2px',
+            }}
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Avatar Preview & Selection */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{
+              width: '72px',
+              height: '72px',
+              borderRadius: '50%',
+              backgroundColor: `${selectedColor}18`,
+              border: `3px solid ${selectedColor}`,
+              display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              position: 'relative',
-            }} title="Custom Color">
-              <Palette size={14} style={{ color: 'var(--text-muted)' }} />
-              <input
-                type="color"
-                value={profileColor}
-                onChange={(e) => setProfileColor(e.target.value)}
-                style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }}
-              />
-            </label>
-          </div>
-        </div>
+              fontSize: '2rem',
+              overflow: 'hidden',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+            }}>
+              {avatarUrl.startsWith('http') ? (
+                <img src={avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                avatarUrl || '👩‍🎓'
+              )}
+            </div>
 
-        {/* Submit */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-          <button type="button" className="btn btn-secondary" onClick={onClose}>
-            Cancel
-          </button>
-          <button type="button" className="btn btn-primary" onClick={handleSave} style={{ padding: '0.65rem 1.4rem' }}>
-            Save Changes
-          </button>
-        </div>
+            {/* Avatar Presets */}
+            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+              {PRESET_AVATARS.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  onClick={() => setAvatarUrl(emoji)}
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '50%',
+                    border: avatarUrl === emoji ? `2px solid ${selectedColor}` : '1px solid var(--border-color)',
+                    backgroundColor: avatarUrl === emoji ? `${selectedColor}15` : 'var(--bg-primary)',
+                    fontSize: '1.1rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.12s ease',
+                  }}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Custom Picture URL Input */}
+          <div>
+            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+              Image URL (Optional)
+            </label>
+            <input
+              type="text"
+              className="input-field"
+              placeholder="https://example.com/my-photo.jpg"
+              value={avatarUrl.startsWith('http') ? avatarUrl : ''}
+              onChange={(e) => setAvatarUrl(e.target.value)}
+            />
+          </div>
+
+          {/* Display Name */}
+          <div>
+            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+              Name
+            </label>
+            <input
+              type="text"
+              className="input-field"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              required
+            />
+          </div>
+
+          {/* Profile Accent Color */}
+          <div>
+            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+              Accent Color
+            </label>
+            <div style={{ display: 'flex', gap: '0.6rem' }}>
+              {COLOR_PRESETS.map((col) => (
+                <button
+                  key={col.hex}
+                  type="button"
+                  onClick={() => setSelectedColor(col.hex)}
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    backgroundColor: col.hex,
+                    border: selectedColor === col.hex ? '3px solid var(--text-primary)' : 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#FFFFFF',
+                  }}
+                >
+                  {selectedColor === col.hex && <Check size={14} />}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            gap: '0.6rem',
+            marginTop: '0.5rem',
+          }}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={onClose}
+            >
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={isSubmitting || !displayName.trim()}
+              style={{ fontWeight: 800 }}
+            >
+              {isSubmitting ? 'Saving...' : 'Save Profile'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

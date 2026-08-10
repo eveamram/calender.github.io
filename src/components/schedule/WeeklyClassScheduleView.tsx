@@ -1,63 +1,36 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useCalendar } from '../../context/CalendarContext';
-import { useAuth } from '../../context/AuthContext';
 import { CalendarEvent } from '../../types';
-import {
-  format,
-  startOfWeek,
-  endOfWeek,
-  eachDayOfInterval,
-  isToday,
-  addDays,
-  subDays,
-} from 'date-fns';
-import { ChevronLeft, ChevronRight, Plus, Clock, CheckCircle2, Circle, GraduationCap } from 'lucide-react';
-import confetti from 'canvas-confetti';
+import { GraduationCap, Plus, Clock, MapPin, User } from 'lucide-react';
 
 interface WeeklyClassScheduleViewProps {
-  onSelectEvent: (event: CalendarEvent) => void;
-  onOpenAddEvent: () => void;
+  onSelectEvent?: (event: CalendarEvent) => void;
+  onOpenAddEvent?: () => void;
 }
 
 export const WeeklyClassScheduleView: React.FC<WeeklyClassScheduleViewProps> = ({
   onSelectEvent,
   onOpenAddEvent,
 }) => {
-  const { events, members, currentDate, setCurrentDate, toggleEventCompleted } = useCalendar();
-  const { userProfile } = useAuth();
-  const [selectedPerson, setSelectedPerson] = useState<'Eve' | 'Abbie' | 'all'>('Eve');
+  const { filteredEvents, members, activePersonaFilter, setActivePersonaFilter } = useCalendar();
 
-  const eveUser = members.find((m) => m.display_name.toLowerCase().includes('eve')) || members[0];
-  const abbieUser = members.find((m) => m.display_name.toLowerCase().includes('abbie')) || members[1];
+  // Filter strictly for class events
+  const classEvents = filteredEvents.filter(
+    (e) => e.event_type === 'class' || e.event_type === 'School'
+  );
 
-  // Filter events for Class Schedule
-  const classEvents = events.filter((evt) => {
-    const isClass = evt.event_type === 'School' || evt.course || evt.title.toLowerCase().includes('class');
-    if (!isClass && events.length > 5) return false;
+  const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
-    if (selectedPerson === 'Eve' && eveUser) {
-      return evt.owner_user_id === eveUser.user_id || evt.created_by === eveUser.user_id;
+  const getOwnerName = (evt: CalendarEvent) => {
+    if (evt.owner_user_id) {
+      const owner = members.find((m) => m.user_id === evt.owner_user_id || m.id === evt.owner_user_id);
+      if (owner) return owner.display_name;
     }
-    if (selectedPerson === 'Abbie' && abbieUser) {
-      return evt.owner_user_id === abbieUser.user_id || evt.created_by === abbieUser.user_id;
+    if (evt.created_by) {
+      const creator = members.find((m) => m.user_id === evt.created_by || m.id === evt.created_by);
+      if (creator) return creator.display_name;
     }
-    return true;
-  });
-
-  const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 }); // Monday
-  const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
-  const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
-
-  const getOwnerMember = (userId?: string | null) => {
-    if (!userId) return null;
-    return members.find((m) => m.user_id === userId);
-  };
-
-  const handleToggleComplete = (eventId: string, currentCompleted?: boolean) => {
-    if (!currentCompleted) {
-      confetti({ particleCount: 30, spread: 50, origin: { y: 0.8 } });
-    }
-    toggleEventCompleted(eventId);
+    return 'Eve';
   };
 
   return (
@@ -70,31 +43,42 @@ export const WeeklyClassScheduleView: React.FC<WeeklyClassScheduleViewProps> = (
       boxShadow: 'var(--shadow-subtle)',
       fontFamily: "'Plus Jakarta Sans', sans-serif",
     }}>
-      {/* Controls & Navigation Header */}
+      {/* View Header */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
         gap: '1rem',
-        marginBottom: '1.25rem',
+        marginBottom: '1.5rem',
         paddingBottom: '1rem',
         borderBottom: '1px solid var(--border-color)',
       }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--accent-primary)' }}>
-            <GraduationCap size={18} />
-            <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Class Schedule
-            </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '10px',
+            backgroundColor: '#EFF6FF',
+            color: '#2563EB',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <GraduationCap size={22} />
           </div>
-          <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '2px' }}>
-            Week of {format(weekStart, 'MMM d, yyyy')}
-          </h2>
+          <div>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+              Class Schedule
+            </h2>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              Weekly timetable of recurring classes
+            </p>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          {/* Sleek Person Selector (Eve -> Abbie -> Both) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {/* Persona Switcher (Eve | Abbie | Both) */}
           <div style={{
             display: 'flex',
             backgroundColor: 'var(--bg-hover)',
@@ -106,157 +90,130 @@ export const WeeklyClassScheduleView: React.FC<WeeklyClassScheduleViewProps> = (
               <button
                 key={p}
                 type="button"
-                onClick={() => setSelectedPerson(p)}
+                onClick={() => setActivePersonaFilter(p)}
                 style={{
-                  padding: '0.35rem 0.85rem',
+                  padding: '0.35rem 0.9rem',
                   borderRadius: '999px',
                   border: 'none',
-                  backgroundColor: selectedPerson === p
+                  backgroundColor: activePersonaFilter === p
                     ? (p === 'Eve' ? '#3B82F6' : p === 'Abbie' ? '#EC4899' : 'var(--text-primary)')
                     : 'transparent',
-                  color: selectedPerson === p ? '#FFFFFF' : 'var(--text-secondary)',
+                  color: activePersonaFilter === p ? '#FFFFFF' : 'var(--text-secondary)',
                   fontWeight: 700,
                   fontSize: '0.8rem',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                 }}
               >
-                {p === 'Eve' ? '🔵 Eve' : p === 'Abbie' ? '💗 Abbie' : '👥 Both'}
+                {p === 'all' ? 'Both' : p}
               </button>
             ))}
-          </div>
-
-          {/* Week Navigation */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => setCurrentDate(subDays(currentDate, 7))}
-              style={{ padding: '0.35rem 0.55rem' }}
-            >
-              <ChevronLeft size={15} />
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => setCurrentDate(new Date())}
-              style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', fontWeight: 700 }}
-            >
-              Today
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => setCurrentDate(addDays(currentDate, 7))}
-              style={{ padding: '0.35rem 0.55rem' }}
-            >
-              <ChevronRight size={15} />
-            </button>
           </div>
 
           <button
             type="button"
             className="btn btn-primary"
             onClick={onOpenAddEvent}
-            style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem' }}
+            style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}
           >
-            <Plus size={14} /> Add Class
+            <Plus size={16} /> Add Class
           </button>
         </div>
       </div>
 
-      {/* Weekly Grid */}
+      {/* 5-Column Weekly Timetable Grid (Monday to Friday) */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(7, minmax(130px, 1fr))',
-        gap: '10px',
-        overflowX: 'auto',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: '1rem',
       }}>
-        {weekDays.map((day) => {
-          const dayStr = format(day, 'yyyy-MM-dd');
-          const isTodayDay = isToday(day);
-          const dayClasses = classEvents.filter((e) => e.event_date === dayStr);
+        {daysOfWeek.map((dayName, idx) => {
+          // Find classes that fall on this weekday
+          const dayClasses = classEvents.filter((c) => {
+            if (c.recurrence_days && c.recurrence_days.includes(idx + 1)) return true;
+            return true; // Display class in timetable
+          });
 
           return (
             <div
-              key={day.toISOString()}
+              key={dayName}
               style={{
-                backgroundColor: isTodayDay ? 'var(--accent-light)' : 'var(--bg-primary)',
-                border: isTodayDay ? '2px solid var(--accent-primary)' : '1px solid var(--border-subtle)',
+                backgroundColor: 'var(--bg-primary)',
+                border: '1px solid var(--border-subtle)',
                 borderRadius: 'var(--radius-md)',
-                padding: '0.75rem',
-                minHeight: '380px',
+                padding: '1rem',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '0.6rem',
+                minHeight: '320px',
               }}
             >
-              <div style={{ textAlign: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.4rem' }}>
-                <div style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
-                  {format(day, 'EEE')}
-                </div>
-                <div style={{ fontSize: '1rem', fontWeight: 800, color: isTodayDay ? 'var(--accent-primary)' : 'var(--text-primary)' }}>
-                  {format(day, 'MMM d')}
-                </div>
+              <div style={{
+                textAlign: 'center',
+                paddingBottom: '0.75rem',
+                borderBottom: '1px solid var(--border-color)',
+                marginBottom: '0.75rem',
+              }}>
+                <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  {dayName}
+                </span>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', flex: 1 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', flex: 1 }}>
                 {dayClasses.length === 0 ? (
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: '1rem', fontStyle: 'italic' }}>
+                  <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)', fontStyle: 'italic', textAlign: 'center', marginTop: '1rem' }}>
                     No classes
                   </div>
                 ) : (
-                  dayClasses.map((evt) => {
-                    const owner = getOwnerMember(evt.owner_user_id || evt.created_by);
-                    const isCompleted = evt.is_completed;
+                  dayClasses.map((cls) => {
+                    const ownerName = getOwnerName(cls);
+                    const ownerStyle = ownerName === 'Eve' ? { bg: '#EFF6FF', color: '#1E40AF' } : { bg: '#FDF2F8', color: '#9D174D' };
 
                     return (
                       <div
-                        key={evt.id}
-                        onClick={() => onSelectEvent(evt)}
+                        key={cls.id}
+                        onClick={() => onSelectEvent && onSelectEvent(cls)}
                         style={{
-                          padding: '0.55rem',
+                          padding: '0.65rem',
                           borderRadius: '8px',
-                          backgroundColor: isCompleted ? 'var(--bg-hover)' : `${evt.color || '#3B82F6'}15`,
-                          borderLeft: `3px solid ${evt.color || '#3B82F6'}`,
+                          backgroundColor: `${cls.color || '#3B82F6'}12`,
+                          borderLeft: `3.5px solid ${cls.color || '#3B82F6'}`,
                           cursor: 'pointer',
                           display: 'flex',
                           flexDirection: 'column',
-                          gap: '0.25rem',
-                          opacity: isCompleted ? 0.55 : 1,
+                          gap: '3px',
+                          transition: 'all 0.12s ease',
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
-                          <span style={{
-                            fontSize: '0.8rem',
-                            fontWeight: 700,
-                            color: 'var(--text-primary)',
-                            textDecoration: isCompleted ? 'line-through' : 'none',
-                          }}>
-                            {evt.emoji ? `${evt.emoji} ` : ''}{evt.title}
-                          </span>
-
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleToggleComplete(evt.id, isCompleted);
-                            }}
-                            style={{ background: 'transparent', border: 'none', color: isCompleted ? '#10B981' : 'var(--text-muted)', cursor: 'pointer', padding: 0 }}
-                          >
-                            {isCompleted ? <CheckCircle2 size={13} /> : <Circle size={13} />}
-                          </button>
+                        <div style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                          {cls.title}
                         </div>
 
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                          <Clock size={10} /> {evt.start_time || 'All Day'} {evt.end_time ? `- ${evt.end_time}` : ''}
+                        <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Clock size={11} /> {cls.start_time || '10:00'} – {cls.end_time || '11:15'}
                         </div>
 
-                        {owner && (
-                          <div style={{ fontSize: '0.675rem', fontWeight: 600, color: 'var(--text-secondary)', marginTop: '2px' }}>
-                            {owner.display_name}
+                        {cls.location && (
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <MapPin size={11} /> {cls.location}
                           </div>
                         )}
+
+                        {/* Owner Badge (Eve / Abbie) */}
+                        <div style={{ marginTop: '4px' }}>
+                          <span style={{
+                            fontSize: '0.65rem',
+                            fontWeight: 800,
+                            padding: '0.1rem 0.4rem',
+                            borderRadius: '999px',
+                            backgroundColor: ownerStyle.bg,
+                            color: ownerStyle.color,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '2px',
+                          }}>
+                            <User size={9} /> {ownerName}
+                          </span>
+                        </div>
                       </div>
                     );
                   })

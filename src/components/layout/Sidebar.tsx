@@ -1,214 +1,164 @@
 import React from 'react';
 import { useCalendar } from '../../context/CalendarContext';
-import { CATEGORY_COLORS } from '../../types';
-import {
-  GraduationCap,
-  Calendar as CalendarIcon,
-  ClipboardList,
-  Star,
-  Settings as SettingsIcon,
-  Plus,
-  ChevronLeft,
-  ChevronRight,
-  Check,
-} from 'lucide-react';
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isToday } from 'date-fns';
+import { useAuth } from '../../context/AuthContext';
+import { Calendar as CalendarIcon, GraduationCap, CheckSquare, Settings } from 'lucide-react';
 
 interface SidebarProps {
-  onOpenAddEvent?: () => void;
+  activeTab: 'calendar' | 'schedule' | 'todo';
+  setActiveTab: (tab: 'calendar' | 'schedule' | 'todo') => void;
+  onOpenSettings: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ onOpenAddEvent }) => {
-  const {
-    filterState,
-    setFilterState,
-    events,
-    currentDate,
-    setCurrentDate,
-  } = useCalendar();
-
-  const activeTab = filterState.tabFilter || 'schedule';
-
-  // Mini Calendar Generation
-  const miniMonthStart = startOfMonth(currentDate);
-  const miniMonthEnd = endOfMonth(miniMonthStart);
-  const miniStartDate = startOfWeek(miniMonthStart);
-  const miniEndDate = endOfWeek(miniMonthEnd);
-  const miniDays = eachDayOfInterval({ start: miniStartDate, end: miniEndDate });
+export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onOpenSettings }) => {
+  const { activePersonaFilter, setActivePersonaFilter } = useCalendar();
 
   return (
-    <aside style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem', width: '100%' }}>
-      {/* Quick Add Button */}
-      {onOpenAddEvent && (
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={onOpenAddEvent}
-          style={{
-            width: '100%',
-            padding: '0.75rem 1rem',
-            fontSize: '0.95rem',
-            borderRadius: '14px',
-            boxShadow: 'var(--shadow-md)',
-          }}
-        >
-          <Plus size={18} /> New Event
-        </button>
-      )}
-
-      {/* Navigation Links with Schedule First */}
-      <div className="glass-card" style={{ padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-        {[
-          { id: 'schedule', label: 'Schedule / Daily Plan', icon: GraduationCap, color: '#8B5CF6' },
-          { id: 'calendar', label: 'Calendar', icon: CalendarIcon, color: '#4F46E5' },
-          { id: 'upcoming', label: 'Upcoming', icon: ClipboardList, color: '#10B981' },
-          { id: 'important', label: 'Important', icon: Star, color: '#EF4444' },
-          { id: 'settings', label: 'Settings', icon: SettingsIcon, color: '#64748B' },
-        ].map((item) => {
-          const IconComponent = item.icon;
-          const isActive = activeTab === item.id;
-
-          return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => {
-                setFilterState((prev) => ({
-                  ...prev,
-                  tabFilter: item.id as any,
-                  eventTypeFilter: item.id === 'important' ? 'Important' : 'all',
-                }));
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                padding: '0.65rem 0.85rem',
-                borderRadius: '10px',
-                border: 'none',
-                backgroundColor: isActive ? 'var(--accent-light)' : 'transparent',
-                color: isActive ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                fontWeight: isActive ? 700 : 500,
-                fontSize: '0.875rem',
-                cursor: 'pointer',
-                textAlign: 'left',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <IconComponent size={18} style={{ color: isActive ? 'var(--accent-primary)' : item.color }} />
-              {item.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Mini Monthly Calendar Widget */}
-      <div className="glass-card" style={{ padding: '0.85rem 1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
-          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-            {format(currentDate, 'MMMM yyyy')}
-          </span>
-          <div style={{ display: 'flex', gap: '2px' }}>
-            <button
-              type="button"
-              onClick={() => setCurrentDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
-              style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }}
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setCurrentDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
-              style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }}
-            >
-              <ChevronRight size={16} />
-            </button>
+    <aside style={{
+      width: '240px',
+      backgroundColor: 'var(--bg-secondary)',
+      borderRight: '1px solid var(--border-color)',
+      padding: '1.25rem 1rem',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'space-between',
+      height: '100vh',
+    }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        {/* Brand */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0 0.5rem' }}>
+          <div style={{
+            width: '32px',
+            height: '32px',
+            borderRadius: '8px',
+            background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#FFFFFF',
+            fontWeight: 800,
+            fontSize: '0.9rem',
+          }}>
+            {new Date().getDate()}
           </div>
+          <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>calender</span>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', textAlign: 'center', fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.3rem' }}>
-          {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, idx) => (
-            <div key={idx}>{d}</div>
+        {/* Persona Switcher */}
+        <div style={{
+          display: 'flex',
+          backgroundColor: 'var(--bg-hover)',
+          padding: '3px',
+          borderRadius: '8px',
+          border: '1px solid var(--border-color)',
+        }}>
+          {(['Eve', 'Abbie', 'all'] as const).map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setActivePersonaFilter(p)}
+              style={{
+                flex: 1,
+                padding: '0.35rem 0',
+                borderRadius: '6px',
+                border: 'none',
+                backgroundColor: activePersonaFilter === p ? 'var(--bg-secondary)' : 'transparent',
+                color: activePersonaFilter === p ? 'var(--text-primary)' : 'var(--text-muted)',
+                fontWeight: 700,
+                fontSize: '0.75rem',
+                cursor: 'pointer',
+              }}
+            >
+              {p === 'all' ? 'Both' : p}
+            </button>
           ))}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', textAlign: 'center' }}>
-          {miniDays.map((d) => {
-            const isCurrMonth = isSameMonth(d, miniMonthStart);
-            const isTodayDate = isToday(d);
-            const dateStr = format(d, 'yyyy-MM-dd');
-            const hasEvent = events.some((e) => e.event_date === dateStr);
+        {/* Navigation items */}
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+          <button
+            type="button"
+            onClick={() => setActiveTab('calendar')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+              padding: '0.6rem 0.85rem',
+              borderRadius: '8px',
+              border: 'none',
+              backgroundColor: activeTab === 'calendar' ? 'var(--accent-light)' : 'transparent',
+              color: activeTab === 'calendar' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+              fontWeight: 700,
+              fontSize: '0.875rem',
+              cursor: 'pointer',
+              textAlign: 'left',
+            }}
+          >
+            <CalendarIcon size={16} /> Calendar
+          </button>
 
-            return (
-              <div
-                key={d.toISOString()}
-                onClick={() => setCurrentDate(d)}
-                style={{
-                  padding: '4px 0',
-                  fontSize: '0.725rem',
-                  fontWeight: isTodayDate ? 800 : 500,
-                  borderRadius: '6px',
-                  backgroundColor: isTodayDate ? 'var(--accent-primary)' : 'transparent',
-                  color: isTodayDate ? '#FFFFFF' : isCurrMonth ? 'var(--text-primary)' : 'var(--text-muted)',
-                  cursor: 'pointer',
-                  opacity: isCurrMonth ? 1 : 0.4,
-                  position: 'relative',
-                }}
-              >
-                {format(d, 'd')}
-                {hasEvent && !isTodayDate && (
-                  <div style={{ width: '3px', height: '3px', borderRadius: '50%', backgroundColor: 'var(--accent-primary)', position: 'absolute', bottom: '2px', left: '50%', transform: 'translateX(-50%)' }} />
-                )}
-              </div>
-            );
-          })}
-        </div>
+          <button
+            type="button"
+            onClick={() => setActiveTab('schedule')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+              padding: '0.6rem 0.85rem',
+              borderRadius: '8px',
+              border: 'none',
+              backgroundColor: activeTab === 'schedule' ? 'var(--accent-light)' : 'transparent',
+              color: activeTab === 'schedule' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+              fontWeight: 700,
+              fontSize: '0.875rem',
+              cursor: 'pointer',
+              textAlign: 'left',
+            }}
+          >
+            <GraduationCap size={16} /> Class Schedule
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('todo')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+              padding: '0.6rem 0.85rem',
+              borderRadius: '8px',
+              border: 'none',
+              backgroundColor: activeTab === 'todo' ? 'var(--accent-light)' : 'transparent',
+              color: activeTab === 'todo' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+              fontWeight: 700,
+              fontSize: '0.875rem',
+              cursor: 'pointer',
+              textAlign: 'left',
+            }}
+          >
+            <CheckSquare size={16} /> To-Do List
+          </button>
+        </nav>
       </div>
 
-      {/* Color Legend */}
-      <div className="glass-card" style={{ padding: '0.85rem 1rem' }}>
-        <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.6rem', letterSpacing: '0.04em' }}>
-          Color Categories
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-          {CATEGORY_COLORS.map((cat) => {
-            const isSelected = filterState.eventTypeFilter === cat.label;
-            return (
-              <button
-                key={cat.label}
-                type="button"
-                onClick={() => {
-                  setFilterState((prev) => ({
-                    ...prev,
-                    eventTypeFilter: prev.eventTypeFilter === cat.label ? 'all' : cat.label,
-                  }));
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '0.4rem 0.6rem',
-                  borderRadius: '8px',
-                  border: 'none',
-                  backgroundColor: isSelected ? `${cat.color}1E` : 'transparent',
-                  cursor: 'pointer',
-                  fontSize: '0.825rem',
-                  fontWeight: isSelected ? 800 : 600,
-                  color: 'var(--text-primary)',
-                  textAlign: 'left',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: cat.color }} />
-                  <span>{cat.emoji} {cat.label}</span>
-                </div>
-                {isSelected && <Check size={14} style={{ color: cat.color }} />}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <button
+        type="button"
+        onClick={onOpenSettings}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.6rem',
+          padding: '0.6rem 0.85rem',
+          borderRadius: '8px',
+          border: 'none',
+          backgroundColor: 'transparent',
+          color: 'var(--text-muted)',
+          fontWeight: 700,
+          fontSize: '0.85rem',
+          cursor: 'pointer',
+        }}
+      >
+        <Settings size={16} /> Settings
+      </button>
     </aside>
   );
 };

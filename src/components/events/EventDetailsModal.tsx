@@ -1,29 +1,16 @@
 import React from 'react';
-import { CalendarEvent } from '../../types';
 import { useCalendar } from '../../context/CalendarContext';
-import { useAuth } from '../../context/AuthContext';
-import {
-  X,
-  Calendar as CalendarIcon,
-  Clock,
-  MapPin,
-  BookOpen,
-  User,
-  Edit2,
-  Trash2,
-  Bell,
-  CheckCircle2,
-  Copy,
-  Share2,
-} from 'lucide-react';
+import { CalendarEvent } from '../../types';
 import { format, parseISO } from 'date-fns';
+import { X, Calendar as CalendarIcon, Clock, MapPin, Trash2, CheckCircle2, Circle } from 'lucide-react';
+import confetti from 'canvas-confetti';
 
 interface EventDetailsModalProps {
   event: CalendarEvent | null;
   isOpen: boolean;
   onClose: () => void;
   onEdit: (event: CalendarEvent) => void;
-  onDeleteRequest: (eventId: string) => void;
+  onDeleteRequest?: (eventId: string) => void;
 }
 
 export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
@@ -33,21 +20,30 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
   onEdit,
   onDeleteRequest,
 }) => {
-  const { members, toggleEventCompleted, addToast } = useCalendar();
-  const { userProfile, user } = useAuth();
+  const { members, toggleEventCompleted, deleteEvent } = useCalendar();
 
   if (!isOpen || !event) return null;
 
-  const owner = members.find(
-    (m) => m.user_id === (event.owner_user_id || event.created_by)
-  );
+  const eventDateStr = event.event_date || event.due_date || format(new Date(), 'yyyy-MM-dd');
+  const formattedDate = format(parseISO(eventDateStr), 'EEEE, MMMM d, yyyy');
 
-  const formattedDate = format(parseISO(event.event_date), 'EEEE, MMMM d, yyyy');
+  const owner = members.find((m) => m.user_id === event.owner_user_id || m.id === event.owner_user_id);
+  const ownerName = owner ? owner.display_name : 'Eve';
 
-  const handleCopySummary = () => {
-    const text = `📌 ${event.title}\n📅 ${formattedDate}${event.start_time ? ` at ${event.start_time}` : ''}\n📚 Course: ${event.course || 'N/A'}\n📍 Location: ${event.location || 'N/A'}\n📝 Notes: ${event.notes || 'None'}`;
-    navigator.clipboard.writeText(text);
-    addToast('Event details copied to clipboard!', 'success');
+  const handleDelete = async () => {
+    if (onDeleteRequest) {
+      onDeleteRequest(event.id);
+    } else {
+      await deleteEvent(event.id);
+    }
+    onClose();
+  };
+
+  const handleToggle = async () => {
+    if (!event.is_completed) {
+      confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 } });
+    }
+    await toggleEventCompleted(event.id);
   };
 
   return (
@@ -57,168 +53,103 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(15, 23, 42, 0.75)',
-      backdropFilter: 'blur(8px)',
+      backgroundColor: 'rgba(9, 9, 11, 0.45)',
+      backdropFilter: 'blur(4px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      zIndex: 9999,
+      zIndex: 10000,
       padding: '1rem',
-    }}>
-      <div className="glass-modal animate-scale-in" style={{
-        maxWidth: '520px',
+      fontFamily: "'Plus Jakarta Sans', sans-serif",
+    }} onClick={onClose}>
+      <div style={{
+        backgroundColor: 'var(--bg-secondary)',
+        border: '1px solid var(--border-color)',
+        borderRadius: 'var(--radius-lg)',
         width: '100%',
-        padding: '2rem',
-        position: 'relative',
-      }}>
-        {/* Header Bar */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
-              <span
-                className="badge"
-                style={{
-                  backgroundColor: event.is_completed ? 'var(--bg-hover)' : event.color || '#3B82F6',
-                  color: event.is_completed ? 'var(--text-muted)' : '#FFFFFF',
-                }}
-              >
-                {event.event_type === 'Exam' && '🚨 '}
-                {event.event_type}
-              </span>
-
-              {event.course && (
-                <span className="badge" style={{ backgroundColor: 'var(--bg-hover)', color: 'var(--text-secondary)' }}>
-                  {event.course}
-                </span>
-              )}
-            </div>
-
-            <h2 style={{
-              fontSize: '1.45rem',
-              fontWeight: 800,
-              color: 'var(--text-primary)',
-              textDecoration: event.is_completed ? 'line-through' : 'none',
-            }}>
-              {event.title}
-            </h2>
-          </div>
+        maxWidth: '420px',
+        padding: '1.5rem',
+        boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
+      }} onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+          <span style={{
+            fontSize: '0.725rem',
+            fontWeight: 800,
+            textTransform: 'uppercase',
+            padding: '0.2rem 0.6rem',
+            borderRadius: '999px',
+            backgroundColor: `${event.color || '#3B82F6'}15`,
+            color: event.color || '#3B82F6',
+          }}>
+            {event.event_type}
+          </span>
 
           <button
             type="button"
             onClick={onClose}
-            style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
+            style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }}
           >
-            <X size={22} />
+            <X size={18} />
           </button>
         </div>
 
-        {/* Quick Complete Bar */}
-        <div style={{
-          backgroundColor: event.is_completed ? 'rgba(16, 185, 129, 0.1)' : 'var(--bg-hover)',
-          padding: '0.75rem 1rem',
-          borderRadius: '12px',
-          marginBottom: '1.25rem',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 700 }}>
-            <CheckCircle2 size={18} style={{ color: event.is_completed ? '#10B981' : 'var(--text-muted)' }} />
-            <span>{event.is_completed ? 'Task Completed! 🎉' : 'Mark as Completed'}</span>
+        <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.75rem' }}>
+          {event.title}
+        </h3>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginBottom: '1.25rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <CalendarIcon size={15} color="var(--text-muted)" /> {formattedDate}
           </div>
 
-          <button
-            type="button"
-            className={event.is_completed ? 'btn btn-secondary' : 'btn btn-primary'}
-            onClick={() => toggleEventCompleted(event.id)}
-            style={{ fontSize: '0.8rem', padding: '0.35rem 0.85rem' }}
-          >
-            {event.is_completed ? 'Undo' : 'Mark Done 🎉'}
-          </button>
-        </div>
-
-        {/* Info Grid */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
-          {/* Date & Time */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <CalendarIcon size={18} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
-            <div>
-              <div style={{ fontSize: '0.9rem', fontWeight: 700 }}>{formattedDate}</div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                {event.is_all_day ? 'All Day Event' : `${event.start_time} - ${event.end_time}`}
-              </div>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Clock size={15} color="var(--text-muted)" /> {event.start_time || 'All Day'} {event.end_time ? `– ${event.end_time}` : ''}
           </div>
 
-          {/* Owner */}
-          {owner && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <User size={18} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
-              <div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Belongs to</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.9rem', fontWeight: 700 }}>
-                  <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: owner.profile_color }} />
-                  {owner.display_name}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Location */}
           {event.location && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <MapPin size={18} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
-              <div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Location</div>
-                <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{event.location}</div>
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <MapPin size={15} color="var(--text-muted)" /> {event.location}
             </div>
           )}
 
-          {/* Notes */}
-          {event.notes && (
-            <div style={{
-              backgroundColor: 'var(--bg-hover)',
-              padding: '0.85rem 1rem',
-              borderRadius: '12px',
-              fontSize: '0.875rem',
-              color: 'var(--text-secondary)',
-              lineHeight: 1.5,
-            }}>
-              <strong style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '0.2rem' }}>Notes & Instructions:</strong>
-              {event.notes}
-            </div>
-          )}
+          <div style={{ fontSize: '0.775rem', fontWeight: 700, color: ownerName === 'Eve' ? '#1E40AF' : '#9D174D', marginTop: '4px' }}>
+            Added by {ownerName}
+          </div>
         </div>
 
-        {/* Action Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
+        {/* Footer Actions */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
           <button
             type="button"
+            onClick={handleToggle}
             className="btn btn-secondary"
-            onClick={handleCopySummary}
-            style={{ fontSize: '0.85rem', padding: '0.5rem 0.85rem' }}
+            style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
           >
-            <Copy size={15} /> Copy Info
+            {event.is_completed ? <CheckCircle2 size={16} color="#10B981" /> : <Circle size={16} />}
+            {event.is_completed ? 'Completed' : 'Mark Complete'}
           </button>
 
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <button
               type="button"
-              className="btn btn-secondary"
-              onClick={() => onEdit(event)}
-              style={{ fontSize: '0.85rem', padding: '0.5rem 0.85rem' }}
+              onClick={handleDelete}
+              style={{ background: 'transparent', border: 'none', color: '#EF4444', cursor: 'pointer', padding: '0.4rem' }}
+              title="Delete"
             >
-              <Edit2 size={15} /> Edit
+              <Trash2 size={16} />
             </button>
 
             <button
               type="button"
-              className="btn btn-danger"
-              onClick={() => onDeleteRequest(event.id)}
-              style={{ fontSize: '0.85rem', padding: '0.5rem 0.85rem' }}
+              className="btn btn-primary"
+              onClick={() => {
+                onClose();
+                onEdit(event);
+              }}
+              style={{ fontSize: '0.8rem', padding: '0.4rem 0.9rem' }}
             >
-              <Trash2 size={15} /> Delete
+              Edit
             </button>
           </div>
         </div>

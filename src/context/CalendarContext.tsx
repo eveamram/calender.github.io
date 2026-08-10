@@ -1,698 +1,303 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
-import confetti from 'canvas-confetti';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import {
-  Calendar,
   CalendarEvent,
+  SharedCalendar,
   CalendarMember,
   FilterState,
   ViewMode,
-  EventType,
 } from '../types';
+import { format, addDays } from 'date-fns';
+import confetti from 'canvas-confetti';
 
-interface Toast {
+export interface ToastMessage {
   id: string;
-  message: string;
   type: 'success' | 'error' | 'info';
+  message: string;
 }
 
 interface CalendarContextType {
-  activeCalendar: Calendar | null;
-  members: CalendarMember[];
   events: CalendarEvent[];
   filteredEvents: CalendarEvent[];
+  activeCalendar: SharedCalendar | null;
+  members: CalendarMember[];
   loading: boolean;
-  isOffline: boolean;
-  syncError: string | null;
-  toasts: Toast[];
   viewMode: ViewMode;
-  currentDate: Date;
-  filterState: FilterState;
-  
   setViewMode: (mode: ViewMode) => void;
-  setCurrentDate: (date: Date | ((prev: Date) => Date)) => void;
+  currentDate: Date;
+  setCurrentDate: (date: Date) => void;
+  filterState: FilterState;
   setFilterState: React.Dispatch<React.SetStateAction<FilterState>>;
-  
-  createCalendar: (name: string) => Promise<{ calendar: Calendar | null; error: Error | null }>;
-  joinCalendar: (inviteCode: string) => Promise<{ calendar: Calendar | null; error: Error | null }>;
-  addEvent: (eventData: Omit<CalendarEvent, 'id' | 'calendar_id' | 'created_at' | 'updated_at'>) => Promise<{ error: Error | null }>;
-  updateEvent: (id: string, updates: Partial<CalendarEvent>) => Promise<{ error: Error | null }>;
-  deleteEvent: (id: string) => Promise<{ error: Error | null }>;
-  toggleEventCompleted: (id: string) => Promise<void>;
-  updateMemberProfile: (userId: string, updates: Partial<CalendarMember>) => void;
-  
+
+  addEvent: (eventData: Omit<CalendarEvent, 'id' | 'created_at' | 'updated_at'>) => Promise<CalendarEvent | null>;
+  updateEvent: (id: string, updates: Partial<CalendarEvent>) => Promise<boolean>;
+  deleteEvent: (id: string) => Promise<boolean>;
+  toggleEventCompleted: (id: string) => Promise<boolean>;
+
+  toasts: ToastMessage[];
   addToast: (message: string, type?: 'success' | 'error' | 'info') => void;
   removeToast: (id: string) => void;
-  leaveCalendar: () => void;
+
+  activePersonaFilter: 'Eve' | 'Abbie' | 'all';
+  setActivePersonaFilter: (persona: 'Eve' | 'Abbie' | 'all') => void;
+
+  showTodosOnCalendar: boolean;
+  setShowTodosOnCalendar: (show: boolean) => void;
 }
 
 const CalendarContext = createContext<CalendarContextType | undefined>(undefined);
 
-// Initial Mock Calendar for unconfigured/demo state
-const DEMO_CALENDAR: Calendar = {
-  id: 'demo-cal-123',
-  name: 'Study Duo 2026',
-  invite_code: 'STUDY-2026-X89',
+const DEMO_CALENDAR: SharedCalendar = {
+  id: 'cal-shared-1',
+  name: 'Eve & Abbie Shared OS',
+  description: 'Shared academic calendar and task system',
+  created_by: 'eve-user-id',
+  invite_code: 'EVE-ABBIE-2026',
   created_at: new Date().toISOString(),
-  created_by: 'demo-user-1',
 };
 
-const DEMO_MEMBERS: CalendarMember[] = [
+const DEFAULT_MEMBERS: CalendarMember[] = [
   {
     id: 'mem-1',
-    calendar_id: 'demo-cal-123',
-    user_id: 'user-eve-1',
+    calendar_id: 'cal-shared-1',
+    user_id: 'eve-user-id',
+    role: 'owner',
     display_name: 'Eve',
     profile_color: '#3B82F6',
     joined_at: new Date().toISOString(),
   },
   {
     id: 'mem-2',
-    calendar_id: 'demo-cal-123',
-    user_id: 'user-abbie-2',
+    calendar_id: 'cal-shared-1',
+    user_id: 'abbie-user-id',
+    role: 'editor',
     display_name: 'Abbie',
     profile_color: '#EC4899',
     joined_at: new Date().toISOString(),
   },
 ];
 
-const generateInitialDemoEvents = (): CalendarEvent[] => {
-  const today = new Date();
-  const getISOString = (dayOffset: number) => {
-    const d = new Date(today);
-    d.setDate(d.getDate() + dayOffset);
-    return d.toISOString().split('T')[0];
-  };
-
-  return [
-    {
-      id: 'evt-1',
-      calendar_id: 'demo-cal-123',
-      created_by: 'demo-user-1',
-      owner_user_id: 'demo-user-1',
-      title: 'CS 101 Midterm Exam',
-      event_type: 'Exam',
-      course: 'CS 101',
-      event_date: getISOString(3),
-      start_time: '10:00',
-      end_time: '12:00',
-      is_all_day: false,
-      location: 'Science Hall 302',
-      notes: 'Chapters 1-6 covered. Bring 2B pencils.',
-      color: '#EF4444',
-      reminder_minutes: 60,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-    {
-      id: 'evt-2',
-      calendar_id: 'demo-cal-123',
-      created_by: 'demo-user-2',
-      owner_user_id: 'demo-user-2',
-      title: 'Physics Lab Report',
-      event_type: 'Assignment',
-      course: 'PHYS 201',
-      event_date: getISOString(1),
-      start_time: '23:59',
-      end_time: '23:59',
-      is_all_day: true,
-      location: 'Canvas Upload',
-      notes: 'Submit PDF with error calculations.',
-      color: '#8B5CF6',
-      reminder_minutes: 120,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-    {
-      id: 'evt-3',
-      calendar_id: 'demo-cal-123',
-      created_by: 'demo-user-1',
-      owner_user_id: 'demo-user-1',
-      title: 'Calculus II Quiz',
-      event_type: 'Quiz',
-      course: 'MATH 152',
-      event_date: getISOString(7),
-      start_time: '14:00',
-      end_time: '14:45',
-      is_all_day: false,
-      location: 'Math Annex B',
-      notes: 'Integration by parts and trigonometric substitution.',
-      color: '#F59E0B',
-      reminder_minutes: 30,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-    {
-      id: 'evt-4',
-      calendar_id: 'demo-cal-123',
-      created_by: 'demo-user-2',
-      owner_user_id: 'demo-user-2',
-      title: 'Weekend Study Trip',
-      event_type: 'Trip',
-      course: 'General',
-      event_date: getISOString(12),
-      start_time: '09:00',
-      end_time: '18:00',
-      is_all_day: true,
-      location: 'Library Study Cabin',
-      notes: 'Group study session for finals.',
-      color: '#EC4899',
-      reminder_minutes: 0,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-  ];
-};
+const INITIAL_SEED_EVENTS: CalendarEvent[] = [
+  {
+    id: 'seed-1',
+    title: 'Calculus II',
+    event_type: 'class',
+    event_date: format(new Date(), 'yyyy-MM-dd'),
+    start_time: '10:00',
+    end_time: '11:15',
+    location: 'Room 204',
+    owner_user_id: 'eve-user-id',
+    created_by: 'eve-user-id',
+    color: '#3B82F6',
+    is_completed: false,
+  },
+  {
+    id: 'seed-2',
+    title: 'Physics Lab',
+    event_type: 'class',
+    event_date: format(addDays(new Date(), 1), 'yyyy-MM-dd'),
+    start_time: '13:00',
+    end_time: '14:30',
+    location: 'Science Hall 102',
+    owner_user_id: 'abbie-user-id',
+    created_by: 'abbie-user-id',
+    color: '#EC4899',
+    is_completed: false,
+  },
+  {
+    id: 'seed-3',
+    title: 'Submit Chemistry Homework',
+    event_type: 'task',
+    event_date: format(addDays(new Date(), 2), 'yyyy-MM-dd'),
+    due_date: format(addDays(new Date(), 2), 'yyyy-MM-dd'),
+    start_time: '23:59',
+    priority: 'high',
+    owner_user_id: 'eve-user-id',
+    created_by: 'eve-user-id',
+    color: '#F59E0B',
+    is_completed: false,
+  },
+  {
+    id: 'seed-4',
+    title: 'Buy groceries',
+    event_type: 'task',
+    event_date: format(new Date(), 'yyyy-MM-dd'),
+    priority: 'normal',
+    owner_user_id: 'abbie-user-id',
+    created_by: 'abbie-user-id',
+    color: '#F59E0B',
+    is_completed: false,
+  },
+  {
+    id: 'seed-5',
+    title: 'Dentist Appointment',
+    event_type: 'appointment',
+    event_date: format(addDays(new Date(), 3), 'yyyy-MM-dd'),
+    start_time: '14:00',
+    end_time: '15:00',
+    location: 'Dental Clinic',
+    owner_user_id: 'eve-user-id',
+    created_by: 'eve-user-id',
+    color: '#10B981',
+    is_completed: false,
+  },
+];
 
 export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, userProfile, isDemoMode } = useAuth();
-  const [activeCalendar, setActiveCalendar] = useState<Calendar | null>(null);
-  const [members, setMembers] = useState<CalendarMember[]>([]);
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isOffline, setIsOffline] = useState(!navigator.onLine);
-  const [syncError, setSyncError] = useState<string | null>(null);
-  const [toasts, setToasts] = useState<Toast[]>([]);
-  
-  const [viewMode, setViewMode] = useState<ViewMode>('month');
-  const [currentDate, setCurrentDate] = useState<Date>(new Date());
-  const [filterState, setFilterState] = useState<FilterState>({
-    search: '',
-    personFilter: 'all',
-    eventTypeFilter: 'all',
-    courseFilter: 'all',
-    tabFilter: 'schedule',
+  const { userProfile } = useAuth();
+  const activePersonaName = (userProfile?.display_name as 'Eve' | 'Abbie') || 'Eve';
+
+  const [activePersonaFilter, setActivePersonaFilter] = useState<'Eve' | 'Abbie' | 'all'>(activePersonaName);
+  const [showTodosOnCalendar, setShowTodosOnCalendar] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('calender_show_todos');
+      return saved !== null ? JSON.parse(saved) : true;
+    } catch {
+      return true;
+    }
   });
 
-  const addToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
-    const id = Date.now().toString() + Math.random().toString(36).substring(2, 5);
-    setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      removeToast(id);
-    }, 4000);
-  }, []);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [viewMode, setViewMode] = useState<ViewMode>('month');
 
-  const removeToast = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  }, []);
-
-  // Online / Offline monitor
   useEffect(() => {
-    const handleOnline = () => {
-      setIsOffline(false);
-      addToast('Internet connection restored.', 'success');
-    };
-    const handleOffline = () => {
-      setIsOffline(true);
-      addToast('Working offline. Changes will sync when reconnected.', 'info');
-    };
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, [addToast]);
-
-  // Load user's primary calendar
-  const loadUserCalendar = useCallback(async () => {
-    // Check local storage cache first for instant load
-    const cachedEvents = localStorage.getItem('calender_events_storage');
-    const initialEvents = cachedEvents ? JSON.parse(cachedEvents) : generateInitialDemoEvents();
-
-    if (!isSupabaseConfigured() || isDemoMode || !user) {
-      setActiveCalendar(DEMO_CALENDAR);
-      setMembers(DEMO_MEMBERS);
-      setEvents(initialEvents);
-      setLoading(false);
-      return;
+    if (activePersonaName === 'Eve' || activePersonaName === 'Abbie') {
+      setActivePersonaFilter(activePersonaName);
     }
+  }, [activePersonaName]);
 
+  useEffect(() => {
+    localStorage.setItem('calender_show_todos', JSON.stringify(showTodosOnCalendar));
+  }, [showTodosOnCalendar]);
+
+  const [events, setEvents] = useState<CalendarEvent[]>(() => {
     try {
-      setLoading(true);
-      setSyncError(null);
-
-      // Find calendar membership
-      const { data: memberRecords, error: memberErr } = await supabase
-        .from('calendar_members')
-        .select('calendar_id')
-        .eq('user_id', user.id)
-        .limit(1);
-
-      if (memberErr) throw memberErr;
-
-      if (!memberRecords || memberRecords.length === 0) {
-        // No calendar joined yet
-        setActiveCalendar(null);
-        setMembers([]);
-        setEvents([]);
-        setLoading(false);
-        return;
-      }
-
-      const calId = memberRecords[0].calendar_id;
-
-      // Fetch Calendar details
-      const { data: calData, error: calErr } = await supabase
-        .from('calendars')
-        .select('*')
-        .eq('id', calId)
-        .single();
-
-      if (calErr) throw calErr;
-      setActiveCalendar(calData);
-
-      // Fetch Members
-      const { data: membersData, error: membersErr } = await supabase
-        .from('calendar_members')
-        .select('*')
-        .eq('calendar_id', calId);
-
-      if (membersErr) throw membersErr;
-      setMembers(membersData || []);
-
-      // Fetch Events
-      const { data: eventsData, error: eventsErr } = await supabase
-        .from('events')
-        .select('*')
-        .eq('calendar_id', calId)
-        .order('event_date', { ascending: true });
-
-      if (eventsErr) throw eventsErr;
-      setEvents(eventsData || []);
-
-    } catch (e: any) {
-      console.error('Error loading calendar:', e);
-      setSyncError(e.message || 'Failed to sync with Supabase.');
-    } finally {
-      setLoading(false);
+      const stored = localStorage.getItem('calender_unified_events');
+      if (stored) return JSON.parse(stored);
+    } catch (e) {
+      console.error('Failed to parse local events:', e);
     }
-  }, [user, isDemoMode]);
+    return INITIAL_SEED_EVENTS;
+  });
+
+  const [activeCalendar] = useState<SharedCalendar>(DEMO_CALENDAR);
+  const [members] = useState<CalendarMember[]>(DEFAULT_MEMBERS);
+  const [loading] = useState(false);
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  
+  const [filterState, setFilterState] = useState<FilterState>({
+    search: '',
+    selectedCategories: [],
+    selectedMembers: [],
+    showCompleted: true,
+    tabFilter: 'calendar',
+    personFilter: 'all',
+  });
 
   useEffect(() => {
-    loadUserCalendar();
-  }, [loadUserCalendar]);
-
-  // Persistent LocalStorage auto-save sync
-  useEffect(() => {
-    if (events.length > 0) {
-      localStorage.setItem('calender_events_storage', JSON.stringify(events));
-    }
+    localStorage.setItem('calender_unified_events', JSON.stringify(events));
   }, [events]);
 
-  // Supabase Realtime Subscription
-  useEffect(() => {
-    if (!isSupabaseConfigured() || isDemoMode || !activeCalendar) {
-      return;
-    }
+  const addToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    const id = Date.now().toString();
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => removeToast(id), 3000);
+  };
 
-    const calendarId = activeCalendar.id;
+  const removeToast = (id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
 
-    const channel = supabase
-      .channel(`realtime:calendar_${calendarId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'events',
-          filter: `calendar_id=eq.${calendarId}`,
-        },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            const newEvt = payload.new as CalendarEvent;
-            setEvents((prev) => {
-              if (prev.some((e) => e.id === newEvt.id)) return prev;
-              return [...prev, newEvt].sort((a, b) => a.event_date.localeCompare(b.event_date));
-            });
-            addToast(`New event added: "${newEvt.title}"`, 'info');
-          } else if (payload.eventType === 'UPDATE') {
-            const updatedEvt = payload.new as CalendarEvent;
-            setEvents((prev) =>
-              prev.map((e) => (e.id === updatedEvt.id ? updatedEvt : e))
-            );
-            addToast(`Event updated: "${updatedEvt.title}"`, 'info');
-          } else if (payload.eventType === 'DELETE') {
-            const deletedId = payload.old.id;
-            setEvents((prev) => prev.filter((e) => e.id !== deletedId));
-            addToast('An event was removed from calendar.', 'info');
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'calendar_members',
-          filter: `calendar_id=eq.${calendarId}`,
-        },
-        async () => {
-          // Refresh members list when someone joins/updates profile
-          const { data } = await supabase
-            .from('calendar_members')
-            .select('*')
-            .eq('calendar_id', calendarId);
-          if (data) setMembers(data);
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'CHANNEL_ERROR') {
-          setSyncError('Realtime channel connection error.');
-        }
-      });
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [activeCalendar, isDemoMode, addToast]);
-
-  // Calendar Actions
-  const createCalendar = async (name: string) => {
-    const inviteCode = 'STUDY-' + Math.random().toString(36).substring(2, 6).toUpperCase() + '-' + Math.floor(100 + Math.random() * 900);
+  const filteredEvents = events.filter((evt) => {
+    if (activePersonaFilter === 'all') return true;
     
-    if (!isSupabaseConfigured() || isDemoMode || !user) {
-      const newCal: Calendar = {
-        id: 'demo-cal-' + Date.now(),
-        name,
-        invite_code: inviteCode,
-        created_at: new Date().toISOString(),
-        created_by: userProfile?.id || 'demo-user-1',
-      };
-      setActiveCalendar(newCal);
-      addToast(`Created shared calendar "${name}"`, 'success');
-      return { calendar: newCal, error: null };
+    const eveUser = members.find((m) => m.display_name === 'Eve');
+    const abbieUser = members.find((m) => m.display_name === 'Abbie');
+
+    if (activePersonaFilter === 'Eve' && eveUser) {
+      return evt.owner_user_id === eveUser.user_id || evt.created_by === eveUser.user_id || !evt.owner_user_id;
+    }
+    if (activePersonaFilter === 'Abbie' && abbieUser) {
+      return evt.owner_user_id === abbieUser.user_id || evt.created_by === abbieUser.user_id;
     }
 
-    try {
-      const { data: cal, error: calErr } = await supabase
-        .from('calendars')
-        .insert({
-          name,
-          invite_code: inviteCode,
-          created_by: user.id,
-        })
-        .select()
-        .single();
+    return true;
+  });
 
-      if (calErr) throw calErr;
+  const addEvent = async (eventData: Omit<CalendarEvent, 'id' | 'created_at' | 'updated_at'>): Promise<CalendarEvent | null> => {
+    const ownerUserId = eventData.owner_user_id || (activePersonaName === 'Abbie' ? 'abbie-user-id' : 'eve-user-id');
+    const fallbackDate = format(new Date(), 'yyyy-MM-dd');
 
-      // Add user to calendar_members
-      const { error: memErr } = await supabase
-        .from('calendar_members')
-        .insert({
-          calendar_id: cal.id,
-          user_id: user.id,
-          display_name: userProfile?.display_name || user.email?.split('@')[0] || 'Friend',
-          profile_color: userProfile?.profile_color || '#3B82F6',
-        });
-
-      if (memErr) throw memErr;
-
-      setActiveCalendar(cal);
-      await loadUserCalendar();
-      addToast(`Shared calendar "${name}" created!`, 'success');
-      return { calendar: cal, error: null };
-    } catch (e: any) {
-      return { calendar: null, error: e as Error };
-    }
-  };
-
-  const joinCalendar = async (inviteCode: string) => {
-    const cleanCode = inviteCode.trim().toUpperCase();
-
-    if (!isSupabaseConfigured() || isDemoMode || !user) {
-      if (cleanCode === DEMO_CALENDAR.invite_code || cleanCode.length > 3) {
-        setActiveCalendar(DEMO_CALENDAR);
-        addToast('Joined shared calendar!', 'success');
-        return { calendar: DEMO_CALENDAR, error: null };
-      }
-      return { calendar: null, error: new Error('Invalid invite code.') };
-    }
-
-    try {
-      const { data: cal, error: calErr } = await supabase
-        .from('calendars')
-        .select('*')
-        .ilike('invite_code', cleanCode)
-        .single();
-
-      if (calErr || !cal) {
-        return { calendar: null, error: new Error('Calendar not found with that invite code.') };
-      }
-
-      // Check if already member
-      const { data: existing } = await supabase
-        .from('calendar_members')
-        .select('id')
-        .eq('calendar_id', cal.id)
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (!existing) {
-        const { error: joinErr } = await supabase
-          .from('calendar_members')
-          .insert({
-            calendar_id: cal.id,
-            user_id: user.id,
-            display_name: userProfile?.display_name || user.email?.split('@')[0] || 'Friend',
-            profile_color: userProfile?.profile_color || '#3B82F6',
-          });
-
-        if (joinErr) throw joinErr;
-      }
-
-      setActiveCalendar(cal);
-      await loadUserCalendar();
-      addToast(`Joined "${cal.name}" successfully!`, 'success');
-      return { calendar: cal, error: null };
-    } catch (e: any) {
-      return { calendar: null, error: e as Error };
-    }
-  };
-
-  const addEvent = async (
-    eventData: Omit<CalendarEvent, 'id' | 'calendar_id' | 'created_at' | 'updated_at'>
-  ) => {
-    if (!activeCalendar) {
-      return { error: new Error('No active calendar selected.') };
-    }
-
-    const newEvt: CalendarEvent = {
+    const newEvent: CalendarEvent = {
       ...eventData,
-      id: 'evt-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
-      calendar_id: activeCalendar.id,
-      created_by: userProfile?.id || 'demo-user-1',
-      owner_user_id: eventData.owner_user_id || userProfile?.id || 'demo-user-1',
+      id: `evt-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      event_date: eventData.event_date || eventData.due_date || fallbackDate,
+      owner_user_id: ownerUserId,
+      created_by: ownerUserId,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
 
-    if (!isSupabaseConfigured() || isDemoMode) {
-      setEvents((prev) => [...prev, newEvt].sort((a, b) => a.event_date.localeCompare(b.event_date)));
-      addToast(`Saved event "${eventData.title}"`, 'success');
-      return { error: null };
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('events')
-        .insert({
-          calendar_id: activeCalendar.id,
-          created_by: user?.id,
-          owner_user_id: eventData.owner_user_id || user?.id,
-          title: eventData.title,
-          event_type: eventData.event_type,
-          course: eventData.course,
-          event_date: eventData.event_date,
-          start_time: eventData.start_time,
-          end_time: eventData.end_time,
-          is_all_day: eventData.is_all_day,
-          location: eventData.location,
-          notes: eventData.notes,
-          color: eventData.color,
-          reminder_minutes: eventData.reminder_minutes,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Local optimistic append (Realtime subscription will also confirm)
-      setEvents((prev) => {
-        if (prev.some((e) => e.id === data.id)) return prev;
-        return [...prev, data as CalendarEvent].sort((a, b) => a.event_date.localeCompare(b.event_date));
-      });
-
-      addToast(`Event "${eventData.title}" added to calendar!`, 'success');
-      return { error: null };
-    } catch (e: any) {
-      addToast('Failed to add event: ' + e.message, 'error');
-      return { error: e as Error };
-    }
+    setEvents((prev) => [newEvent, ...prev]);
+    addToast('Saved successfully', 'success');
+    return newEvent;
   };
 
-  const updateEvent = async (id: string, updates: Partial<CalendarEvent>) => {
-    if (!isSupabaseConfigured() || isDemoMode) {
-      setEvents((prev) =>
-        prev.map((e) => (e.id === id ? { ...e, ...updates, updated_at: new Date().toISOString() } : e))
-      );
-      addToast('Event updated successfully', 'success');
-      return { error: null };
-    }
-
-    try {
-      const { error } = await supabase
-        .from('events')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', id);
-
-      if (error) throw error;
-
-      setEvents((prev) =>
-        prev.map((e) => (e.id === id ? { ...e, ...updates, updated_at: new Date().toISOString() } : e))
-      );
-
-      addToast('Event updated!', 'success');
-      return { error: null };
-    } catch (e: any) {
-      addToast('Failed to update event: ' + e.message, 'error');
-      return { error: e as Error };
-    }
-  };
-
-  const deleteEvent = async (id: string) => {
-    if (!isSupabaseConfigured() || isDemoMode) {
-      setEvents((prev) => prev.filter((e) => e.id !== id));
-      addToast('Event deleted from shared calendar.', 'success');
-      return { error: null };
-    }
-
-    try {
-      const { error } = await supabase.from('events').delete().eq('id', id);
-      if (error) throw error;
-
-      setEvents((prev) => prev.filter((e) => e.id !== id));
-      addToast('Event deleted.', 'success');
-      return { error: null };
-    } catch (e: any) {
-      addToast('Failed to delete event: ' + e.message, 'error');
-      return { error: e as Error };
-    }
-  };
-
-  const toggleEventCompleted = async (id: string) => {
-    const target = events.find((e) => e.id === id);
-    if (!target) return;
-
-    const nextState = !target.is_completed;
-    if (nextState) {
-      confetti({
-        particleCount: 75,
-        spread: 60,
-        origin: { y: 0.7 },
-      });
-      addToast(`🎉 Completed "${target.title}"!`, 'success');
-    }
-
-    await updateEvent(id, { is_completed: nextState });
-  };
-
-  const updateMemberProfile = (userId: string, updates: Partial<CalendarMember>) => {
-    setMembers((prev) =>
-      prev.map((m) => (m.user_id === userId ? { ...m, ...updates } : m))
+  const updateEvent = async (id: string, updates: Partial<CalendarEvent>): Promise<boolean> => {
+    setEvents((prev) =>
+      prev.map((evt) => (evt.id === id ? { ...evt, ...updates, updated_at: new Date().toISOString() } : evt))
     );
+    addToast('Updated', 'info');
+    return true;
   };
 
-  const leaveCalendar = () => {
-    setActiveCalendar(null);
-    setMembers([]);
-    setEvents([]);
+  const deleteEvent = async (id: string): Promise<boolean> => {
+    setEvents((prev) => prev.filter((evt) => evt.id !== id));
+    addToast('Deleted', 'info');
+    return true;
   };
 
-  // Filter computation
-  const filteredEvents = useMemo(() => {
-    return events.filter((evt) => {
-      // Search text
-      if (filterState.search) {
-        const query = filterState.search.toLowerCase();
-        const matchesTitle = evt.title.toLowerCase().includes(query);
-        const matchesCourse = evt.course ? evt.course.toLowerCase().includes(query) : false;
-        const matchesLocation = evt.location ? evt.location.toLowerCase().includes(query) : false;
-        const matchesNotes = evt.notes ? evt.notes.toLowerCase().includes(query) : false;
-        if (!matchesTitle && !matchesCourse && !matchesLocation && !matchesNotes) {
-          return false;
+  const toggleEventCompleted = async (id: string): Promise<boolean> => {
+    setEvents((prev) =>
+      prev.map((evt) => {
+        if (evt.id === id) {
+          const nextVal = !evt.is_completed;
+          if (nextVal) {
+            confetti({ particleCount: 40, spread: 60, origin: { y: 0.7 } });
+          }
+          return { ...evt, is_completed: nextVal, updated_at: new Date().toISOString() };
         }
-      }
-
-      // Person filter
-      if (filterState.personFilter === 'me') {
-        const currentUserId = userProfile?.id || user?.id;
-        if (evt.owner_user_id !== currentUserId && evt.created_by !== currentUserId) {
-          return false;
-        }
-      } else if (filterState.personFilter === 'friend') {
-        const currentUserId = userProfile?.id || user?.id;
-        if (evt.owner_user_id === currentUserId && evt.created_by === currentUserId) {
-          return false;
-        }
-      } else if (filterState.personFilter !== 'all') {
-        if (evt.owner_user_id !== filterState.personFilter) {
-          return false;
-        }
-      }
-
-      // Event type filter
-      if (filterState.eventTypeFilter !== 'all') {
-        if (evt.event_type !== filterState.eventTypeFilter) {
-          return false;
-        }
-      }
-
-      // Course filter
-      if (filterState.courseFilter !== 'all') {
-        if (evt.course && evt.course.toLowerCase() !== filterState.courseFilter.toLowerCase()) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }, [events, filterState, userProfile, user]);
+        return evt;
+      })
+    );
+    return true;
+  };
 
   return (
     <CalendarContext.Provider
       value={{
-        activeCalendar,
-        members,
         events,
         filteredEvents,
+        activeCalendar,
+        members,
         loading,
-        isOffline,
-        syncError,
-        toasts,
         viewMode,
-        currentDate,
-        filterState,
         setViewMode,
+        currentDate,
         setCurrentDate,
+        filterState,
         setFilterState,
-        createCalendar,
-        joinCalendar,
         addEvent,
         updateEvent,
         deleteEvent,
         toggleEventCompleted,
-        updateMemberProfile,
+        toasts,
         addToast,
         removeToast,
-        leaveCalendar,
+        activePersonaFilter,
+        setActivePersonaFilter,
+        showTodosOnCalendar,
+        setShowTodosOnCalendar,
       }}
     >
       {children}

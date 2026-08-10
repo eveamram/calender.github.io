@@ -1,204 +1,122 @@
-import React, { useState, useEffect } from 'react';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { CalendarProvider, useCalendar } from './context/CalendarContext';
+import React, { useState } from 'react';
+import { CalendarProvider } from './context/CalendarContext';
+import { AuthProvider } from './context/AuthContext';
 import { Header } from './components/layout/Header';
 import { MinimalCalendar } from './components/calendar/MinimalCalendar';
 import { SelectedDaySchedule } from './components/schedule/SelectedDaySchedule';
 import { WeeklyClassScheduleView } from './components/schedule/WeeklyClassScheduleView';
 import { TodoListView } from './components/todo/TodoListView';
-import { PersonCustomizeModal } from './components/auth/PersonCustomizeModal';
 import { EventFormModal } from './components/events/EventFormModal';
 import { EventDetailsModal } from './components/events/EventDetailsModal';
-import { ConfirmDialog } from './components/ui/ConfirmDialog';
-import { ToastContainer } from './components/ui/ToastContainer';
-import { CalendarEvent } from './types';
+import { PersonCustomizeModal } from './components/auth/PersonCustomizeModal';
+import { CalendarEvent, EventType } from './types';
 
-const MainAppContent: React.FC = () => {
-  const { loading: authLoading } = useAuth();
-  const { loading: calLoading, deleteEvent } = useCalendar();
-
+function MainAppContent() {
   const [activeTab, setActiveTab] = useState<'calendar' | 'schedule' | 'todo'>('calendar');
-
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    return localStorage.getItem('theme') === 'dark' ||
-      (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  });
-
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false);
   
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
-  const [eventToEdit, setEventToEdit] = useState<CalendarEvent | null>(null);
-  const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [addModalCategory, setAddModalCategory] = useState<EventType>('personal');
+  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
+  const [selectedDetailsEvent, setSelectedDetailsEvent] = useState<CalendarEvent | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.removeAttribute('data-theme');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [isDarkMode]);
-
-  const toggleDarkMode = () => setIsDarkMode((prev) => !prev);
-
-  const handleSelectEvent = (evt: CalendarEvent) => {
-    setSelectedEvent(evt);
-  };
-
-  const handleEditEvent = (evt: CalendarEvent) => {
-    setSelectedEvent(null);
-    setEventToEdit(evt);
+  const handleOpenAddModal = (category: EventType = 'personal') => {
+    setEditingEvent(null);
+    setAddModalCategory(category);
     setIsAddModalOpen(true);
   };
 
-  const handleDeleteRequest = (eventId: string) => {
-    setSelectedEvent(null);
-    setDeletingEventId(eventId);
+  const handleOpenEditModal = (event: CalendarEvent) => {
+    setEditingEvent(event);
+    setAddModalCategory(event.event_type as EventType);
+    setIsAddModalOpen(true);
   };
-
-  const confirmDelete = async () => {
-    if (deletingEventId) {
-      await deleteEvent(deletingEventId);
-      setDeletingEventId(null);
-    }
-  };
-
-  if (authLoading || calLoading) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'var(--bg-primary)',
-        color: 'var(--text-primary)',
-      }}>
-        <div style={{
-          width: '32px',
-          height: '32px',
-          borderRadius: '50%',
-          border: '2px solid var(--border-color)',
-          borderTopColor: 'var(--accent-primary)',
-          animation: 'spin 0.8s linear infinite',
-        }} />
-        <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
-  }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)', display: 'flex', flexDirection: 'column' }}>
+      {/* Header Navigation: Calendar | Class Schedule | To-Do List */}
       <Header
-        onOpenAddEvent={() => {
-          setEventToEdit(null);
-          setIsAddModalOpen(true);
-        }}
-        onOpenCustomizeModal={() => setIsCustomizeModalOpen(true)}
-        isDarkMode={isDarkMode}
-        toggleDarkMode={toggleDarkMode}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        onOpenAddEvent={() => handleOpenAddModal(activeTab === 'schedule' ? 'class' : activeTab === 'todo' ? 'task' : 'personal')}
+        onOpenPersonModal={() => setIsSettingsOpen(true)}
       />
 
-      <main style={{
-        maxWidth: '1280px',
-        width: '100%',
-        margin: '0 auto',
-        padding: '1.5rem',
-        flex: 1,
-      }}>
+      <main style={{ flex: 1, padding: '1.25rem 1rem', maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
         {activeTab === 'calendar' ? (
-          /* Pure 2-Column Layout: Left Calendar of Important Dates (70-75%), Right Schedule (25-30%) */
+          /* Calendar View: 2-column Desktop (Left: Calendar 75%, Right: Schedule 25%) */
           <div style={{
             display: 'grid',
-            gridTemplateColumns: '1fr 340px',
-            gap: '1.5rem',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gap: '1.25rem',
             alignItems: 'start',
-          }} className="pure-calendar-grid">
-            {/* Left: Main Monthly Calendar of Important Dates */}
-            <MinimalCalendar
-              selectedDate={selectedDate}
-              onSelectDate={setSelectedDate}
-              onSelectEvent={handleSelectEvent}
-              onOpenAddEvent={() => {
-                setEventToEdit(null);
-                setIsAddModalOpen(true);
-              }}
-            />
+          }}>
+            <div style={{ gridColumn: 'span 2' }}>
+              <MinimalCalendar
+                selectedDate={selectedDate}
+                onSelectDate={setSelectedDate}
+                onSelectEvent={(evt) => setSelectedDetailsEvent(evt)}
+                onOpenAddEvent={() => handleOpenAddModal('personal')}
+              />
+            </div>
 
-            {/* Right: Selected Day's Schedule */}
-            <SelectedDaySchedule
-              selectedDate={selectedDate}
-              onSelectEvent={handleSelectEvent}
-              onOpenAddEvent={() => {
-                setEventToEdit(null);
-                setIsAddModalOpen(true);
-              }}
-            />
+            <div style={{ minWidth: '300px' }}>
+              <SelectedDaySchedule
+                selectedDate={selectedDate}
+                onSelectEvent={(evt) => setSelectedDetailsEvent(evt)}
+                onOpenAddEvent={() => handleOpenAddModal('personal')}
+              />
+            </div>
           </div>
         ) : activeTab === 'schedule' ? (
-          /* Dedicated Class Schedule View */
+          /* Dedicated Class Timetable View */
           <WeeklyClassScheduleView
-            onSelectEvent={handleSelectEvent}
-            onOpenAddEvent={() => {
-              setEventToEdit(null);
-              setIsAddModalOpen(true);
-            }}
+            onSelectEvent={(evt) => setSelectedDetailsEvent(evt)}
+            onOpenAddEvent={() => handleOpenAddModal('class')}
           />
         ) : (
-          /* Elegant Personal To-Do Lists for Eve & Abbie */
-          <TodoListView />
+          /* Personal To-Do Lists for Eve & Abbie */
+          <TodoListView
+            onOpenAddEvent={() => handleOpenAddModal('task')}
+            onEditTask={(task) => handleOpenEditModal(task)}
+          />
         )}
       </main>
 
-      {/* Modals & Dialogs */}
-      <PersonCustomizeModal
-        isOpen={isCustomizeModalOpen}
-        onClose={() => setIsCustomizeModalOpen(false)}
-      />
-
+      {/* Add / Edit Form Modal */}
       <EventFormModal
         isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
+        onClose={() => {
+          setIsAddModalOpen(false);
+          setEditingEvent(null);
+        }}
         initialDate={selectedDate}
-        eventToEdit={eventToEdit}
+        eventToEdit={editingEvent}
+        defaultCategory={addModalCategory}
       />
 
+      {/* Event Details View / Actions Modal */}
       <EventDetailsModal
-        event={selectedEvent}
-        isOpen={Boolean(selectedEvent)}
-        onClose={() => setSelectedEvent(null)}
-        onEdit={handleEditEvent}
-        onDeleteRequest={handleDeleteRequest}
+        isOpen={!!selectedDetailsEvent}
+        event={selectedDetailsEvent}
+        onClose={() => setSelectedDetailsEvent(null)}
+        onEdit={(evt) => {
+          setSelectedDetailsEvent(null);
+          handleOpenEditModal(evt);
+        }}
       />
 
-      <ConfirmDialog
-        isOpen={Boolean(deletingEventId)}
-        title="Delete Event?"
-        message="Are you sure you want to delete this event?"
-        confirmText="Delete"
-        cancelText="Cancel"
-        onConfirm={confirmDelete}
-        onCancel={() => setDeletingEventId(null)}
+      {/* Settings & Profile Customization Modal */}
+      <PersonCustomizeModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
       />
-
-      <ToastContainer />
-
-      <style>{`
-        @media (max-width: 900px) {
-          .pure-calendar-grid {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
     </div>
   );
-};
+}
 
-export default function App() {
+export function App() {
   return (
     <AuthProvider>
       <CalendarProvider>
@@ -207,3 +125,5 @@ export default function App() {
     </AuthProvider>
   );
 }
+
+export default App;
