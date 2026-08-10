@@ -1,15 +1,14 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useCalendar } from '../../context/CalendarContext';
-import { Plus, Moon, Sun, Settings, Calendar as CalendarIcon, GraduationCap } from 'lucide-react';
+import { Plus, Moon, Sun, Settings, Calendar as CalendarIcon, GraduationCap, CheckSquare, Sparkles } from 'lucide-react';
 
 interface HeaderProps {
   onOpenAddEvent: () => void;
   onOpenCustomizeModal: () => void;
   isDarkMode: boolean;
   toggleDarkMode: () => void;
-  activeTab: 'calendar' | 'schedule';
-  setActiveTab: (tab: 'calendar' | 'schedule') => void;
+  activeTab: 'calendar' | 'schedule' | 'todo';
+  setActiveTab: (tab: 'calendar' | 'schedule' | 'todo') => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -42,16 +41,33 @@ export const Header: React.FC<HeaderProps> = ({
         gap: '1rem',
         flexWrap: 'wrap',
       }}>
-        {/* Brand & Section View Tabs */}
+        {/* Brand Logo & Section View Tabs */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-          <h1 style={{
-            fontSize: '1.2rem',
-            fontWeight: 700,
-            color: 'var(--text-primary)',
-            letterSpacing: '-0.02em',
-          }}>
-            calender
-          </h1>
+          {/* Logo Badge */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }} onClick={() => setActiveTab('calendar')}>
+            <div style={{
+              width: '28px',
+              height: '28px',
+              borderRadius: '8px',
+              background: 'linear-gradient(135deg, #3B82F6 0%, #EC4899 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#FFFFFF',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
+            }}>
+              <Sparkles size={16} />
+            </div>
+            <h1 style={{
+              fontSize: '1.2rem',
+              fontWeight: 800,
+              color: 'var(--text-primary)',
+              letterSpacing: '-0.02em',
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+            }}>
+              calender
+            </h1>
+          </div>
 
           {/* Section View Switcher */}
           <div style={{
@@ -79,7 +95,7 @@ export const Header: React.FC<HeaderProps> = ({
                 transition: 'all 0.12s ease',
               }}
             >
-              <CalendarIcon size={14} /> Important Dates Calendar
+              <CalendarIcon size={14} /> Important Dates
             </button>
 
             <button
@@ -101,6 +117,27 @@ export const Header: React.FC<HeaderProps> = ({
               }}
             >
               <GraduationCap size={14} /> Class Schedule
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('todo')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                padding: '0.3rem 0.75rem',
+                borderRadius: '6px',
+                border: 'none',
+                backgroundColor: activeTab === 'todo' ? 'var(--bg-secondary)' : 'transparent',
+                color: activeTab === 'todo' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                fontWeight: activeTab === 'todo' ? 700 : 500,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                transition: 'all 0.12s ease',
+              }}
+            >
+              <CheckSquare size={14} /> To-Do List
             </button>
           </div>
         </div>
@@ -125,7 +162,7 @@ export const Header: React.FC<HeaderProps> = ({
                 border: 'none',
                 backgroundColor: activePersona === 'Eve' ? profileColor : 'transparent',
                 color: activePersona === 'Eve' ? '#FFFFFF' : 'var(--text-secondary)',
-                fontWeight: 600,
+                fontWeight: 700,
                 fontSize: '0.8rem',
                 cursor: 'pointer',
                 transition: 'all 0.12s ease',
@@ -143,7 +180,7 @@ export const Header: React.FC<HeaderProps> = ({
                 border: 'none',
                 backgroundColor: activePersona === 'Abbie' ? profileColor : 'transparent',
                 color: activePersona === 'Abbie' ? '#FFFFFF' : 'var(--text-secondary)',
-                fontWeight: 600,
+                fontWeight: 700,
                 fontSize: '0.8rem',
                 cursor: 'pointer',
                 transition: 'all 0.12s ease',

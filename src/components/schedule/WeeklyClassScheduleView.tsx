@@ -25,14 +25,13 @@ export const WeeklyClassScheduleView: React.FC<WeeklyClassScheduleViewProps> = (
 }) => {
   const { events, members, currentDate, setCurrentDate, toggleEventCompleted } = useCalendar();
   const { userProfile } = useAuth();
-  const [selectedPerson, setSelectedPerson] = useState<'all' | 'Eve' | 'Abbie'>('all');
+  const [selectedPerson, setSelectedPerson] = useState<'Eve' | 'Abbie' | 'all'>('Eve');
 
   const eveUser = members.find((m) => m.display_name.toLowerCase().includes('eve')) || members[0];
   const abbieUser = members.find((m) => m.display_name.toLowerCase().includes('abbie')) || members[1];
 
   // Filter events for Class Schedule
   const classEvents = events.filter((evt) => {
-    // Show school classes or custom class items
     const isClass = evt.event_type === 'School' || evt.course || evt.title.toLowerCase().includes('class');
     if (!isClass && events.length > 5) return false;
 
@@ -69,6 +68,7 @@ export const WeeklyClassScheduleView: React.FC<WeeklyClassScheduleViewProps> = (
       padding: '1.5rem',
       width: '100%',
       boxShadow: 'var(--shadow-subtle)',
+      fontFamily: "'Plus Jakarta Sans', sans-serif",
     }}>
       {/* Controls & Navigation Header */}
       <div style={{
@@ -84,42 +84,44 @@ export const WeeklyClassScheduleView: React.FC<WeeklyClassScheduleViewProps> = (
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--accent-primary)' }}>
             <GraduationCap size={18} />
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               Class Schedule
             </span>
           </div>
-          <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
+          <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '2px' }}>
             Week of {format(weekStart, 'MMM d, yyyy')}
           </h2>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          {/* Person Selector */}
+          {/* Sleek Person Selector (Eve -> Abbie -> Both) */}
           <div style={{
             display: 'flex',
             backgroundColor: 'var(--bg-hover)',
-            padding: '2px',
+            padding: '3px',
             borderRadius: '999px',
             border: '1px solid var(--border-color)',
           }}>
-            {(['all', 'Eve', 'Abbie'] as const).map((p) => (
+            {(['Eve', 'Abbie', 'all'] as const).map((p) => (
               <button
                 key={p}
                 type="button"
                 onClick={() => setSelectedPerson(p)}
                 style={{
-                  padding: '0.3rem 0.75rem',
+                  padding: '0.35rem 0.85rem',
                   borderRadius: '999px',
                   border: 'none',
-                  backgroundColor: selectedPerson === p ? 'var(--accent-primary)' : 'transparent',
+                  backgroundColor: selectedPerson === p
+                    ? (p === 'Eve' ? '#3B82F6' : p === 'Abbie' ? '#EC4899' : 'var(--text-primary)')
+                    : 'transparent',
                   color: selectedPerson === p ? '#FFFFFF' : 'var(--text-secondary)',
-                  fontWeight: 600,
-                  fontSize: '0.775rem',
+                  fontWeight: 700,
+                  fontSize: '0.8rem',
                   cursor: 'pointer',
-                  transition: 'all 0.12s ease',
+                  transition: 'all 0.15s ease',
                 }}
               >
-                {p === 'all' ? 'Both' : p}
+                {p === 'Eve' ? '🔵 Eve' : p === 'Abbie' ? '💗 Abbie' : '👥 Both'}
               </button>
             ))}
           </div>
@@ -138,7 +140,7 @@ export const WeeklyClassScheduleView: React.FC<WeeklyClassScheduleViewProps> = (
               type="button"
               className="btn btn-secondary"
               onClick={() => setCurrentDate(new Date())}
-              style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', fontWeight: 600 }}
+              style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', fontWeight: 700 }}
             >
               Today
             </button>
@@ -193,7 +195,7 @@ export const WeeklyClassScheduleView: React.FC<WeeklyClassScheduleViewProps> = (
                 <div style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
                   {format(day, 'EEE')}
                 </div>
-                <div style={{ fontSize: '1rem', fontWeight: 700, color: isTodayDay ? 'var(--accent-primary)' : 'var(--text-primary)' }}>
+                <div style={{ fontSize: '1rem', fontWeight: 800, color: isTodayDay ? 'var(--accent-primary)' : 'var(--text-primary)' }}>
                   {format(day, 'MMM d')}
                 </div>
               </div>

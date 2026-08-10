@@ -5,6 +5,7 @@ import { Header } from './components/layout/Header';
 import { MinimalCalendar } from './components/calendar/MinimalCalendar';
 import { SelectedDaySchedule } from './components/schedule/SelectedDaySchedule';
 import { WeeklyClassScheduleView } from './components/schedule/WeeklyClassScheduleView';
+import { TodoListView } from './components/todo/TodoListView';
 import { PersonCustomizeModal } from './components/auth/PersonCustomizeModal';
 import { EventFormModal } from './components/events/EventFormModal';
 import { EventDetailsModal } from './components/events/EventDetailsModal';
@@ -16,7 +17,7 @@ const MainAppContent: React.FC = () => {
   const { loading: authLoading } = useAuth();
   const { loading: calLoading, deleteEvent } = useCalendar();
 
-  const [activeTab, setActiveTab] = useState<'calendar' | 'schedule'>('calendar');
+  const [activeTab, setActiveTab] = useState<'calendar' | 'schedule' | 'todo'>('calendar');
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem('theme') === 'dark' ||
@@ -138,8 +139,8 @@ const MainAppContent: React.FC = () => {
               }}
             />
           </div>
-        ) : (
-          /* Separate Dedicated Class Schedule View */
+        ) : activeTab === 'schedule' ? (
+          /* Dedicated Class Schedule View */
           <WeeklyClassScheduleView
             onSelectEvent={handleSelectEvent}
             onOpenAddEvent={() => {
@@ -147,6 +148,9 @@ const MainAppContent: React.FC = () => {
               setIsAddModalOpen(true);
             }}
           />
+        ) : (
+          /* Elegant Personal To-Do Lists for Eve & Abbie */
+          <TodoListView />
         )}
       </main>
 
