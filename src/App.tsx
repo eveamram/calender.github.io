@@ -6,13 +6,14 @@ import { MinimalCalendar } from './components/calendar/MinimalCalendar';
 import { SelectedDaySchedule } from './components/schedule/SelectedDaySchedule';
 import { WeeklyClassScheduleView } from './components/schedule/WeeklyClassScheduleView';
 import { TodoListView } from './components/todo/TodoListView';
+import { HabitsView } from './components/habits/HabitsView';
 import { EventFormModal } from './components/events/EventFormModal';
 import { EventDetailsModal } from './components/events/EventDetailsModal';
 import { PersonCustomizeModal } from './components/auth/PersonCustomizeModal';
 import { CalendarEvent, EventType } from './types';
 
 function MainAppContent() {
-  const [activeTab, setActiveTab] = useState<'calendar' | 'schedule' | 'todo'>('calendar');
+  const [activeTab, setActiveTab] = useState<'calendar' | 'schedule' | 'todo' | 'habits'>('calendar');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -35,7 +36,7 @@ function MainAppContent() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)', display: 'flex', flexDirection: 'column' }}>
-      {/* Header Navigation: Calendar | Class Schedule | To-Do List */}
+      {/* Header Navigation: Calendar | Class Schedule | To-Do List | Habits */}
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -75,12 +76,15 @@ function MainAppContent() {
             onSelectEvent={(evt) => setSelectedDetailsEvent(evt)}
             onOpenAddEvent={() => handleOpenAddModal('class')}
           />
-        ) : (
+        ) : activeTab === 'todo' ? (
           /* Personal To-Do Lists for Eve & Abbie */
           <TodoListView
             onOpenAddEvent={() => handleOpenAddModal('task')}
             onEditTask={(task) => handleOpenEditModal(task)}
           />
+        ) : (
+          /* Daily Habits Tracker based on Person */
+          <HabitsView />
         )}
       </main>
 

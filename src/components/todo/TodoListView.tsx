@@ -20,7 +20,17 @@ const CATEGORY_TAGS = [
 ];
 
 export const TodoListView: React.FC<TodoListViewProps> = ({ onEditTask }) => {
-  const { filteredEvents, members, toggleEventCompleted, deleteEvent, addEvent, activePersonaFilter } = useCalendar();
+  const {
+    filteredEvents,
+    members,
+    toggleEventCompleted,
+    deleteEvent,
+    addEvent,
+    updateEvent,
+    activePersonaFilter,
+    showTodosOnCalendar,
+    setShowTodosOnCalendar,
+  } = useCalendar();
 
   const [newTaskText, setNewTaskText] = useState('');
   const [newTaskDueDate, setNewTaskDueDate] = useState('');
@@ -96,25 +106,46 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onEditTask }) => {
     }
   };
 
+  const playCompletionSound = () => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(659.25, ctx.currentTime + 0.1);
+      osc.frequency.exponentialRampToValueAtTime(783.99, ctx.currentTime + 0.2);
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.3);
+    } catch {
+      // Audio autoplay fallback
+    }
+  };
+
   const handleToggleTask = async (task: CalendarEvent) => {
     if (!task.is_completed) {
-      // Fun Confetti Explosions!
+      playCompletionSound();
+      // Fun Fireworks Confetti!
       confetti({
-        particleCount: 50,
-        spread: 60,
+        particleCount: 60,
+        spread: 70,
         origin: { y: 0.7 },
-        colors: ['#3B82F6', '#EC4899', '#10B981', '#F59E0B'],
+        colors: ['#3B82F6', '#EC4899', '#10B981', '#F59E0B', '#8B5CF6'],
       });
 
       // Special grand celebration when all today's tasks are done!
       if (todayTasks.length === 1 && todayTasks[0].id === task.id) {
         setTimeout(() => {
           confetti({
-            particleCount: 100,
-            spread: 100,
+            particleCount: 120,
+            spread: 110,
             origin: { y: 0.5 },
           });
-        }, 200);
+        }, 180);
       }
     }
     await toggleEventCompleted(task.id);
@@ -232,8 +263,33 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onEditTask }) => {
           </div>
         </div>
 
-        {/* Actions */}
+        {/* Actions & Calendar ON/OFF Toggle */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          {/* Per-Task Calendar ON / OFF Toggle */}
+          <button
+            type="button"
+            onClick={() => updateEvent(task.id, { show_on_calendar: !(task.show_on_calendar !== false) })}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '3px',
+              padding: '0.2rem 0.5rem',
+              borderRadius: '999px',
+              border: task.show_on_calendar !== false ? '1px solid #3B82F6' : '1px solid var(--border-color)',
+              backgroundColor: task.show_on_calendar !== false ? '#EFF6FF' : 'var(--bg-hover)',
+              color: task.show_on_calendar !== false ? '#1D4ED8' : 'var(--text-muted)',
+              fontSize: '0.675rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.12s ease',
+            }}
+            title={task.show_on_calendar !== false ? "Turn OFF on Calendar" : "Turn ON on Calendar"}
+          >
+            <CalendarIcon size={10} />
+            {task.show_on_calendar !== false ? 'Calendar ON' : 'Calendar OFF'}
+          </button>
+
           {onEditTask && (
             <button
               type="button"
@@ -312,8 +368,34 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onEditTask }) => {
           </p>
         </div>
 
-        {/* Daily Completion Meter */}
-        {todayAllTasks.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {/* Master Toggle: Show To-Dos on Calendar */}
+          <button
+            type="button"
+            onClick={() => setShowTodosOnCalendar(!showTodosOnCalendar)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.45rem 0.85rem',
+              borderRadius: '999px',
+              border: showTodosOnCalendar ? '1.5px solid #3B82F6' : '1px solid var(--border-color)',
+              backgroundColor: showTodosOnCalendar ? '#EFF6FF' : 'var(--bg-hover)',
+              color: showTodosOnCalendar ? '#1D4ED8' : 'var(--text-muted)',
+              fontSize: '0.775rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              boxShadow: showTodosOnCalendar ? '0 2px 8px rgba(59, 130, 246, 0.15)' : 'none',
+            }}
+            title="Turn ON or OFF displaying to-do tasks on the main Calendar view"
+          >
+            <CalendarIcon size={14} />
+            {showTodosOnCalendar ? 'Calendar Sync: ON' : 'Calendar Sync: OFF'}
+          </button>
+
+          {/* Daily Completion Meter */}
+          {todayAllTasks.length > 0 && (
           <div style={{
             backgroundColor: 'var(--bg-hover)',
             padding: '0.5rem 0.85rem',
@@ -349,6 +431,7 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onEditTask }) => {
             </div>
           </div>
         )}
+        </div>
       </div>
 
       {/* Motivational Celebration Banner if Today's Tasks Complete */}

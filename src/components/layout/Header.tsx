@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Calendar as CalendarIcon, GraduationCap, CheckSquare, Settings, Plus, Palette, Check, Sparkles } from 'lucide-react';
+import { Calendar as CalendarIcon, GraduationCap, CheckSquare, Settings, Plus, Palette, Check, Sparkles, Flame } from 'lucide-react';
 import { useCalendar } from '../../context/CalendarContext';
 
 interface HeaderProps {
-  activeTab: 'calendar' | 'schedule' | 'todo';
-  setActiveTab: (tab: 'calendar' | 'schedule' | 'todo') => void;
+  activeTab: 'calendar' | 'schedule' | 'todo' | 'habits';
+  setActiveTab: (tab: 'calendar' | 'schedule' | 'todo' | 'habits') => void;
   onOpenAddEvent: () => void;
   onOpenPersonModal?: () => void;
   onOpenSettings?: () => void;
@@ -91,7 +91,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* 3 Core Connected Views: Calendar | Class Schedule | To-Do List */}
+        {/* Core Connected Views: Calendar | Class Schedule | To-Do List | Habits */}
         <nav style={{
           display: 'flex',
           alignItems: 'center',
@@ -107,7 +107,7 @@ export const Header: React.FC<HeaderProps> = ({
               display: 'flex',
               alignItems: 'center',
               gap: '0.4rem',
-              padding: '0.45rem 1rem',
+              padding: '0.45rem 0.9rem',
               borderRadius: '999px',
               border: 'none',
               backgroundColor: activeTab === 'calendar' ? 'var(--bg-secondary)' : 'transparent',
@@ -128,7 +128,7 @@ export const Header: React.FC<HeaderProps> = ({
               display: 'flex',
               alignItems: 'center',
               gap: '0.4rem',
-              padding: '0.45rem 1rem',
+              padding: '0.45rem 0.9rem',
               borderRadius: '999px',
               border: 'none',
               backgroundColor: activeTab === 'schedule' ? 'var(--bg-secondary)' : 'transparent',
@@ -149,7 +149,7 @@ export const Header: React.FC<HeaderProps> = ({
               display: 'flex',
               alignItems: 'center',
               gap: '0.4rem',
-              padding: '0.45rem 1rem',
+              padding: '0.45rem 0.9rem',
               borderRadius: '999px',
               border: 'none',
               backgroundColor: activeTab === 'todo' ? 'var(--bg-secondary)' : 'transparent',
@@ -161,6 +161,27 @@ export const Header: React.FC<HeaderProps> = ({
             }}
           >
             <CheckSquare size={15} /> To-Do List
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('habits')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.45rem 0.9rem',
+              borderRadius: '999px',
+              border: 'none',
+              backgroundColor: activeTab === 'habits' ? 'var(--bg-secondary)' : 'transparent',
+              color: activeTab === 'habits' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+              fontWeight: 700,
+              fontSize: '0.825rem',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <Flame size={15} /> Habits
           </button>
         </nav>
 
