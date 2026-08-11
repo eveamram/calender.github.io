@@ -478,6 +478,23 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
                 </button>
               ))}
 
+              {/* Custom Color Wheel */}
+              <input
+                type="color"
+                value={selectedColor}
+                onChange={(e) => setSelectedColor(e.target.value)}
+                style={{
+                  width: '30px',
+                  height: '30px',
+                  borderRadius: '50%',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 0,
+                  backgroundColor: 'transparent',
+                }}
+                title="Choose any custom color"
+              />
+
               {/* Custom Color Wheel Picker */}
               <label
                 style={{

@@ -104,6 +104,29 @@ export const HabitsView: React.FC = () => {
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const weekStartStr = format(weekStart, 'yyyy-MM-dd');
+
+  // Automatic Weekly Refresh: prune completed dates older than 14 days to keep checkmarks fresh every week while maintaining streaks
+  useEffect(() => {
+    try {
+      const lastRefreshedWeek = localStorage.getItem('calender_habits_last_week');
+      if (lastRefreshedWeek !== weekStartStr) {
+        localStorage.setItem('calender_habits_last_week', weekStartStr);
+        setHabits((prev) =>
+          prev.map((h) => ({
+            ...h,
+            // Keep only completed dates from the last 14 days for streak calculation
+            completedDates: h.completedDates.filter((d) => {
+              const diffDays = (new Date(todayStr).getTime() - new Date(d).getTime()) / (1000 * 3600 * 24);
+              return diffDays <= 14;
+            }),
+          }))
+        );
+      }
+    } catch {
+      // LocalStorage error catch
+    }
+  }, [weekStartStr, todayStr]);
 
   // Get active day date string
   const activeDayDateObj = weekDays.find((d) => d.getDay() === selectedDayVal) || new Date();
@@ -448,6 +471,23 @@ export const HabitsView: React.FC = () => {
                   }}
                 />
               ))}
+
+              {/* Custom Color Wheel / Input */}
+              <input
+                type="color"
+                value={newColor}
+                onChange={(e) => setNewColor(e.target.value)}
+                style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '50%',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 0,
+                  backgroundColor: 'transparent',
+                }}
+                title="Choose any custom color"
+              />
 
               <button
                 type="submit"

@@ -225,21 +225,22 @@ export const Header: React.FC<HeaderProps> = ({
               type="button"
               onClick={() => setShowColorPicker(!showColorPicker)}
               style={{
-                background: 'transparent',
-                border: '1px solid var(--border-color)',
+                backgroundColor: themeColor || '#3B82F6',
+                border: '2px solid var(--border-color)',
                 borderRadius: '50%',
-                width: '34px',
-                height: '34px',
+                width: '32px',
+                height: '32px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: themeColor || 'var(--text-secondary)',
+                color: '#FFFFFF',
                 cursor: 'pointer',
-                transition: 'all 0.12s ease',
+                transition: 'all 0.15s ease',
+                boxShadow: `0 2px 8px ${themeColor || '#3B82F6'}50`,
               }}
-              title="Change Theme Accent Color"
+              title="Choose Theme Accent Color"
             >
-              <Palette size={16} />
+              <Palette size={15} />
             </button>
 
             {showColorPicker && (
@@ -250,18 +251,18 @@ export const Header: React.FC<HeaderProps> = ({
                 backgroundColor: 'var(--bg-secondary)',
                 border: '1px solid var(--border-color)',
                 borderRadius: 'var(--radius-md)',
-                padding: '0.75rem',
+                padding: '0.85rem',
                 boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '0.5rem',
+                gap: '0.65rem',
                 zIndex: 200,
-                minWidth: '160px',
+                minWidth: '180px',
               }}>
                 <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                  Theme Colors
+                  Choose Theme Color
                 </span>
-                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
                   {THEME_ACCENT_COLORS.map((col) => (
                     <button
                       key={col.hex}
@@ -271,22 +272,42 @@ export const Header: React.FC<HeaderProps> = ({
                         setShowColorPicker(false);
                       }}
                       style={{
-                        width: '24px',
-                        height: '24px',
+                        width: '26px',
+                        height: '26px',
                         borderRadius: '50%',
                         backgroundColor: col.hex,
-                        border: themeColor === col.hex ? '2px solid var(--text-primary)' : 'none',
+                        border: themeColor === col.hex ? '2.5px solid var(--text-primary)' : 'none',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         color: '#FFFFFF',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                       }}
                       title={col.name}
                     >
-                      {themeColor === col.hex && <Check size={12} strokeWidth={3} />}
+                      {themeColor === col.hex && <Check size={13} strokeWidth={3} />}
                     </button>
                   ))}
+
+                  {/* Custom Color Input Wheel */}
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type="color"
+                      value={themeColor}
+                      onChange={(e) => setThemeColor(e.target.value)}
+                      style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '50%',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: 0,
+                        backgroundColor: 'transparent',
+                      }}
+                      title="Custom Color Picker (Choose any color)"
+                    />
+                  </div>
                 </div>
               </div>
             )}

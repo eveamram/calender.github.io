@@ -16,14 +16,22 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
   onSelectEvent,
   onOpenAddEvent,
 }) => {
-  const { filteredEvents, members, toggleEventCompleted, activePersonaFilter } = useCalendar();
+  const { filteredEvents, members, toggleEventCompleted, activePersonaFilter, showTodosOnCalendar } = useCalendar();
 
   const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
 
   // Filter all events/classes/tasks occurring on this selected date
   const dayEvents = filteredEvents.filter((e) => {
     const eventDate = e.event_date || e.due_date;
-    return eventDate === selectedDateStr;
+    if (eventDate !== selectedDateStr) return false;
+
+    // Filter out tasks when task calendar sync is OFF, unless task explicitly has show_on_calendar === true
+    if (e.event_type === 'task') {
+      if (e.show_on_calendar === false) return false;
+      if (!showTodosOnCalendar && e.show_on_calendar !== true) return false;
+    }
+
+    return true;
   });
 
   // Sort events chronologically by start time

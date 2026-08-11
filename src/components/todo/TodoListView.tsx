@@ -42,7 +42,12 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onEditTask }) => {
   const allTasks = filteredEvents.filter((evt) => evt.event_type === 'task');
 
   const activeTasks = allTasks.filter((t) => !t.is_completed);
-  const completedTasks = allTasks.filter((t) => t.is_completed);
+  // Completed tasks are kept for today and removed after 1 day
+  const completedTasks = allTasks.filter((t) => {
+    if (!t.is_completed) return false;
+    const d = t.due_date || t.event_date || (t.created_at ? format(new Date(t.created_at), 'yyyy-MM-dd') : todayStr);
+    return d >= todayStr;
+  });
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
 
