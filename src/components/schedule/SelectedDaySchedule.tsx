@@ -87,9 +87,8 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
       backgroundColor: 'var(--bg-secondary)',
       border: '1px solid var(--border-color)',
       borderRadius: 'var(--radius-lg)',
-      padding: '1.5rem',
+      padding: '1.1rem',
       width: '100%',
-      minHeight: '420px',
       display: 'flex',
       flexDirection: 'column',
       boxShadow: 'var(--shadow-subtle)',
@@ -100,15 +99,15 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: '1rem',
-        paddingBottom: '0.85rem',
+        marginBottom: '0.75rem',
+        paddingBottom: '0.6rem',
         borderBottom: '1px solid var(--border-color)',
       }}>
         <div>
-          <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
+          <div style={{ fontSize: '0.675rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
             Daily Schedule
           </div>
-          <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '2px' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '1px' }}>
             {format(selectedDate, 'EEEE, MMM d')}
           </h3>
         </div>
@@ -117,22 +116,22 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
           type="button"
           className="btn btn-secondary"
           onClick={onOpenAddEvent}
-          style={{ padding: '0.35rem 0.65rem', fontSize: '0.775rem' }}
+          style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem' }}
         >
-          <Plus size={14} /> Add
+          <Plus size={13} /> Add
         </button>
       </div>
 
       {/* Events List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem', flex: 1 }}>
         {dayEvents.length === 0 ? (
           <div style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            flex: 1,
+            padding: '1.5rem 0',
             color: 'var(--text-muted)',
-            fontSize: '0.875rem',
+            fontSize: '0.8rem',
             fontStyle: 'italic',
           }}>
             Nothing scheduled.
@@ -151,6 +150,12 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
               { bg: '#FDF2F8', color: '#9D174D', border: '1px solid #FBCFE8' };
 
             const itemColor = evt.color || '#3B82F6';
+            const priority = evt.priority || 'normal';
+
+            const priorityBadge =
+              priority === 'high' ? { label: 'High', bg: '#FEE2E2', color: '#991B1B' } :
+              priority === 'low' ? { label: 'Low', bg: '#D1FAE5', color: '#065F46' } :
+              { label: 'Normal', bg: '#FEF3C7', color: '#92400E' };
 
             return (
               <div
@@ -160,37 +165,40 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
                   display: 'flex',
                   alignItems: 'flex-start',
                   justifyContent: 'space-between',
-                  gap: '0.75rem',
+                  gap: '0.65rem',
                   cursor: 'pointer',
-                  padding: '0.65rem 0.85rem',
+                  padding: '0.55rem 0.75rem',
                   borderRadius: 'var(--radius-md)',
                   backgroundColor: isCompleted ? 'var(--bg-hover)' : 'var(--bg-primary)',
                   border: '1px solid var(--border-subtle)',
-                  borderLeft: `4px solid ${itemColor}`,
+                  borderLeft: `3.5px solid ${itemColor}`,
                   transition: 'background-color 0.12s ease',
                   opacity: isCompleted ? 0.6 : 1,
                 }}
               >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                  <div style={{ fontSize: '0.725rem', fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Clock size={11} /> {evt.start_time ? evt.start_time : 'All Day'} {evt.end_time ? `– ${evt.end_time}` : ''}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: '0.675rem', fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Clock size={10} /> {evt.start_time ? evt.start_time : 'All Day'} {evt.end_time ? `– ${evt.end_time}` : ''}
                   </div>
 
                   <div style={{
-                    fontSize: '0.925rem',
+                    fontSize: '0.85rem',
                     fontWeight: 700,
                     color: 'var(--text-primary)',
                     textDecoration: isCompleted ? 'line-through' : 'none',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
                   }}>
                     {evt.title}
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '4px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '3px', flexWrap: 'wrap' }}>
                     {/* Category Type Badge */}
                     <span style={{
-                      fontSize: '0.675rem',
+                      fontSize: '0.625rem',
                       fontWeight: 700,
-                      padding: '0.15rem 0.45rem',
+                      padding: '0.1rem 0.35rem',
                       borderRadius: '4px',
                       backgroundColor: typeBadge.bg,
                       color: typeBadge.color,
@@ -198,27 +206,39 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
                       {typeBadge.label}
                     </span>
 
+                    {/* Priority Badge */}
+                    <span style={{
+                      fontSize: '0.625rem',
+                      fontWeight: 800,
+                      padding: '0.1rem 0.35rem',
+                      borderRadius: '4px',
+                      backgroundColor: priorityBadge.bg,
+                      color: priorityBadge.color,
+                    }}>
+                      {priorityBadge.label} Priority
+                    </span>
+
                     {/* Owner Badge (Rendered ONLY when persona filter is set to "Both") */}
                     {activePersonaFilter === 'all' && (
                       <span style={{
-                        fontSize: '0.675rem',
+                        fontSize: '0.625rem',
                         fontWeight: 800,
-                        padding: '0.15rem 0.5rem',
+                        padding: '0.1rem 0.4rem',
                         borderRadius: '999px',
                         backgroundColor: ownerStyle.bg,
                         color: ownerStyle.color,
                         border: ownerStyle.border,
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '3px',
+                        gap: '2px',
                       }}>
-                        <User size={10} /> {ownerName}
+                        <User size={9} /> {ownerName}
                       </span>
                     )}
 
                     {evt.location && (
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                        <MapPin size={10} /> {evt.location}
+                      <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                        <MapPin size={9} /> {evt.location}
                       </span>
                     )}
                   </div>
@@ -238,7 +258,7 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
                     padding: '2px',
                   }}
                 >
-                  {isCompleted ? <CheckCircle2 size={16} /> : <Circle size={16} />}
+                  {isCompleted ? <CheckCircle2 size={15} /> : <Circle size={15} />}
                 </button>
               </div>
             );

@@ -233,6 +233,21 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onEditTask }) => {
               {task.title}
             </span>
 
+            {/* Priority Badge */}
+            {task.priority && (
+              <span style={{
+                fontSize: '0.65rem',
+                fontWeight: 800,
+                padding: '0.1rem 0.4rem',
+                borderRadius: '4px',
+                backgroundColor: task.priority === 'high' ? '#FEE2E2' : task.priority === 'low' ? '#D1FAE5' : '#FEF3C7',
+                color: task.priority === 'high' ? '#991B1B' : task.priority === 'low' ? '#065F46' : '#92400E',
+                textTransform: 'capitalize',
+              }}>
+                {task.priority} Priority
+              </span>
+            )}
+
             {dueDateStr && (
               <span style={{
                 fontSize: '0.7rem',
