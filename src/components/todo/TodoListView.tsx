@@ -393,44 +393,6 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onEditTask }) => {
             <CalendarIcon size={14} />
             {showTodosOnCalendar ? 'Calendar Sync: ON' : 'Calendar Sync: OFF'}
           </button>
-
-          {/* Daily Completion Meter */}
-          {todayAllTasks.length > 0 && (
-          <div style={{
-            backgroundColor: 'var(--bg-hover)',
-            padding: '0.5rem 0.85rem',
-            borderRadius: '10px',
-            border: '1px solid var(--border-color)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem',
-          }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-              <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                Today's Goal
-              </span>
-              <span style={{ fontSize: '0.825rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                {todayCompletedCount} / {todayAllTasks.length} Done ({todayProgressPercentage}%)
-              </span>
-            </div>
-
-            {/* Mini Progress Bar */}
-            <div style={{
-              width: '42px',
-              height: '8px',
-              borderRadius: '999px',
-              backgroundColor: 'var(--border-color)',
-              overflow: 'hidden',
-            }}>
-              <div style={{
-                height: '100%',
-                width: `${todayProgressPercentage}%`,
-                backgroundColor: todayProgressPercentage === 100 ? '#10B981' : 'var(--accent-primary)',
-                transition: 'width 0.3s ease',
-              }} />
-            </div>
-          </div>
-        )}
         </div>
       </div>
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCalendar } from '../../context/CalendarContext';
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
-import { Plus, Flame, Check, Sparkles, Trash2, User, Calendar as CalendarIcon } from 'lucide-react';
+import { Plus, Flame, Check, Sparkles, Trash2, User, Calendar as CalendarIcon, Circle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export interface HabitItem {
@@ -16,13 +16,13 @@ export interface HabitItem {
 }
 
 const WEEKDAYS = [
-  { label: 'Mon', value: 1 },
-  { label: 'Tue', value: 2 },
-  { label: 'Wed', value: 3 },
-  { label: 'Thu', value: 4 },
-  { label: 'Fri', value: 5 },
-  { label: 'Sat', value: 6 },
-  { label: 'Sun', value: 0 },
+  { label: 'Mon', value: 1, full: 'Monday' },
+  { label: 'Tue', value: 2, full: 'Tuesday' },
+  { label: 'Wed', value: 3, full: 'Wednesday' },
+  { label: 'Thu', value: 4, full: 'Thursday' },
+  { label: 'Fri', value: 5, full: 'Friday' },
+  { label: 'Sat', value: 6, full: 'Saturday' },
+  { label: 'Sun', value: 0, full: 'Sunday' },
 ];
 
 const DEFAULT_HABITS: HabitItem[] = [
@@ -32,7 +32,7 @@ const DEFAULT_HABITS: HabitItem[] = [
     emoji: '🏋️',
     color: '#3B82F6',
     owner: 'Eve',
-    daysOfWeek: [1, 3, 5], // Mon, Wed, Fri
+    daysOfWeek: [1, 3, 5],
     created_at: new Date().toISOString(),
     completedDates: [format(new Date(), 'yyyy-MM-dd')],
   },
@@ -42,7 +42,7 @@ const DEFAULT_HABITS: HabitItem[] = [
     emoji: '💧',
     color: '#06B6D4',
     owner: 'Eve',
-    daysOfWeek: [1, 2, 3, 4, 5, 6, 0], // Every day
+    daysOfWeek: [1, 2, 3, 4, 5, 6, 0],
     created_at: new Date().toISOString(),
     completedDates: [format(new Date(), 'yyyy-MM-dd')],
   },
@@ -52,7 +52,7 @@ const DEFAULT_HABITS: HabitItem[] = [
     emoji: '📖',
     color: '#EC4899',
     owner: 'Abbie',
-    daysOfWeek: [2, 4], // Tue, Thu
+    daysOfWeek: [2, 4],
     created_at: new Date().toISOString(),
     completedDates: [format(new Date(), 'yyyy-MM-dd')],
   },
@@ -62,7 +62,7 @@ const DEFAULT_HABITS: HabitItem[] = [
     emoji: '🧘',
     color: '#10B981',
     owner: 'Abbie',
-    daysOfWeek: [6, 0], // Sat, Sun
+    daysOfWeek: [6, 0],
     created_at: new Date().toISOString(),
     completedDates: [],
   },
@@ -84,8 +84,11 @@ export const HabitsView: React.FC = () => {
     return DEFAULT_HABITS;
   });
 
+  // Mode: Daily List vs Full Week Grid
+  const [viewType, setViewType] = useState<'daily' | 'weekly'>('daily');
+
   const todayDayNum = new Date().getDay(); // 0=Sun, 1=Mon...
-  const [selectedDayFilter, setSelectedDayFilter] = useState<number | 'all'>('all');
+  const [selectedDayVal, setSelectedDayVal] = useState<number>(todayDayNum);
 
   const [newTitle, setNewTitle] = useState('');
   const [newEmoji, setNewEmoji] = useState('🏋️');
@@ -99,29 +102,25 @@ export const HabitsView: React.FC = () => {
   }, [habits]);
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
-  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 }); // Monday start
+  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
-  // Filter habits by persona and selected day
-  const filteredHabits = habits.filter((h) => {
-    if (activePersonaFilter !== 'all' && h.owner !== activePersonaFilter) {
-      return false;
-    }
-    if (selectedDayFilter !== 'all') {
-      const days = h.daysOfWeek || [1, 2, 3, 4, 5, 6, 0];
-      if (!days.includes(selectedDayFilter)) return false;
-    }
-    return true;
+  // Get active day date string
+  const activeDayDateObj = weekDays.find((d) => d.getDay() === selectedDayVal) || new Date();
+  const activeDayDateStr = format(activeDayDateObj, 'yyyy-MM-dd');
+  const activeDayLabel = WEEKDAYS.find((w) => w.value === selectedDayVal)?.full || 'Today';
+
+  // Filter habits by persona
+  const personaHabits = habits.filter((h) => {
+    if (activePersonaFilter === 'all') return true;
+    return h.owner === activePersonaFilter;
   });
 
-  const todayHabits = habits.filter((h) => {
-    if (activePersonaFilter !== 'all' && h.owner !== activePersonaFilter) return false;
+  // Filter for single day view
+  const singleDayHabits = personaHabits.filter((h) => {
     const days = h.daysOfWeek || [1, 2, 3, 4, 5, 6, 0];
-    return days.includes(todayDayNum);
+    return days.includes(selectedDayVal);
   });
-
-  const todayCompletedCount = todayHabits.filter((h) => h.completedDates.includes(todayStr)).length;
-  const todayProgress = todayHabits.length > 0 ? Math.round((todayCompletedCount / todayHabits.length) * 100) : 0;
 
   const handleToggleHabit = (habitId: string, dateStr: string) => {
     setHabits((prev) =>
@@ -148,7 +147,7 @@ export const HabitsView: React.FC = () => {
 
   const toggleDaySelection = (dayVal: number) => {
     if (newSelectedDays.includes(dayVal)) {
-      if (newSelectedDays.length === 1) return; // Must select at least 1 day
+      if (newSelectedDays.length === 1) return;
       setNewSelectedDays(newSelectedDays.filter((d) => d !== dayVal));
     } else {
       setNewSelectedDays([...newSelectedDays, dayVal]);
@@ -188,7 +187,6 @@ export const HabitsView: React.FC = () => {
       const dayNum = checkDate.getDay();
       const habitDays = habit.daysOfWeek || [1, 2, 3, 4, 5, 6, 0];
 
-      // Only check days where habit is active
       if (habitDays.includes(dayNum)) {
         if (habit.completedDates.includes(dateStr)) {
           streak++;
@@ -214,12 +212,12 @@ export const HabitsView: React.FC = () => {
       borderRadius: 'var(--radius-lg)',
       padding: '1.75rem',
       width: '100%',
-      maxWidth: '840px',
+      maxWidth: '820px',
       margin: '0 auto',
       boxShadow: 'var(--shadow-subtle)',
       fontFamily: "'Plus Jakarta Sans', sans-serif",
     }}>
-      {/* Top Header */}
+      {/* Top Header & Controls */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -247,40 +245,50 @@ export const HabitsView: React.FC = () => {
           </p>
         </div>
 
-        {/* Today's Habit Progress Meter */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        {/* View Switcher: Daily vs Weekly Grid */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           <div style={{
-            backgroundColor: 'var(--bg-hover)',
-            padding: '0.5rem 0.85rem',
-            borderRadius: '10px',
-            border: '1px solid var(--border-color)',
             display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem',
+            backgroundColor: 'var(--bg-hover)',
+            padding: '2px',
+            borderRadius: '999px',
+            border: '1px solid var(--border-color)',
           }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-              <span style={{ fontSize: '0.675rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                Today's Goal
-              </span>
-              <span style={{ fontSize: '0.825rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                {todayCompletedCount} / {todayHabits.length} ({todayProgress}%)
-              </span>
-            </div>
+            <button
+              type="button"
+              onClick={() => setViewType('daily')}
+              style={{
+                padding: '0.35rem 0.85rem',
+                borderRadius: '999px',
+                border: 'none',
+                backgroundColor: viewType === 'daily' ? 'var(--bg-secondary)' : 'transparent',
+                color: viewType === 'daily' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                fontWeight: 800,
+                fontSize: '0.775rem',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              Daily View
+            </button>
 
-            <div style={{
-              width: '44px',
-              height: '8px',
-              borderRadius: '999px',
-              backgroundColor: 'var(--border-color)',
-              overflow: 'hidden',
-            }}>
-              <div style={{
-                height: '100%',
-                width: `${todayProgress}%`,
-                backgroundColor: todayProgress === 100 ? '#10B981' : 'var(--accent-primary)',
-                transition: 'width 0.3s ease',
-              }} />
-            </div>
+            <button
+              type="button"
+              onClick={() => setViewType('weekly')}
+              style={{
+                padding: '0.35rem 0.85rem',
+                borderRadius: '999px',
+                border: 'none',
+                backgroundColor: viewType === 'weekly' ? 'var(--bg-secondary)' : 'transparent',
+                color: viewType === 'weekly' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                fontWeight: 800,
+                fontSize: '0.775rem',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              Full Week Grid
+            </button>
           </div>
 
           <button
@@ -294,64 +302,51 @@ export const HabitsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Day Filter Switcher (View Habits by Day of Week) */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.4rem',
-        marginBottom: '1.25rem',
-        backgroundColor: 'var(--bg-hover)',
-        padding: '4px',
-        borderRadius: '999px',
-        border: '1px solid var(--border-color)',
-        overflowX: 'auto',
-      }}>
-        <button
-          type="button"
-          onClick={() => setSelectedDayFilter('all')}
-          style={{
-            padding: '0.35rem 0.75rem',
-            borderRadius: '999px',
-            border: 'none',
-            backgroundColor: selectedDayFilter === 'all' ? 'var(--bg-secondary)' : 'transparent',
-            color: selectedDayFilter === 'all' ? 'var(--accent-primary)' : 'var(--text-secondary)',
-            fontWeight: 800,
-            fontSize: '0.75rem',
-            cursor: 'pointer',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          All Days
-        </button>
+      {/* Day Selector (for Daily View) */}
+      {viewType === 'daily' && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.4rem',
+          marginBottom: '1.5rem',
+          backgroundColor: 'var(--bg-hover)',
+          padding: '4px',
+          borderRadius: '999px',
+          border: '1px solid var(--border-color)',
+          overflowX: 'auto',
+        }}>
+          {WEEKDAYS.map((wd) => {
+            const isSelected = selectedDayVal === wd.value;
+            const isTodayWd = todayDayNum === wd.value;
 
-        {WEEKDAYS.map((wd) => {
-          const isSelected = selectedDayFilter === wd.value;
-          const isTodayWd = todayDayNum === wd.value;
+            return (
+              <button
+                key={wd.value}
+                type="button"
+                onClick={() => setSelectedDayVal(wd.value)}
+                style={{
+                  flex: 1,
+                  padding: '0.45rem 0.75rem',
+                  borderRadius: '999px',
+                  border: 'none',
+                  backgroundColor: isSelected ? (isTodayWd ? 'var(--accent-primary)' : 'var(--bg-secondary)') : 'transparent',
+                  color: isSelected ? (isTodayWd ? '#FFFFFF' : 'var(--accent-primary)') : (isTodayWd ? 'var(--accent-primary)' : 'var(--text-secondary)'),
+                  fontWeight: 800,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  textAlign: 'center',
+                  transition: 'all 0.12s ease',
+                }}
+              >
+                {wd.label} {isTodayWd && '•'}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
-          return (
-            <button
-              key={wd.value}
-              type="button"
-              onClick={() => setSelectedDayFilter(wd.value)}
-              style={{
-                padding: '0.35rem 0.75rem',
-                borderRadius: '999px',
-                border: 'none',
-                backgroundColor: isSelected ? (isTodayWd ? 'var(--accent-primary)' : 'var(--bg-secondary)') : 'transparent',
-                color: isSelected ? (isTodayWd ? '#FFFFFF' : 'var(--accent-primary)') : (isTodayWd ? 'var(--accent-primary)' : 'var(--text-secondary)'),
-                fontWeight: 800,
-                fontSize: '0.75rem',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {wd.label} {isTodayWd && '•'}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Add Habit Collapsible Form */}
+      {/* Add Habit Form */}
       {showAddForm && (
         <form onSubmit={handleAddHabit} style={{
           display: 'flex',
@@ -386,10 +381,9 @@ export const HabitsView: React.FC = () => {
             </select>
           </div>
 
-          {/* Select Specific Days of the Week */}
           <div>
             <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
-              Select Active Days for this Habit:
+              Schedule Days:
             </label>
             <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
               {WEEKDAYS.map((wd) => {
@@ -417,9 +411,7 @@ export const HabitsView: React.FC = () => {
             </div>
           </div>
 
-          {/* Emoji & Color Selectors */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-            {/* Emojis */}
             <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
               {HABIT_EMOJIS.map((em) => (
                 <button
@@ -440,7 +432,6 @@ export const HabitsView: React.FC = () => {
               ))}
             </div>
 
-            {/* Colors & Submit */}
             <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
               {HABIT_COLORS.map((col) => (
                 <button
@@ -470,154 +461,269 @@ export const HabitsView: React.FC = () => {
         </form>
       )}
 
-      {/* Weekly Days Header */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'minmax(200px, 1fr) repeat(7, 44px) 40px',
-        gap: '0.5rem',
-        alignItems: 'center',
-        padding: '0.5rem 0.75rem',
-        borderBottom: '1px solid var(--border-color)',
-        marginBottom: '0.75rem',
-        fontSize: '0.725rem',
-        fontWeight: 800,
-        color: 'var(--text-muted)',
-        textTransform: 'uppercase',
-      }}>
-        <span>Habit ({filteredHabits.length})</span>
-        {weekDays.map((d) => {
-          const isTodayDay = isSameDay(d, new Date());
-          return (
-            <div key={d.toISOString()} style={{ textAlign: 'center', color: isTodayDay ? 'var(--accent-primary)' : 'inherit' }}>
-              <div>{format(d, 'EEE')[0]}</div>
-              <div style={{ fontSize: '0.675rem', fontWeight: isTodayDay ? 900 : 600 }}>{format(d, 'd')}</div>
+      {/* RENDER 1: CLEAN SINGLE DAY VIEW */}
+      {viewType === 'daily' && (
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+            <h3 style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              {activeDayLabel}'s Habits ({singleDayHabits.length})
+            </h3>
+          </div>
+
+          {singleDayHabits.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-muted)' }}>
+              <Sparkles size={24} style={{ marginBottom: '0.5rem', opacity: 0.6 }} />
+              <p style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>No habits scheduled for {activeDayLabel}!</p>
+              <p style={{ fontSize: '0.8rem', marginTop: '3px' }}>Click "Add Habit" to customize your day!</p>
             </div>
-          );
-        })}
-        <span style={{ textAlign: 'center' }}>🔥</span>
-      </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+              {singleDayHabits.map((habit) => {
+                const isDone = habit.completedDates.includes(activeDayDateStr);
+                const streak = calculateStreak(habit);
 
-      {/* Habits List */}
-      {filteredHabits.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
-          <Sparkles size={28} style={{ marginBottom: '0.5rem', opacity: 0.6 }} />
-          <p style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>No habits scheduled for this view!</p>
-          <p style={{ fontSize: '0.8rem', marginTop: '4px' }}>Click "Add Habit" to create day-specific routines!</p>
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-          {filteredHabits.map((habit) => {
-            const streak = calculateStreak(habit);
-            const isTodayDone = habit.completedDates.includes(todayStr);
-            const habitDays = habit.daysOfWeek || [1, 2, 3, 4, 5, 6, 0];
-
-            return (
-              <div
-                key={habit.id}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'minmax(200px, 1fr) repeat(7, 44px) 40px',
-                  gap: '0.5rem',
-                  alignItems: 'center',
-                  padding: '0.65rem 0.75rem',
-                  borderRadius: 'var(--radius-md)',
-                  backgroundColor: isTodayDone ? 'var(--bg-hover)' : 'var(--bg-secondary)',
-                  border: '1px solid var(--border-subtle)',
-                  borderLeft: `4px solid ${habit.color}`,
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                {/* Habit Info & Active Days Tags */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', minWidth: 0 }}>
-                  <span style={{ fontSize: '1.1rem' }}>{habit.emoji}</span>
-                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                    <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {habit.title}
-                    </span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px', flexWrap: 'wrap' }}>
-                      {activePersonaFilter === 'all' && (
-                        <span style={{
-                          fontSize: '0.625rem',
-                          fontWeight: 800,
-                          color: habit.owner === 'Eve' ? '#1E40AF' : '#9D174D',
-                          display: 'inline-flex',
+                return (
+                  <div
+                    key={habit.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '0.85rem',
+                      padding: '0.8rem 1rem',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: isDone ? 'var(--bg-hover)' : 'var(--bg-secondary)',
+                      border: '1px solid var(--border-subtle)',
+                      borderLeft: `4px solid ${habit.color}`,
+                      opacity: isDone ? 0.75 : 1,
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flex: 1, minWidth: 0 }}>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleHabit(habit.id, activeDayDateStr)}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: 0,
+                          display: 'flex',
                           alignItems: 'center',
-                          gap: '2px',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        {isDone ? (
+                          <div style={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            backgroundColor: habit.color,
+                            color: '#FFFFFF',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: `0 2px 6px ${habit.color}40`,
+                          }}>
+                            <Check size={15} strokeWidth={3} />
+                          </div>
+                        ) : (
+                          <Circle size={24} strokeWidth={1.8} color="var(--text-muted)" />
+                        )}
+                      </button>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '1.1rem' }}>{habit.emoji}</span>
+                        <span style={{
+                          fontSize: '0.925rem',
+                          fontWeight: 700,
+                          color: 'var(--text-primary)',
+                          textDecoration: isDone ? 'line-through' : 'none',
                         }}>
-                          <User size={8} /> {habit.owner}
+                          {habit.title}
                         </span>
-                      )}
-                      <span style={{ fontSize: '0.625rem', color: 'var(--text-muted)', fontWeight: 700 }}>
-                        {habitDays.length === 7 ? 'Every day' : habitDays.map(d => WEEKDAYS.find(w => w.value === d)?.label).join(', ')}
+
+                        {activePersonaFilter === 'all' && (
+                          <span style={{
+                            fontSize: '0.65rem',
+                            fontWeight: 800,
+                            padding: '0.1rem 0.45rem',
+                            borderRadius: '999px',
+                            backgroundColor: habit.owner === 'Eve' ? '#EFF6FF' : '#FDF2F8',
+                            color: habit.owner === 'Eve' ? '#1E40AF' : '#9D174D',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '2px',
+                          }}>
+                            <User size={9} /> {habit.owner}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <span style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 800,
+                        color: streak > 0 ? '#B45309' : 'var(--text-muted)',
+                        backgroundColor: 'var(--bg-hover)',
+                        padding: '0.2rem 0.55rem',
+                        borderRadius: '999px',
+                        border: '1px solid var(--border-color)',
+                      }}>
+                        🔥 {streak}
                       </span>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteHabit(habit.id)}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: 'var(--text-muted)',
+                          cursor: 'pointer',
+                          padding: '3px',
+                        }}
+                        title="Delete Habit"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* RENDER 2: FULL WEEK GRID VIEW */}
+      {viewType === 'weekly' && (
+        <div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(200px, 1fr) repeat(7, 44px) 40px',
+            gap: '0.5rem',
+            alignItems: 'center',
+            padding: '0.5rem 0.75rem',
+            borderBottom: '1px solid var(--border-color)',
+            marginBottom: '0.75rem',
+            fontSize: '0.725rem',
+            fontWeight: 800,
+            color: 'var(--text-muted)',
+            textTransform: 'uppercase',
+          }}>
+            <span>Habit ({personaHabits.length})</span>
+            {weekDays.map((d) => {
+              const isTodayDay = isSameDay(d, new Date());
+              return (
+                <div key={d.toISOString()} style={{ textAlign: 'center', color: isTodayDay ? 'var(--accent-primary)' : 'inherit' }}>
+                  <div>{format(d, 'EEE')[0]}</div>
+                  <div style={{ fontSize: '0.675rem', fontWeight: isTodayDay ? 900 : 600 }}>{format(d, 'd')}</div>
                 </div>
+              );
+            })}
+            <span style={{ textAlign: 'center' }}>🔥</span>
+          </div>
 
-                {/* 7 Days Checkboxes */}
-                {weekDays.map((d) => {
-                  const dateStr = format(d, 'yyyy-MM-dd');
-                  const dayNum = d.getDay();
-                  const isDone = habit.completedDates.includes(dateStr);
-                  const isTodayDay = isSameDay(d, new Date());
-                  const isActiveDay = habitDays.includes(dayNum);
+          {personaHabits.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
+              <Sparkles size={28} style={{ marginBottom: '0.5rem', opacity: 0.6 }} />
+              <p style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>No habits added yet!</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+              {personaHabits.map((habit) => {
+                const streak = calculateStreak(habit);
+                const isTodayDone = habit.completedDates.includes(todayStr);
+                const habitDays = habit.daysOfWeek || [1, 2, 3, 4, 5, 6, 0];
 
-                  return (
-                    <button
-                      key={dateStr}
-                      type="button"
-                      disabled={!isActiveDay}
-                      onClick={() => handleToggleHabit(habit.id, dateStr)}
-                      style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '50%',
-                        border: isDone ? 'none' : isTodayDay ? '2px solid var(--accent-primary)' : '1px solid var(--border-color)',
-                        backgroundColor: isDone ? habit.color : isActiveDay ? 'transparent' : 'var(--bg-hover)',
-                        color: isDone ? '#FFFFFF' : 'transparent',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        margin: '0 auto',
-                        cursor: isActiveDay ? 'pointer' : 'default',
-                        opacity: isActiveDay ? 1 : 0.25,
-                        transition: 'all 0.12s ease',
-                        boxShadow: isDone ? `0 2px 6px ${habit.color}40` : 'none',
-                      }}
-                      title={!isActiveDay ? 'Habit not scheduled on this day' : isDone ? `Completed on ${dateStr}` : `Mark completed for ${dateStr}`}
-                    >
-                      {isDone && <Check size={14} strokeWidth={3} />}
-                    </button>
-                  );
-                })}
-
-                {/* Streak Badge & Actions */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}>
-                  <span style={{
-                    fontSize: '0.75rem',
-                    fontWeight: 800,
-                    color: streak > 0 ? '#B45309' : 'var(--text-muted)',
-                  }}>
-                    {streak}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteHabit(habit.id)}
+                return (
+                  <div
+                    key={habit.id}
                     style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: 'var(--text-muted)',
-                      cursor: 'pointer',
-                      padding: '2px',
+                      display: 'grid',
+                      gridTemplateColumns: 'minmax(200px, 1fr) repeat(7, 44px) 40px',
+                      gap: '0.5rem',
+                      alignItems: 'center',
+                      padding: '0.65rem 0.75rem',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: isTodayDone ? 'var(--bg-hover)' : 'var(--bg-secondary)',
+                      border: '1px solid var(--border-subtle)',
+                      borderLeft: `4px solid ${habit.color}`,
+                      transition: 'all 0.15s ease',
                     }}
-                    title="Delete Habit"
                   >
-                    <Trash2 size={12} />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', minWidth: 0 }}>
+                      <span style={{ fontSize: '1.1rem' }}>{habit.emoji}</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                        <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {habit.title}
+                        </span>
+                        {activePersonaFilter === 'all' && (
+                          <span style={{
+                            fontSize: '0.625rem',
+                            fontWeight: 800,
+                            color: habit.owner === 'Eve' ? '#1E40AF' : '#9D174D',
+                          }}>
+                            {habit.owner}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {weekDays.map((d) => {
+                      const dateStr = format(d, 'yyyy-MM-dd');
+                      const dayNum = d.getDay();
+                      const isDone = habit.completedDates.includes(dateStr);
+                      const isTodayDay = isSameDay(d, new Date());
+                      const isActiveDay = habitDays.includes(dayNum);
+
+                      return (
+                        <button
+                          key={dateStr}
+                          type="button"
+                          disabled={!isActiveDay}
+                          onClick={() => handleToggleHabit(habit.id, dateStr)}
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            border: isDone ? 'none' : isTodayDay ? '2px solid var(--accent-primary)' : '1px solid var(--border-color)',
+                            backgroundColor: isDone ? habit.color : isActiveDay ? 'transparent' : 'var(--bg-hover)',
+                            color: isDone ? '#FFFFFF' : 'transparent',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            margin: '0 auto',
+                            cursor: isActiveDay ? 'pointer' : 'default',
+                            opacity: isActiveDay ? 1 : 0.25,
+                            transition: 'all 0.12s ease',
+                          }}
+                          title={!isActiveDay ? 'Habit not scheduled on this day' : isDone ? `Completed on ${dateStr}` : `Mark completed for ${dateStr}`}
+                        >
+                          {isDone && <Check size={14} strokeWidth={3} />}
+                        </button>
+                      );
+                    })}
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 800, color: streak > 0 ? '#B45309' : 'var(--text-muted)' }}>
+                        {streak}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteHabit(habit.id)}
+                        style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }}
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>
