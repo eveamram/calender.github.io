@@ -263,7 +263,7 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
             const isSelected = isSameDay(day, selectedDate);
             const isPastDay = isBefore(day, todayStart);
 
-            const maxVisible = 2;
+            const maxVisible = 3;
             const visibleEvents = dayEvents.slice(0, maxVisible);
             const overflowCount = dayEvents.length - maxVisible;
 
@@ -276,8 +276,8 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
                   onOpenAddEvent();
                 }}
                 style={{
-                  minHeight: '105px',
-                  padding: '0.5rem',
+                  minHeight: '125px',
+                  padding: '0.55rem',
                   borderRadius: 'var(--radius-md)',
                   backgroundColor: isSelected
                     ? 'var(--accent-light)'

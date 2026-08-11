@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCalendar } from '../../context/CalendarContext';
 import { CalendarEvent } from '../../types';
 import { format, isBefore, startOfDay, parseISO } from 'date-fns';
-import { Plus, CheckCircle2, Circle, Clock, MapPin, User } from 'lucide-react';
+import { Plus, CheckCircle2, Circle, Clock, MapPin, User, Flame, Check } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { HabitItem } from '../habits/HabitsView';
 
 interface SelectedDayScheduleProps {
   selectedDate: Date;
@@ -19,6 +20,59 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
   const { filteredEvents, members, toggleEventCompleted, activePersonaFilter, showTodosOnCalendar } = useCalendar();
 
   const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
+  const dayNum = selectedDate.getDay(); // 0=Sun, 1=Mon...
+
+  // Load habits from localStorage
+  const [habits, setHabits] = useState<HabitItem[]>(() => {
+    try {
+      const stored = localStorage.getItem('calender_daily_habits_v2');
+      if (stored) return JSON.parse(stored);
+    } catch {
+      // Fallback
+    }
+    return [];
+  });
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      try {
+        const stored = localStorage.getItem('calender_daily_habits_v2');
+        if (stored) setHabits(JSON.parse(stored));
+      } catch {
+        // Fallback
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  // Filter habits for selected date & active persona
+  const dayHabits = habits.filter((h) => {
+    if (h.showOnSchedule === false) return false;
+    if (activePersonaFilter !== 'all' && h.owner !== activePersonaFilter) return false;
+    const days = h.daysOfWeek || [1, 2, 3, 4, 5, 6, 0];
+    return days.includes(dayNum);
+  });
+
+  const handleToggleHabit = (habitId: string) => {
+    setHabits((prev) => {
+      const updated = prev.map((h) => {
+        if (h.id !== habitId) return h;
+        const isDone = h.completedDates.includes(selectedDateStr);
+        const newDates = isDone
+          ? h.completedDates.filter((d) => d !== selectedDateStr)
+          : [...h.completedDates, selectedDateStr];
+
+        if (!isDone) {
+          confetti({ particleCount: 35, spread: 55, origin: { y: 0.8 } });
+        }
+
+        return { ...h, completedDates: newDates };
+      });
+      localStorage.setItem('calender_daily_habits_v2', JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   // Filter all events/classes/tasks occurring on this selected date
   const dayEvents = filteredEvents.filter((e) => {
@@ -87,8 +141,10 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
       backgroundColor: 'var(--bg-secondary)',
       border: '1px solid var(--border-color)',
       borderRadius: 'var(--radius-lg)',
-      padding: '1.1rem',
+      padding: '1rem',
       width: '100%',
+      maxWidth: '310px',
+      margin: '0 auto',
       display: 'flex',
       flexDirection: 'column',
       boxShadow: 'var(--shadow-subtle)',
@@ -99,16 +155,16 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: '0.75rem',
-        paddingBottom: '0.6rem',
+        marginBottom: '0.65rem',
+        paddingBottom: '0.55rem',
         borderBottom: '1px solid var(--border-color)',
       }}>
         <div>
-          <div style={{ fontSize: '0.675rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
+          <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
             Daily Schedule
           </div>
-          <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '1px' }}>
-            {format(selectedDate, 'EEEE, MMM d')}
+          <h3 style={{ fontSize: '0.925rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '1px' }}>
+            {format(selectedDate, 'EEE, MMM d')}
           </h3>
         </div>
 
@@ -116,25 +172,99 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
           type="button"
           className="btn btn-secondary"
           onClick={onOpenAddEvent}
-          style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem' }}
+          style={{ padding: '0.2rem 0.5rem', fontSize: '0.725rem' }}
         >
-          <Plus size={13} /> Add
+          <Plus size={12} /> Add
         </button>
       </div>
 
-      {/* Events List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem', flex: 1 }}>
+      {/* Habits Section */}
+      {dayHabits.length > 0 && (
+        <div style={{ marginBottom: '0.85rem' }}>
+          <div style={{
+            fontSize: '0.625rem',
+            fontWeight: 800,
+            color: 'var(--text-muted)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            marginBottom: '0.35rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '3px',
+          }}>
+            <Flame size={11} color="#F59E0B" /> Daily Habits ({dayHabits.length})
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            {dayHabits.map((habit) => {
+              const isDone = habit.completedDates.includes(selectedDateStr);
+              return (
+                <div
+                  key={habit.id}
+                  onClick={() => handleToggleHabit(habit.id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '0.4rem',
+                    padding: '0.4rem 0.6rem',
+                    borderRadius: 'var(--radius-sm)',
+                    backgroundColor: isDone ? 'var(--bg-hover)' : 'var(--bg-primary)',
+                    border: '1px solid var(--border-subtle)',
+                    borderLeft: `3px solid ${habit.color}`,
+                    cursor: 'pointer',
+                    opacity: isDone ? 0.7 : 1,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', minWidth: 0, flex: 1 }}>
+                    <span style={{ fontSize: '0.85rem' }}>{habit.emoji}</span>
+                    <span style={{
+                      fontSize: '0.775rem',
+                      fontWeight: 700,
+                      color: 'var(--text-primary)',
+                      textDecoration: isDone ? 'line-through' : 'none',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {habit.title}
+                    </span>
+                  </div>
+
+                  <div style={{
+                    width: '18px',
+                    height: '18px',
+                    borderRadius: '50%',
+                    backgroundColor: isDone ? habit.color : 'transparent',
+                    border: isDone ? 'none' : '1.5px solid var(--text-muted)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#FFFFFF',
+                    flexShrink: 0,
+                  }}>
+                    {isDone && <Check size={11} strokeWidth={3} />}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Events & Classes List */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', flex: 1 }}>
         {dayEvents.length === 0 ? (
           <div style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '1.5rem 0',
+            padding: '1.25rem 0',
             color: 'var(--text-muted)',
-            fontSize: '0.8rem',
+            fontSize: '0.75rem',
             fontStyle: 'italic',
           }}>
-            Nothing scheduled.
+            No classes or events scheduled.
           </div>
         ) : (
           dayEvents.map((evt) => {
@@ -165,24 +295,24 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
                   display: 'flex',
                   alignItems: 'flex-start',
                   justifyContent: 'space-between',
-                  gap: '0.65rem',
+                  gap: '0.5rem',
                   cursor: 'pointer',
-                  padding: '0.55rem 0.75rem',
-                  borderRadius: 'var(--radius-md)',
+                  padding: '0.45rem 0.65rem',
+                  borderRadius: 'var(--radius-sm)',
                   backgroundColor: isCompleted ? 'var(--bg-hover)' : 'var(--bg-primary)',
                   border: '1px solid var(--border-subtle)',
-                  borderLeft: `3.5px solid ${itemColor}`,
+                  borderLeft: `3px solid ${itemColor}`,
                   transition: 'background-color 0.12s ease',
                   opacity: isCompleted ? 0.6 : 1,
                 }}
               >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0, flex: 1 }}>
-                  <div style={{ fontSize: '0.675rem', fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Clock size={10} /> {evt.start_time ? evt.start_time : 'All Day'} {evt.end_time ? `– ${evt.end_time}` : ''}
+                  <div style={{ fontSize: '0.625rem', fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                    <Clock size={9} /> {evt.start_time ? evt.start_time : 'All Day'} {evt.end_time ? `– ${evt.end_time}` : ''}
                   </div>
 
                   <div style={{
-                    fontSize: '0.85rem',
+                    fontSize: '0.8rem',
                     fontWeight: 700,
                     color: 'var(--text-primary)',
                     textDecoration: isCompleted ? 'line-through' : 'none',
@@ -193,12 +323,12 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
                     {evt.title}
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '3px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '2px', flexWrap: 'wrap' }}>
                     {/* Category Type Badge */}
                     <span style={{
-                      fontSize: '0.625rem',
+                      fontSize: '0.575rem',
                       fontWeight: 700,
-                      padding: '0.1rem 0.35rem',
+                      padding: '0.08rem 0.3rem',
                       borderRadius: '4px',
                       backgroundColor: typeBadge.bg,
                       color: typeBadge.color,
@@ -206,24 +336,26 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
                       {typeBadge.label}
                     </span>
 
-                    {/* Priority Badge */}
-                    <span style={{
-                      fontSize: '0.625rem',
-                      fontWeight: 800,
-                      padding: '0.1rem 0.35rem',
-                      borderRadius: '4px',
-                      backgroundColor: priorityBadge.bg,
-                      color: priorityBadge.color,
-                    }}>
-                      {priorityBadge.label} Priority
-                    </span>
+                    {/* Priority Badge (ONLY for Tasks) */}
+                    {evt.event_type === 'task' && (
+                      <span style={{
+                        fontSize: '0.575rem',
+                        fontWeight: 800,
+                        padding: '0.08rem 0.3rem',
+                        borderRadius: '4px',
+                        backgroundColor: priorityBadge.bg,
+                        color: priorityBadge.color,
+                      }}>
+                        {priorityBadge.label}
+                      </span>
+                    )}
 
-                    {/* Owner Badge (Rendered ONLY when persona filter is set to "Both") */}
+                    {/* Owner Badge */}
                     {activePersonaFilter === 'all' && (
                       <span style={{
-                        fontSize: '0.625rem',
+                        fontSize: '0.575rem',
                         fontWeight: 800,
-                        padding: '0.1rem 0.4rem',
+                        padding: '0.08rem 0.35rem',
                         borderRadius: '999px',
                         backgroundColor: ownerStyle.bg,
                         color: ownerStyle.color,
@@ -232,13 +364,13 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
                         alignItems: 'center',
                         gap: '2px',
                       }}>
-                        <User size={9} /> {ownerName}
+                        <User size={8} /> {ownerName}
                       </span>
                     )}
 
                     {evt.location && (
-                      <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                        <MapPin size={9} /> {evt.location}
+                      <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                        <MapPin size={8} /> {evt.location}
                       </span>
                     )}
                   </div>
@@ -255,10 +387,10 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
                     border: 'none',
                     color: isCompleted ? '#10B981' : 'var(--text-muted)',
                     cursor: 'pointer',
-                    padding: '2px',
+                    padding: '1px',
                   }}
                 >
-                  {isCompleted ? <CheckCircle2 size={15} /> : <Circle size={15} />}
+                  {isCompleted ? <CheckCircle2 size={14} /> : <Circle size={14} />}
                 </button>
               </div>
             );

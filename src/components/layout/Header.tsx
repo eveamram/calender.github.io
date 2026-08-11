@@ -333,8 +333,7 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={onOpenAddEvent}
             style={{ padding: '0.45rem 0.9rem', fontSize: '0.825rem' }}
           >
-            <Plus size={15} />
-            {activeTab === 'schedule' ? 'Add Class' : activeTab === 'todo' ? 'Add Task' : 'Add Event'}
+            <Plus size={15} /> Add
           </button>
 
           <button

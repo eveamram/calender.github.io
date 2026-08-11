@@ -53,12 +53,12 @@ function MainAppContent() {
             gap: '1.25rem',
           }}>
             <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+              display: 'flex',
+              flexWrap: 'wrap',
               gap: '1.25rem',
               alignItems: 'start',
             }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ flex: '1 1 500px', minWidth: 0 }}>
                 <MinimalCalendar
                   selectedDate={selectedDate}
                   onSelectDate={setSelectedDate}
@@ -67,7 +67,7 @@ function MainAppContent() {
                 />
               </div>
 
-              <div style={{ minWidth: '280px' }}>
+              <div style={{ flex: '0 0 auto', width: '310px' }}>
                 <SelectedDaySchedule
                   selectedDate={selectedDate}
                   onSelectEvent={(evt) => setSelectedDetailsEvent(evt)}
