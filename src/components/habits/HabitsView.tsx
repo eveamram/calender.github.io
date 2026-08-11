@@ -472,22 +472,38 @@ export const HabitsView: React.FC = () => {
                 />
               ))}
 
-              {/* Custom Color Wheel / Input */}
-              <input
-                type="color"
-                value={newColor}
-                onChange={(e) => setNewColor(e.target.value)}
+              {/* Custom Multi-Color Rainbow Picker Icon */}
+              <div
                 style={{
-                  width: '28px',
-                  height: '28px',
+                  width: '26px',
+                  height: '26px',
                   borderRadius: '50%',
-                  border: 'none',
+                  background: 'conic-gradient(from 0deg, #FF0000, #FF7F00, #FFFF00, #00FF00, #00C0FF, #0000FF, #8B00FF, #FF0000)',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  position: 'relative',
                   cursor: 'pointer',
-                  padding: 0,
-                  backgroundColor: 'transparent',
+                  border: '1.5px solid var(--border-color)',
                 }}
-                title="Choose any custom color"
-              />
+                title="Choose any custom color (Multi-color Wheel)"
+              >
+                <input
+                  type="color"
+                  value={newColor}
+                  onChange={(e) => setNewColor(e.target.value)}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    opacity: 0,
+                    cursor: 'pointer',
+                  }}
+                />
+              </div>
 
               <button
                 type="submit"

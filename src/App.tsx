@@ -47,27 +47,33 @@ function MainAppContent() {
       <main style={{ flex: 1, padding: '1.25rem 1rem', maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
         {activeTab === 'calendar' ? (
           /* Calendar View: 2-column Desktop (Left: Calendar 75%, Right: Schedule 25%) */
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+          <div className="calendar-grid-layout" style={{
+            display: 'flex',
+            flexDirection: 'column',
             gap: '1.25rem',
-            alignItems: 'start',
           }}>
-            <div style={{ gridColumn: 'span 2' }}>
-              <MinimalCalendar
-                selectedDate={selectedDate}
-                onSelectDate={setSelectedDate}
-                onSelectEvent={(evt) => setSelectedDetailsEvent(evt)}
-                onOpenAddEvent={() => handleOpenAddModal('personal')}
-              />
-            </div>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+              gap: '1.25rem',
+              alignItems: 'start',
+            }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <MinimalCalendar
+                  selectedDate={selectedDate}
+                  onSelectDate={setSelectedDate}
+                  onSelectEvent={(evt) => setSelectedDetailsEvent(evt)}
+                  onOpenAddEvent={() => handleOpenAddModal('personal')}
+                />
+              </div>
 
-            <div style={{ minWidth: '300px' }}>
-              <SelectedDaySchedule
-                selectedDate={selectedDate}
-                onSelectEvent={(evt) => setSelectedDetailsEvent(evt)}
-                onOpenAddEvent={() => handleOpenAddModal('personal')}
-              />
+              <div style={{ minWidth: '280px' }}>
+                <SelectedDaySchedule
+                  selectedDate={selectedDate}
+                  onSelectEvent={(evt) => setSelectedDetailsEvent(evt)}
+                  onOpenAddEvent={() => handleOpenAddModal('personal')}
+                />
+              </div>
             </div>
           </div>
         ) : activeTab === 'schedule' ? (

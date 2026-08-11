@@ -190,28 +190,6 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
             ))}
           </div>
 
-          {/* Toggle Tasks on Calendar */}
-          <button
-            type="button"
-            onClick={() => setShowTodosOnCalendar(!showTodosOnCalendar)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.35rem',
-              padding: '0.35rem 0.65rem',
-              borderRadius: '6px',
-              border: showTodosOnCalendar ? '1px solid #F59E0B' : '1px solid var(--border-color)',
-              backgroundColor: showTodosOnCalendar ? '#FFFBEB' : 'transparent',
-              color: showTodosOnCalendar ? '#B45309' : 'var(--text-muted)',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-            title="Toggle whether To-Do Tasks appear on Calendar"
-          >
-            <CheckSquare size={13} /> {showTodosOnCalendar ? 'To-Dos: On' : 'To-Dos: Off'}
-          </button>
-
           {/* Month/Week Steppers */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
             <button

@@ -478,39 +478,22 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
                 </button>
               ))}
 
-              {/* Custom Color Wheel */}
-              <input
-                type="color"
-                value={selectedColor}
-                onChange={(e) => setSelectedColor(e.target.value)}
-                style={{
-                  width: '30px',
-                  height: '30px',
-                  borderRadius: '50%',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: 0,
-                  backgroundColor: 'transparent',
-                }}
-                title="Choose any custom color"
-              />
-
-              {/* Custom Color Wheel Picker */}
-              <label
+              {/* Custom Multi-Color Rainbow Picker Icon */}
+              <div
                 style={{
                   width: '28px',
                   height: '28px',
                   borderRadius: '50%',
-                  background: 'conic-gradient(red, yellow, lime, cyan, blue, magenta, red)',
-                  border: '2px solid var(--border-color)',
-                  cursor: 'pointer',
+                  background: 'conic-gradient(from 0deg, #FF0000, #FF7F00, #FFFF00, #00FF00, #00C0FF, #0000FF, #8B00FF, #FF0000)',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   position: 'relative',
-                  overflow: 'hidden',
+                  cursor: 'pointer',
+                  border: '1.5px solid var(--border-color)',
                 }}
-                title="Choose custom color..."
+                title="Choose any custom color (Multi-color Wheel)"
               >
                 <input
                   type="color"
@@ -518,14 +501,15 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
                   onChange={(e) => setSelectedColor(e.target.value)}
                   style={{
                     position: 'absolute',
-                    opacity: 0,
+                    top: 0,
+                    left: 0,
                     width: '100%',
                     height: '100%',
+                    opacity: 0,
                     cursor: 'pointer',
                   }}
                 />
-                <Palette size={12} color="#FFFFFF" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))' }} />
-              </label>
+              </div>
             </div>
           </div>
 
