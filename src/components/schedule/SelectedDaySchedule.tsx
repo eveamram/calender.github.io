@@ -143,7 +143,7 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
       borderRadius: 'var(--radius-lg)',
       padding: '1rem',
       width: '100%',
-      maxWidth: '310px',
+      maxWidth: '350px',
       margin: '0 auto',
       display: 'flex',
       flexDirection: 'column',

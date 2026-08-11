@@ -3,7 +3,7 @@ import { useCalendar } from '../../context/CalendarContext';
 import { useAuth } from '../../context/AuthContext';
 import { CalendarEvent, EventType, CATEGORY_COLORS } from '../../types';
 import { format } from 'date-fns';
-import { X, Calendar as CalendarIcon, CheckSquare, GraduationCap, Image as ImageIcon, Check, Palette } from 'lucide-react';
+import { X, Calendar as CalendarIcon, CheckSquare, GraduationCap, Image as ImageIcon, Check, Palette, Flame } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 interface EventFormModalProps {
@@ -25,7 +25,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
   const { userProfile } = useAuth();
   const activePersonaName = (userProfile?.display_name as 'Eve' | 'Abbie') || 'Eve';
 
-  const [formMode, setFormMode] = useState<'class' | 'task' | 'event'>('event');
+  const [formMode, setFormMode] = useState<'class' | 'task' | 'event' | 'habit'>('event');
 
   // Form Fields
   const [title, setTitle] = useState('');
@@ -36,9 +36,11 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
   const [location, setLocation] = useState('');
   const [priority, setPriority] = useState<'high' | 'normal' | 'low'>('normal');
   const [taskOwner, setTaskOwner] = useState<'Eve' | 'Abbie'>(activePersonaName);
-  const [recurrenceDays, setRecurrenceDays] = useState<number[]>([1, 3]); // Mon + Wed default for class
+  const [recurrenceDays, setRecurrenceDays] = useState<number[]>([1, 2, 3, 4, 5, 6, 0]); // All days by default for habit
   const [selectedColor, setSelectedColor] = useState<string>('#3B82F6');
   const [imageUrl, setImageUrl] = useState<string>('');
+  const [habitEmoji, setHabitEmoji] = useState<string>('✨');
+  const [showHabitOnSchedule, setShowHabitOnSchedule] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -98,6 +100,30 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
 
     setIsSubmitting(true);
     try {
+      if (formMode === 'habit') {
+        const newHabit = {
+          id: `habit-${Date.now()}`,
+          title: title.trim(),
+          emoji: habitEmoji,
+          color: selectedColor,
+          owner: taskOwner,
+          daysOfWeek: recurrenceDays,
+          created_at: new Date().toISOString(),
+          completedDates: [],
+          showOnSchedule: showHabitOnSchedule,
+        };
+
+        const existingStr = localStorage.getItem('calender_daily_habits_v2');
+        const existing = existingStr ? JSON.parse(existingStr) : [];
+        const updated = [newHabit, ...existing];
+        localStorage.setItem('calender_daily_habits_v2', JSON.stringify(updated));
+        window.dispatchEvent(new Event('storage'));
+
+        confetti({ particleCount: 35, spread: 55, origin: { y: 0.7 } });
+        onClose();
+        return;
+      }
+
       const ownerUser = members.find((m) => m.display_name === taskOwner);
       const ownerId = ownerUser ? ownerUser.user_id : userProfile?.id || null;
 
@@ -233,6 +259,26 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
                 }}
               >
                 <CheckSquare size={13} /> Task
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setFormMode('habit'); }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.3rem 0.65rem',
+                  borderRadius: '999px',
+                  border: 'none',
+                  backgroundColor: formMode === 'habit' ? 'var(--bg-secondary)' : 'transparent',
+                  color: formMode === 'habit' ? '#F59E0B' : 'var(--text-secondary)',
+                  fontWeight: 700,
+                  fontSize: '0.775rem',
+                  cursor: 'pointer',
+                }}
+              >
+                <Flame size={13} /> Habit
               </button>
             </div>
           ) : (
@@ -438,7 +484,57 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
             </div>
           )}
 
-          {/* Color Selector */}
+          {/* Show on Daily Schedule toggle (If Habit mode) */}
+          {formMode === 'habit' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                  Habit Icon Emoji
+                </label>
+                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                  {['✨', '🏋️', '💧', '📚', '🧘', '🍎', '🏃', '💤', '💊', '🎯'].map((em) => (
+                    <button
+                      key={em}
+                      type="button"
+                      onClick={() => setHabitEmoji(em)}
+                      style={{
+                        fontSize: '1rem',
+                        padding: '0.3rem',
+                        borderRadius: '6px',
+                        border: habitEmoji === em ? '2px solid var(--accent-primary)' : '1px solid var(--border-color)',
+                        backgroundColor: habitEmoji === em ? 'var(--accent-light)' : 'var(--bg-secondary)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {em}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontSize: '0.825rem',
+                fontWeight: 700,
+                color: 'var(--text-primary)',
+                cursor: 'pointer',
+                padding: '0.5rem 0.75rem',
+                borderRadius: 'var(--radius-md)',
+                backgroundColor: 'var(--bg-hover)',
+                border: '1px solid var(--border-subtle)',
+              }}>
+                <input
+                  type="checkbox"
+                  checked={showHabitOnSchedule}
+                  onChange={(e) => setShowHabitOnSchedule(e.target.checked)}
+                  style={{ width: '16px', height: '16px', accentColor: 'var(--accent-primary)', cursor: 'pointer' }}
+                />
+                Show this Habit on Daily Schedule
+              </label>
+            </div>
+          )}
           <div>
             <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
               Item Color (Choose any color)
