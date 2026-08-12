@@ -4,6 +4,7 @@ import { CalendarEvent } from '../../types';
 import { format, parseISO } from 'date-fns';
 import { Plus, Circle, Trash2, Calendar as CalendarIcon, Edit3, User, ChevronDown, ChevronRight, Check, Sparkles, Flame, CheckCircle2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 interface TodoListViewProps {
   onOpenAddEvent?: () => void;
@@ -20,6 +21,7 @@ const CATEGORY_TAGS = [
 ];
 
 export const TodoListView: React.FC<TodoListViewProps> = ({ onEditTask }) => {
+  const isMobile = useIsMobile();
   const {
     filteredEvents,
     members,
@@ -347,6 +349,173 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onEditTask }) => {
       </div>
     );
   };
+
+  if (isMobile) {
+    return (
+      <div style={{ padding: '0 0.25rem 4rem 0.25rem', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        {/* Compact Mobile Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+          <div>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
+              To-Do
+            </h2>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+              {activePersonaFilter === 'all' ? 'Eve & Abbie' : activePersonaFilter} • {activeTasks.length} active
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowTodosOnCalendar(!showTodosOnCalendar)}
+            style={{
+              padding: '0.35rem 0.65rem',
+              borderRadius: '999px',
+              border: showTodosOnCalendar ? '1px solid #3B82F6' : '1px solid var(--border-color)',
+              backgroundColor: showTodosOnCalendar ? '#EFF6FF' : 'var(--bg-secondary)',
+              color: showTodosOnCalendar ? '#1D4ED8' : 'var(--text-muted)',
+              fontSize: '0.725rem',
+              fontWeight: 800,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+          >
+            <CalendarIcon size={12} />
+            {showTodosOnCalendar ? 'Calendar ON' : 'Calendar OFF'}
+          </button>
+        </div>
+
+        {/* Fast Mobile Quick Add Input */}
+        <form onSubmit={handleQuickAdd} style={{ marginBottom: '1.25rem' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            backgroundColor: 'var(--bg-secondary)',
+            borderRadius: '16px',
+            padding: '0.4rem 0.6rem 0.4rem 0.85rem',
+            border: '1.5px solid var(--border-color)',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+          }}>
+            <input
+              type="text"
+              placeholder="What needs to be done?"
+              value={newTaskText}
+              onChange={(e) => setNewTaskText(e.target.value)}
+              style={{
+                flex: 1,
+                border: 'none',
+                background: 'transparent',
+                outline: 'none',
+                fontSize: '0.925rem',
+                fontWeight: 600,
+                color: 'var(--text-primary)',
+              }}
+            />
+
+            <button
+              type="submit"
+              disabled={!newTaskText.trim()}
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                backgroundColor: newTaskText.trim() ? '#3B82F6' : 'var(--bg-hover)',
+                color: newTaskText.trim() ? '#FFFFFF' : 'var(--text-muted)',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: newTaskText.trim() ? 'pointer' : 'default',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <Plus size={20} strokeWidth={2.5} />
+            </button>
+          </div>
+        </form>
+
+        {/* Task List Sections */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* TODAY */}
+          <div>
+            <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.4rem' }}>
+              Today ({todayTasks.length})
+            </div>
+            {todayTasks.length === 0 ? (
+              <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: '0.2rem 0' }}>
+                No tasks for today.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {todayTasks.map(renderTaskRow)}
+              </div>
+            )}
+          </div>
+
+          {/* UPCOMING */}
+          <div>
+            <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.4rem' }}>
+              Upcoming ({upcomingTasks.length})
+            </div>
+            {upcomingTasks.length === 0 ? (
+              <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: '0.2rem 0' }}>
+                No upcoming tasks.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {upcomingTasks.map(renderTaskRow)}
+              </div>
+            )}
+          </div>
+
+          {/* NO DATE */}
+          {noDateTasks.length > 0 && (
+            <div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.4rem' }}>
+                No Date ({noDateTasks.length})
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {noDateTasks.map(renderTaskRow)}
+              </div>
+            </div>
+          )}
+
+          {/* COMPLETED (COLLAPSED) */}
+          {completedTasks.length > 0 && (
+            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.85rem' }}>
+              <button
+                type="button"
+                onClick={() => setIsCompletedOpen(!isCompletedOpen)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  color: 'var(--text-muted)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  padding: '0.3rem 0',
+                }}
+              >
+                {isCompletedOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                <CheckCircle2 size={13} color="#10B981" /> Completed ({completedTasks.length})
+              </button>
+
+              {isCompletedOpen && (
+                <div style={{ display: 'flex', flexDirection: 'column', marginTop: '0.4rem' }}>
+                  {completedTasks.map(renderTaskRow)}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{
