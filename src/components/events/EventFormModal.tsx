@@ -6,6 +6,8 @@ import { format } from 'date-fns';
 import { X, Calendar as CalendarIcon, CheckSquare, GraduationCap, Image as ImageIcon, Check, Palette, Flame } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
+import { useIsMobile } from '../../hooks/useIsMobile';
+
 interface EventFormModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -21,6 +23,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
   eventToEdit,
   defaultCategory = 'event',
 }) => {
+  const isMobile = useIsMobile();
   const { addEvent, updateEvent, members } = useCalendar();
   const { userProfile } = useAuth();
   const activePersonaName = (userProfile?.display_name as 'Eve' | 'Abbie') || 'Eve';
@@ -171,19 +174,21 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
       backgroundColor: 'rgba(9, 9, 11, 0.45)',
       backdropFilter: 'blur(4px)',
       display: 'flex',
-      alignItems: 'center',
+      alignItems: isMobile ? 'flex-end' : 'center',
       justifyContent: 'center',
       zIndex: 10000,
-      padding: '1rem',
+      padding: isMobile ? 0 : '1rem',
       fontFamily: "'Plus Jakarta Sans', sans-serif",
     }} onClick={onClose}>
       <div style={{
         backgroundColor: 'var(--bg-secondary)',
         border: '1px solid var(--border-color)',
-        borderRadius: 'var(--radius-lg)',
+        borderRadius: isMobile ? '24px 24px 0 0' : 'var(--radius-lg)',
         width: '100%',
-        maxWidth: '440px',
-        padding: '1.5rem',
+        maxWidth: isMobile ? '100%' : '440px',
+        maxHeight: isMobile ? '88vh' : '90vh',
+        overflowY: 'auto',
+        padding: isMobile ? '1.25rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom, 0px)) 1.25rem' : '1.5rem',
         boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
       }} onClick={(e) => e.stopPropagation()}>
         {/* Header Tabs */}

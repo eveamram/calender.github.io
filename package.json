@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "postbuild": "cp -r dist/assets ./assets && cp dist/index.html ./index.html && cp dist/404.html ./404.html && cp dist/.nojekyll ./.nojekyll",
+    "postbuild": "cp -r dist/assets ./assets && cp -r dist/favicon.svg ./favicon.svg && cp dist/.nojekyll ./.nojekyll",
     "preview": "vite preview",
     "lint": "tsc",
     "predeploy": "npm run build",

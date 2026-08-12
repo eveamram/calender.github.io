@@ -3,6 +3,8 @@ import { useCalendar } from '../../context/CalendarContext';
 import { CalendarEvent } from '../../types';
 import { GraduationCap, Plus, Clock, MapPin, User, Calendar as CalendarIcon } from 'lucide-react';
 
+import { useIsMobile } from '../../hooks/useIsMobile';
+
 interface WeeklyClassScheduleViewProps {
   onSelectEvent?: (event: CalendarEvent) => void;
   onOpenAddEvent?: () => void;
@@ -12,8 +14,10 @@ export const WeeklyClassScheduleView: React.FC<WeeklyClassScheduleViewProps> = (
   onSelectEvent,
   onOpenAddEvent,
 }) => {
+  const isMobile = useIsMobile();
   const { filteredEvents, members, activePersonaFilter } = useCalendar();
   const [viewWeekend, setViewWeekend] = useState(false);
+  const [selectedMobileDayIdx, setSelectedMobileDayIdx] = useState<number>(0); // 0 = Mon, 1 = Tue...
 
   // Filter strictly for class events ONLY (exclude birthdays, tasks, exams, appointments, etc.)
   const classEvents = filteredEvents.filter(
@@ -23,6 +27,8 @@ export const WeeklyClassScheduleView: React.FC<WeeklyClassScheduleViewProps> = (
   const daysOfWeek = viewWeekend
     ? ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
     : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+
+  const shortDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   const getOwnerName = (evt: CalendarEvent) => {
     if (evt.owner_user_id) {
@@ -41,6 +47,160 @@ export const WeeklyClassScheduleView: React.FC<WeeklyClassScheduleViewProps> = (
     const dayMap: Record<number, string> = { 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat', 7: 'Sun' };
     return days.map((d) => dayMap[d] || '').filter(Boolean).join(' + ');
   };
+
+  if (isMobile) {
+    const selectedDayNumber = selectedMobileDayIdx + 1; // 1-indexed
+    const dayClasses = classEvents.filter((c) => {
+      if (c.recurrence_days && c.recurrence_days.length > 0) {
+        return c.recurrence_days.includes(selectedDayNumber);
+      }
+      return true;
+    });
+    dayClasses.sort((a, b) => (a.start_time || '00:00').localeCompare(b.start_time || '00:00'));
+
+    return (
+      <div style={{ paddingBottom: '4.5rem', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        {/* Header Bar */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+          <div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+              Class Schedule
+            </h2>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
+              Select day to view timeline
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onOpenAddEvent}
+            style={{
+              padding: '0.45rem 0.85rem',
+              borderRadius: '10px',
+              backgroundColor: '#2563EB',
+              color: '#FFFFFF',
+              border: 'none',
+              fontWeight: 800,
+              fontSize: '0.8rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+          >
+            <Plus size={15} /> Add Class
+          </button>
+        </div>
+
+        {/* Horizontal Day Picker Tabs */}
+        <div style={{
+          display: 'flex',
+          gap: '0.35rem',
+          overflowX: 'auto',
+          backgroundColor: 'var(--bg-secondary)',
+          padding: '6px',
+          borderRadius: '999px',
+          border: '1px solid var(--border-color)',
+          marginBottom: '1.25rem',
+        }}>
+          {shortDays.map((d, idx) => {
+            const isSelected = selectedMobileDayIdx === idx;
+            return (
+              <button
+                key={d}
+                type="button"
+                onClick={() => setSelectedMobileDayIdx(idx)}
+                style={{
+                  flex: 1,
+                  minWidth: '40px',
+                  padding: '0.45rem 0',
+                  borderRadius: '999px',
+                  border: 'none',
+                  backgroundColor: isSelected ? '#2563EB' : 'transparent',
+                  color: isSelected ? '#FFFFFF' : 'var(--text-secondary)',
+                  fontWeight: 800,
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {d}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Selected Day Class Timeline Cards */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {dayClasses.length === 0 ? (
+            <div style={{
+              textAlign: 'center',
+              padding: '2.5rem 1rem',
+              backgroundColor: 'var(--bg-secondary)',
+              borderRadius: '16px',
+              border: '1px solid var(--border-subtle)',
+              color: 'var(--text-muted)',
+              fontSize: '0.875rem',
+            }}>
+              No classes scheduled for {shortDays[selectedMobileDayIdx]}.
+            </div>
+          ) : (
+            dayClasses.map((cls) => {
+              const ownerName = getOwnerName(cls);
+              const ownerStyle = ownerName === 'Eve' ? { bg: '#EFF6FF', color: '#1E40AF' } : { bg: '#FDF2F8', color: '#9D174D' };
+
+              return (
+                <div
+                  key={cls.id}
+                  onClick={() => onSelectEvent && onSelectEvent(cls)}
+                  style={{
+                    backgroundColor: 'var(--bg-secondary)',
+                    borderRadius: '16px',
+                    border: '1px solid var(--border-color)',
+                    borderLeft: `4px solid ${cls.color || '#3B82F6'}`,
+                    padding: '1rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.4rem',
+                    cursor: 'pointer',
+                    boxShadow: 'var(--shadow-subtle)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                      {cls.title}
+                    </span>
+
+                    {activePersonaFilter === 'all' && (
+                      <span style={{
+                        fontSize: '0.65rem',
+                        fontWeight: 800,
+                        padding: '2px 6px',
+                        borderRadius: '999px',
+                        backgroundColor: ownerStyle.bg,
+                        color: ownerStyle.color,
+                      }}>
+                        {ownerName}
+                      </span>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 600 }}>
+                    <Clock size={13} color="var(--accent-primary)" /> {cls.start_time || '10:00'} – {cls.end_time || '11:00'}
+                  </div>
+
+                  {cls.location && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.775rem' }}>
+                      <MapPin size={13} /> {cls.location}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{

@@ -12,8 +12,18 @@ import { EventDetailsModal } from './components/events/EventDetailsModal';
 import { PersonCustomizeModal } from './components/auth/PersonCustomizeModal';
 import { CalendarEvent, EventType } from './types';
 
+import { useIsMobile } from './hooks/useIsMobile';
+import { MobileHeader } from './components/layout/MobileHeader';
+import { MobileBottomNav } from './components/layout/MobileBottomNav';
+import { GroceryView } from './components/grocery/GroceryView';
+import { MealsView } from './components/meals/MealsView';
+import { NotesView } from './components/notes/NotesView';
+
+type AppTab = 'calendar' | 'schedule' | 'todo' | 'habits' | 'grocery' | 'meals' | 'notes';
+
 function MainAppContent() {
-  const [activeTab, setActiveTab] = useState<'calendar' | 'schedule' | 'todo' | 'habits'>('calendar');
+  const isMobile = useIsMobile();
+  const [activeTab, setActiveTab] = useState<AppTab>('calendar');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -36,17 +46,33 @@ function MainAppContent() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)', display: 'flex', flexDirection: 'column' }}>
-      {/* Header Navigation: Calendar | Class Schedule | To-Do List | Habits */}
-      <Header
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        onOpenAddEvent={() => handleOpenAddModal(activeTab === 'schedule' ? 'class' : activeTab === 'todo' ? 'task' : 'personal')}
-        onOpenPersonModal={() => setIsSettingsOpen(true)}
-      />
+      {/* Header Navigation: Desktop Header vs Mobile Compact Header */}
+      {isMobile ? (
+        <MobileHeader
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          selectedDate={selectedDate}
+          onOpenAddModal={() => handleOpenAddModal(activeTab === 'schedule' ? 'class' : activeTab === 'todo' ? 'task' : 'personal')}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+        />
+      ) : (
+        <Header
+          activeTab={activeTab === 'grocery' || activeTab === 'meals' || activeTab === 'notes' ? 'calendar' : activeTab}
+          setActiveTab={setActiveTab}
+          onOpenAddEvent={() => handleOpenAddModal(activeTab === 'schedule' ? 'class' : activeTab === 'todo' ? 'task' : 'personal')}
+          onOpenPersonModal={() => setIsSettingsOpen(true)}
+        />
+      )}
 
-      <main style={{ flex: 1, padding: '1.25rem 1rem', maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
+      <main style={{
+        flex: 1,
+        padding: isMobile ? '0.85rem 0.85rem 5rem 0.85rem' : '1.25rem 1rem',
+        maxWidth: '1400px',
+        margin: '0 auto',
+        width: '100%',
+      }}>
         {activeTab === 'calendar' ? (
-          /* Calendar View: 2-column Desktop (Left: Calendar 75%, Right: Schedule 25%) */
+          /* Calendar View */
           <div className="calendar-grid-layout" style={{
             display: 'flex',
             flexDirection: 'column',
@@ -58,7 +84,7 @@ function MainAppContent() {
               gap: '1.25rem',
               alignItems: 'start',
             }}>
-              <div style={{ flex: '1 1 500px', minWidth: 0 }}>
+              <div style={{ flex: '1 1 340px', minWidth: 0 }}>
                 <MinimalCalendar
                   selectedDate={selectedDate}
                   onSelectDate={setSelectedDate}
@@ -67,7 +93,7 @@ function MainAppContent() {
                 />
               </div>
 
-              <div style={{ flex: '0 0 auto', width: '380px' }}>
+              <div style={{ flex: isMobile ? '1 1 100%' : '0 0 auto', width: isMobile ? '100%' : '380px' }}>
                 <SelectedDaySchedule
                   selectedDate={selectedDate}
                   onSelectEvent={(evt) => setSelectedDetailsEvent(evt)}
@@ -83,16 +109,35 @@ function MainAppContent() {
             onOpenAddEvent={() => handleOpenAddModal('class')}
           />
         ) : activeTab === 'todo' ? (
-          /* Personal To-Do Lists for Eve & Abbie */
+          /* Personal To-Do Lists */
           <TodoListView
             onOpenAddEvent={() => handleOpenAddModal('task')}
             onEditTask={(task) => handleOpenEditModal(task)}
           />
-        ) : (
-          /* Daily Habits Tracker based on Person */
+        ) : activeTab === 'habits' ? (
+          /* Daily Habits Tracker */
           <HabitsView />
+        ) : activeTab === 'grocery' ? (
+          /* Mobile Grocery List */
+          <GroceryView />
+        ) : activeTab === 'meals' ? (
+          /* Mobile Meal Planner */
+          <MealsView />
+        ) : (
+          /* Mobile Notes & Docs */
+          <NotesView />
         )}
       </main>
+
+      {/* Mobile Fixed Bottom Navigation Bar */}
+      {isMobile && (
+        <MobileBottomNav
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          onOpenAddModal={() => handleOpenAddModal(activeTab === 'schedule' ? 'class' : activeTab === 'todo' ? 'task' : 'personal')}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+        />
+      )}
 
       {/* Add / Edit Form Modal */}
       <EventFormModal
