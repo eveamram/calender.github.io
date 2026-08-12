@@ -188,6 +188,9 @@ export const MonthGrid: React.FC<MonthGridProps> = ({ onSelectEvent, onSelectDat
                         textDecoration: evt.is_completed ? 'line-through' : 'none',
                         opacity: evt.is_completed ? 0.65 : 1,
                         transition: 'transform 0.12s ease, box-shadow 0.12s ease',
+                        minWidth: 0,
+                        width: '100%',
+                        boxSizing: 'border-box',
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.transform = 'scale(1.03)';
