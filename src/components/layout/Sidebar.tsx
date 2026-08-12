@@ -27,18 +27,34 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onOpe
         {/* Brand */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0 0.5rem' }}>
           <div style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '8px',
-            background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
+            width: '34px',
+            height: '34px',
+            borderRadius: '9px',
+            backgroundColor: '#FFFFFF',
+            border: '1.5px solid var(--border-color)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#FFFFFF',
-            fontWeight: 800,
-            fontSize: '0.9rem',
+            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.05)',
           }}>
-            {new Date().getDate()}
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="3.5" y="5.5" width="17" height="15.5" rx="3.5" stroke="#18181B" strokeWidth="2.2" fill="#FFFFFF" />
+              <line x1="3.5" y1="9.8" x2="20.5" y2="9.8" stroke="#18181B" strokeWidth="2" />
+              <line x1="7.5" y1="3" x2="7.5" y2="6.5" stroke="#18181B" strokeWidth="2.4" strokeLinecap="round" />
+              <line x1="16.5" y1="3" x2="16.5" y2="6.5" stroke="#18181B" strokeWidth="2.4" strokeLinecap="round" />
+              <circle cx="7.5" cy="12.5" r="1.1" fill="#CBD5E1" />
+              <circle cx="11.5" cy="12.5" r="1.1" fill="#CBD5E1" />
+              <circle cx="15.5" cy="12.5" r="1.1" fill="#CBD5E1" />
+              <circle cx="18.5" cy="12.5" r="1.1" fill="#CBD5E1" />
+              <circle cx="7.5" cy="15.5" r="1.1" fill="#CBD5E1" />
+              <circle cx="11.5" cy="15.5" r="1.1" fill="#CBD5E1" />
+              <circle cx="15.5" cy="15.5" r="1.1" fill="#CBD5E1" />
+              <circle cx="18.5" cy="15.5" r="1.1" fill="#CBD5E1" />
+              <circle cx="7.5" cy="18.5" r="1.1" fill="#CBD5E1" />
+              <circle cx="11.5" cy="18.5" r="1.1" fill="#CBD5E1" />
+              <circle cx="15.5" cy="18.5" r="1.1" fill="#CBD5E1" />
+              <rect x="17" y="17" width="3.2" height="3.2" rx="1" fill="#2563EB" />
+            </svg>
           </div>
           <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>calender</span>
         </div>

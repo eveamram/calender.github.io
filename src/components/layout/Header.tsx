@@ -50,7 +50,7 @@ export const Header: React.FC<HeaderProps> = ({
         flexWrap: 'wrap',
         gap: '1rem',
       }}>
-        {/* Simple & Sleek Black Logo */}
+        {/* Custom Apple-Style Calendar Logo matching image */}
         <div
           onClick={() => setActiveTab('calendar')}
           style={{
@@ -60,20 +60,47 @@ export const Header: React.FC<HeaderProps> = ({
             cursor: 'pointer',
           }}
         >
-          {/* Simple Black Emblem */}
           <div style={{
-            width: '34px',
-            height: '34px',
-            borderRadius: '9px',
-            backgroundColor: '#18181B',
+            width: '36px',
+            height: '36px',
+            borderRadius: '10px',
+            backgroundColor: '#FFFFFF',
+            border: '1.5px solid var(--border-color)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#FFFFFF',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
             transition: 'transform 0.15s ease',
           }}>
-            <CalendarIcon size={18} strokeWidth={2.2} />
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              {/* Outer rounded calendar outline */}
+              <rect x="3.5" y="5.5" width="17" height="15.5" rx="3.5" stroke="#18181B" strokeWidth="2.2" fill="#FFFFFF" />
+              {/* Header bar divider line */}
+              <line x1="3.5" y1="9.8" x2="20.5" y2="9.8" stroke="#18181B" strokeWidth="2" />
+              {/* Top ring pins */}
+              <line x1="7.5" y1="3" x2="7.5" y2="6.5" stroke="#18181B" strokeWidth="2.4" strokeLinecap="round" />
+              <line x1="16.5" y1="3" x2="16.5" y2="6.5" stroke="#18181B" strokeWidth="2.4" strokeLinecap="round" />
+              
+              {/* Row 1 Dots */}
+              <circle cx="7.5" cy="12.5" r="1.1" fill="#CBD5E1" />
+              <circle cx="11.5" cy="12.5" r="1.1" fill="#CBD5E1" />
+              <circle cx="15.5" cy="12.5" r="1.1" fill="#CBD5E1" />
+              <circle cx="18.5" cy="12.5" r="1.1" fill="#CBD5E1" />
+
+              {/* Row 2 Dots */}
+              <circle cx="7.5" cy="15.5" r="1.1" fill="#CBD5E1" />
+              <circle cx="11.5" cy="15.5" r="1.1" fill="#CBD5E1" />
+              <circle cx="15.5" cy="15.5" r="1.1" fill="#CBD5E1" />
+              <circle cx="18.5" cy="15.5" r="1.1" fill="#CBD5E1" />
+
+              {/* Row 3 Dots + Highlighted Blue Active Square Dot */}
+              <circle cx="7.5" cy="18.5" r="1.1" fill="#CBD5E1" />
+              <circle cx="11.5" cy="18.5" r="1.1" fill="#CBD5E1" />
+              <circle cx="15.5" cy="18.5" r="1.1" fill="#CBD5E1" />
+              
+              {/* Bright Vibrant Blue Active Date Square */}
+              <rect x="17" y="17" width="3.2" height="3.2" rx="1" fill="#2563EB" />
+            </svg>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
