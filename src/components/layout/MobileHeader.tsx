@@ -6,8 +6,8 @@ import { Check, Users } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface MobileHeaderProps {
-  activeTab: 'calendar' | 'schedule' | 'todo' | 'habits' | 'grocery' | 'meals' | 'notes';
-  setActiveTab: (tab: 'calendar' | 'schedule' | 'todo' | 'habits' | 'grocery' | 'meals' | 'notes') => void;
+  activeTab: 'calendar' | 'schedule' | 'todo' | 'habits' | 'grocery' | 'meals';
+  setActiveTab: (tab: 'calendar' | 'schedule' | 'todo' | 'habits' | 'grocery' | 'meals') => void;
   selectedDate: Date;
   onOpenAddModal: () => void;
   onOpenSettings?: () => void;

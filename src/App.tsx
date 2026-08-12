@@ -17,9 +17,8 @@ import { MobileHeader } from './components/layout/MobileHeader';
 import { MobileBottomNav } from './components/layout/MobileBottomNav';
 import { GroceryView } from './components/grocery/GroceryView';
 import { MealsView } from './components/meals/MealsView';
-import { NotesView } from './components/notes/NotesView';
 
-type AppTab = 'calendar' | 'schedule' | 'todo' | 'habits' | 'grocery' | 'meals' | 'notes';
+type AppTab = 'calendar' | 'schedule' | 'todo' | 'habits' | 'grocery' | 'meals';
 
 function MainAppContent() {
   const isMobile = useIsMobile();
@@ -57,7 +56,7 @@ function MainAppContent() {
         />
       ) : (
         <Header
-          activeTab={activeTab === 'grocery' || activeTab === 'meals' || activeTab === 'notes' ? 'calendar' : activeTab}
+          activeTab={activeTab}
           setActiveTab={setActiveTab}
           onOpenAddEvent={() => handleOpenAddModal(activeTab === 'schedule' ? 'class' : activeTab === 'todo' ? 'task' : 'personal')}
           onOpenPersonModal={() => setIsSettingsOpen(true)}
@@ -120,12 +119,9 @@ function MainAppContent() {
         ) : activeTab === 'grocery' ? (
           /* Mobile Grocery List */
           <GroceryView />
-        ) : activeTab === 'meals' ? (
+        ) : (
           /* Mobile Meal Planner */
           <MealsView />
-        ) : (
-          /* Mobile Notes & Docs */
-          <NotesView />
         )}
       </main>
 

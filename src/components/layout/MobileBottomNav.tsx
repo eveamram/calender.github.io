@@ -3,8 +3,8 @@ import { Calendar, GraduationCap, CheckSquare, MoreHorizontal, Flame, ShoppingBa
 import { BottomSheet } from '../ui/BottomSheet';
 
 interface MobileBottomNavProps {
-  activeTab: 'calendar' | 'schedule' | 'todo' | 'habits' | 'grocery' | 'meals' | 'notes';
-  setActiveTab: (tab: 'calendar' | 'schedule' | 'todo' | 'habits' | 'grocery' | 'meals' | 'notes') => void;
+  activeTab: 'calendar' | 'schedule' | 'todo' | 'habits' | 'grocery' | 'meals';
+  setActiveTab: (tab: 'calendar' | 'schedule' | 'todo' | 'habits' | 'grocery' | 'meals') => void;
   onOpenAddModal: () => void;
   onOpenSettings?: () => void;
 }
@@ -27,7 +27,6 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     { id: 'habits' as const, label: 'Daily Habits', icon: Flame, color: '#F59E0B' },
     { id: 'grocery' as const, label: 'Grocery List', icon: ShoppingBag, color: '#10B981' },
     { id: 'meals' as const, label: 'Meal Planner', icon: Utensils, color: '#EC4899' },
-    { id: 'notes' as const, label: 'Notes & Docs', icon: FileText, color: '#8B5CF6' },
   ];
 
   const isMoreActive = moreItems.some((item) => item.id === activeTab);

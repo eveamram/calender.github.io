@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { AppLogo } from '../ui/AppLogo';
-import { Calendar as CalendarIcon, GraduationCap, CheckSquare, Settings, Plus, Palette, Check, Sparkles, Flame } from 'lucide-react';
+import { Calendar as CalendarIcon, GraduationCap, CheckSquare, Settings, Plus, Palette, Check, Sparkles, Flame, MoreHorizontal, ShoppingBag, Utensils, FileText, ChevronDown } from 'lucide-react';
 import { useCalendar } from '../../context/CalendarContext';
 
+type AppTab = 'calendar' | 'schedule' | 'todo' | 'habits' | 'grocery' | 'meals';
+
 interface HeaderProps {
-  activeTab: 'calendar' | 'schedule' | 'todo' | 'habits';
-  setActiveTab: (tab: 'calendar' | 'schedule' | 'todo' | 'habits') => void;
+  activeTab: AppTab;
+  setActiveTab: (tab: AppTab) => void;
   onOpenAddEvent: () => void;
   onOpenPersonModal?: () => void;
   onOpenSettings?: () => void;
@@ -28,8 +30,11 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const { activePersonaFilter, setActivePersonaFilter, themeColor, setThemeColor } = useCalendar();
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
 
   const handleOpenProfile = onOpenPersonModal || onOpenSettings || (() => {});
+
+  const isMoreActive = activeTab === 'grocery' || activeTab === 'meals';
 
   return (
     <header style={{
@@ -58,7 +63,7 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={() => setActiveTab('calendar')}
         />
 
-        {/* Core Connected Views: Calendar | Class Schedule | To-Do List | Habits */}
+        {/* Core Connected Views: Calendar | Class Schedule | To-Do List | Habits | More... */}
         <nav style={{
           display: 'flex',
           alignItems: 'center',
@@ -66,6 +71,7 @@ export const Header: React.FC<HeaderProps> = ({
           padding: '3px',
           borderRadius: '999px',
           border: '1px solid var(--border-color)',
+          position: 'relative',
         }}>
           <button
             type="button"
@@ -150,6 +156,132 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Flame size={15} /> Habits
           </button>
+
+          {/* Desktop More Options Dropdown Button */}
+          <div style={{ position: 'relative' }}>
+            <button
+              type="button"
+              onClick={() => setShowMoreMenu(!showMoreMenu)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                padding: '0.45rem 0.9rem',
+                borderRadius: '999px',
+                border: 'none',
+                backgroundColor: isMoreActive ? 'var(--bg-secondary)' : 'transparent',
+                color: isMoreActive ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                fontWeight: 700,
+                fontSize: '0.825rem',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <MoreHorizontal size={15} />
+              <span>
+                {activeTab === 'grocery' ? 'Grocery' : activeTab === 'meals' ? 'Meals' : 'More'}
+              </span>
+              <ChevronDown size={12} style={{ transform: showMoreMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
+            </button>
+
+            {/* More Popover Dropdown Menu */}
+            {showMoreMenu && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 8px)',
+                  right: 0,
+                  backgroundColor: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '16px',
+                  boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
+                  padding: '0.5rem',
+                  minWidth: '200px',
+                  zIndex: 200,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.25rem',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('grocery');
+                    setShowMoreMenu(false);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.65rem',
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: '10px',
+                    border: 'none',
+                    backgroundColor: activeTab === 'grocery' ? 'var(--accent-light)' : 'transparent',
+                    color: activeTab === 'grocery' ? '#10B981' : 'var(--text-primary)',
+                    fontWeight: 700,
+                    fontSize: '0.875rem',
+                    cursor: 'pointer',
+                    width: '100%',
+                    textAlign: 'left',
+                  }}
+                >
+                  <ShoppingBag size={16} color="#10B981" /> Grocery List
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('meals');
+                    setShowMoreMenu(false);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.65rem',
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: '10px',
+                    border: 'none',
+                    backgroundColor: activeTab === 'meals' ? 'var(--accent-light)' : 'transparent',
+                    color: activeTab === 'meals' ? '#EC4899' : 'var(--text-primary)',
+                    fontWeight: 700,
+                    fontSize: '0.875rem',
+                    cursor: 'pointer',
+                    width: '100%',
+                    textAlign: 'left',
+                  }}
+                >
+                  <Utensils size={16} color="#EC4899" /> Meal Planner
+                </button>
+
+                <div style={{ height: '1px', backgroundColor: 'var(--border-color)', margin: '0.25rem 0' }} />
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMoreMenu(false);
+                    handleOpenProfile();
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.65rem',
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: '10px',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    color: 'var(--text-secondary)',
+                    fontWeight: 700,
+                    fontSize: '0.875rem',
+                    cursor: 'pointer',
+                    width: '100%',
+                    textAlign: 'left',
+                  }}
+                >
+                  <Settings size={16} /> Settings & Sync
+                </button>
+              </div>
+            )}
+          </div>
         </nav>
 
         {/* Persona Switcher, Color Theme Picker & Controls */}
