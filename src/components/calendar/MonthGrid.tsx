@@ -44,7 +44,7 @@ export const MonthGrid: React.FC<MonthGridProps> = ({ onSelectEvent, onSelectDat
       {/* Day of Week Headers */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(7, 1fr)',
+        gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
         gap: '6px',
         marginBottom: '0.6rem',
         textAlign: 'center',
@@ -59,6 +59,8 @@ export const MonthGrid: React.FC<MonthGridProps> = ({ onSelectEvent, onSelectDat
               textTransform: 'uppercase',
               letterSpacing: '0.04em',
               color: idx === 0 || idx === 6 ? 'var(--accent-primary)' : 'var(--text-muted)',
+              minWidth: 0,
+              overflow: 'hidden',
             }}
           >
             {day}
@@ -69,7 +71,7 @@ export const MonthGrid: React.FC<MonthGridProps> = ({ onSelectEvent, onSelectDat
       {/* Monthly Days Grid */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(7, 1fr)',
+        gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
         gap: '8px',
       }}>
         {days.map((day) => {

@@ -698,61 +698,62 @@ export const HabitsView: React.FC = () => {
 
       {/* RENDER 2: FULL WEEK GRID VIEW */}
       {viewType === 'weekly' && (
-        <div>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(200px, 1fr) repeat(7, 44px) 40px',
-            gap: '0.5rem',
-            alignItems: 'center',
-            padding: '0.5rem 0.75rem',
-            borderBottom: '1px solid var(--border-color)',
-            marginBottom: '0.75rem',
-            fontSize: '0.725rem',
-            fontWeight: 800,
-            color: 'var(--text-muted)',
-            textTransform: 'uppercase',
-          }}>
-            <span>Habit ({personaHabits.length})</span>
-            {weekDays.map((d) => {
-              const isTodayDay = isSameDay(d, new Date());
-              return (
-                <div key={d.toISOString()} style={{ textAlign: 'center', color: isTodayDay ? 'var(--accent-primary)' : 'inherit' }}>
-                  <div>{format(d, 'EEE')[0]}</div>
-                  <div style={{ fontSize: '0.675rem', fontWeight: isTodayDay ? 900 : 600 }}>{format(d, 'd')}</div>
-                </div>
-              );
-            })}
-            <span style={{ textAlign: 'center' }}>🔥</span>
-          </div>
-
-          {personaHabits.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
-              <Sparkles size={28} style={{ marginBottom: '0.5rem', opacity: 0.6 }} />
-              <p style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>No habits added yet!</p>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-              {personaHabits.map((habit) => {
-                const streak = calculateStreak(habit);
-                const isTodayDone = habit.completedDates.includes(todayStr);
-                const habitDays = habit.daysOfWeek || [1, 2, 3, 4, 5, 6, 0];
-
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%' }}>
+          <div style={{ minWidth: '540px' }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'minmax(180px, 1fr) repeat(7, 42px) 40px',
+              gap: '0.4rem',
+              alignItems: 'center',
+              padding: '0.5rem 0.75rem',
+              borderBottom: '1px solid var(--border-color)',
+              marginBottom: '0.75rem',
+              fontSize: '0.725rem',
+              fontWeight: 800,
+              color: 'var(--text-muted)',
+              textTransform: 'uppercase',
+            }}>
+              <span>Habit ({personaHabits.length})</span>
+              {weekDays.map((d) => {
+                const isTodayDay = isSameDay(d, new Date());
                 return (
-                  <div
-                    key={habit.id}
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'minmax(200px, 1fr) repeat(7, 44px) 40px',
-                      gap: '0.5rem',
-                      alignItems: 'center',
-                      padding: '0.65rem 0.75rem',
-                      borderRadius: 'var(--radius-md)',
-                      backgroundColor: isTodayDone ? 'var(--bg-hover)' : 'var(--bg-secondary)',
-                      border: '1px solid var(--border-subtle)',
-                      borderLeft: `4px solid ${habit.color}`,
-                      transition: 'all 0.15s ease',
-                    }}
-                  >
+                  <div key={d.toISOString()} style={{ textAlign: 'center', color: isTodayDay ? 'var(--accent-primary)' : 'inherit' }}>
+                    <div>{format(d, 'EEE')[0]}</div>
+                    <div style={{ fontSize: '0.675rem', fontWeight: isTodayDay ? 900 : 600 }}>{format(d, 'd')}</div>
+                  </div>
+                );
+              })}
+              <span style={{ textAlign: 'center' }}>🔥</span>
+            </div>
+
+            {personaHabits.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
+                <Sparkles size={28} style={{ marginBottom: '0.5rem', opacity: 0.6 }} />
+                <p style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>No habits added yet!</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                {personaHabits.map((habit) => {
+                  const streak = calculateStreak(habit);
+                  const isTodayDone = habit.completedDates.includes(todayStr);
+                  const habitDays = habit.daysOfWeek || [1, 2, 3, 4, 5, 6, 0];
+
+                  return (
+                    <div
+                      key={habit.id}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'minmax(180px, 1fr) repeat(7, 42px) 40px',
+                        gap: '0.4rem',
+                        alignItems: 'center',
+                        padding: '0.65rem 0.75rem',
+                        borderRadius: 'var(--radius-md)',
+                        backgroundColor: isTodayDone ? 'var(--bg-hover)' : 'var(--bg-secondary)',
+                        border: '1px solid var(--border-subtle)',
+                        borderLeft: `4px solid ${habit.color}`,
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', minWidth: 0 }}>
                       <span style={{ fontSize: '1.1rem' }}>{habit.emoji}</span>
                       <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
@@ -830,7 +831,8 @@ export const HabitsView: React.FC = () => {
             </div>
           )}
         </div>
-      )}
+      </div>
+    )}
 
       {/* EDIT HABIT MODAL OVERLAY */}
       {editingHabit && (

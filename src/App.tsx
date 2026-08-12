@@ -66,10 +66,11 @@ function MainAppContent() {
 
       <main style={{
         flex: 1,
-        padding: isMobile ? '0.85rem 0.85rem 5rem 0.85rem' : '1.25rem 1rem',
+        padding: isMobile ? '0.5rem 0.5rem 5rem 0.5rem' : '1.25rem 1rem',
         maxWidth: '1400px',
         margin: '0 auto',
         width: '100%',
+        boxSizing: 'border-box',
       }}>
         {activeTab === 'calendar' ? (
           /* Calendar View */

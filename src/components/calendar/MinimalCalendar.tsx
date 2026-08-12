@@ -109,10 +109,11 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
       backgroundColor: 'var(--bg-secondary)',
       border: '1px solid var(--border-color)',
       borderRadius: 'var(--radius-lg)',
-      padding: '1.5rem',
+      padding: isMobile ? '0.75rem 0.4rem' : '1.5rem',
       width: '100%',
       boxShadow: 'var(--shadow-subtle)',
       fontFamily: "'Plus Jakarta Sans', sans-serif",
+      boxSizing: 'border-box',
     }}>
       {/* Month Navigation & Control Header */}
       <div style={{
@@ -120,15 +121,15 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: '1rem',
-        marginBottom: '1.25rem',
+        gap: '0.6rem',
+        marginBottom: isMobile ? '0.85rem' : '1.25rem',
       }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+        <h2 style={{ fontSize: isMobile ? '1.15rem' : '1.5rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: 0 }}>
           {calendarMode === 'month' && format(currentDate, 'MMMM yyyy')}
-          {calendarMode === 'week' && `Week of ${format(weekStart, 'MMM d, yyyy')}`}
+          {calendarMode === 'week' && `Week of ${format(weekStart, 'MMM d')}`}
         </h2>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
           {/* Week / Month Mode Switcher */}
           <div style={{
             display: 'flex',
@@ -143,13 +144,13 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
                 type="button"
                 onClick={() => setCalendarMode(mode)}
                 style={{
-                  padding: '0.25rem 0.65rem',
+                  padding: '0.25rem 0.55rem',
                   borderRadius: '4px',
                   border: 'none',
                   backgroundColor: calendarMode === mode ? 'var(--bg-secondary)' : 'transparent',
                   color: calendarMode === mode ? 'var(--accent-primary)' : 'var(--text-secondary)',
                   fontWeight: 700,
-                  fontSize: '0.75rem',
+                  fontSize: '0.725rem',
                   textTransform: 'capitalize',
                   cursor: 'pointer',
                   transition: 'all 0.12s ease',
@@ -174,7 +175,7 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
                 type="button"
                 onClick={() => setActivePersonaFilter(p)}
                 style={{
-                  padding: '0.3rem 0.75rem',
+                  padding: '0.25rem 0.55rem',
                   borderRadius: '999px',
                   border: 'none',
                   backgroundColor: activePersonaFilter === p
@@ -182,7 +183,7 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
                     : 'transparent',
                   color: activePersonaFilter === p ? '#FFFFFF' : 'var(--text-secondary)',
                   fontWeight: 700,
-                  fontSize: '0.775rem',
+                  fontSize: '0.725rem',
                   cursor: 'pointer',
                   transition: 'all 0.12s ease',
                 }}
@@ -193,14 +194,14 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
           </div>
 
           {/* Month/Week Steppers */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
             <button
               type="button"
               className="btn btn-secondary"
               onClick={handlePrev}
-              style={{ padding: '0.4rem 0.6rem' }}
+              style={{ padding: '0.35rem 0.5rem' }}
             >
-              <ChevronLeft size={16} />
+              <ChevronLeft size={15} />
             </button>
 
             <button
@@ -211,7 +212,7 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
                 setCurrentDate(now);
                 onSelectDate(now);
               }}
-              style={{ padding: '0.4rem 0.8rem', fontSize: '0.825rem', fontWeight: 700 }}
+              style={{ padding: '0.35rem 0.65rem', fontSize: '0.775rem', fontWeight: 700 }}
             >
               Today
             </button>
@@ -220,9 +221,9 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
               type="button"
               className="btn btn-secondary"
               onClick={handleNext}
-              style={{ padding: '0.4rem 0.6rem' }}
+              style={{ padding: '0.35rem 0.5rem' }}
             >
-              <ChevronRight size={16} />
+              <ChevronRight size={15} />
             </button>
           </div>
         </div>
@@ -231,8 +232,8 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
       {/* Weekday Labels */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(7, 1fr)',
-        gap: '4px',
+        gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+        gap: isMobile ? '2px' : '4px',
         marginBottom: '0.5rem',
         textAlign: 'center',
       }}>
@@ -241,9 +242,11 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
             key={day}
             style={{
               padding: '0.4rem 0',
-              fontSize: '0.75rem',
+              fontSize: isMobile ? '0.7rem' : '0.75rem',
               fontWeight: 700,
               color: 'var(--text-muted)',
+              minWidth: 0,
+              overflow: 'hidden',
             }}
           >
             {day}
@@ -255,8 +258,8 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
       {calendarMode === 'month' && (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(7, 1fr)',
-          gap: '6px',
+          gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+          gap: isMobile ? '3px' : '6px',
         }}>
           {monthDays.map((day) => {
             const dayEvents = getEventsForDate(day);
@@ -466,8 +469,8 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
       {calendarMode === 'week' && (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(7, 1fr)',
-          gap: '8px',
+          gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+          gap: isMobile ? '3px' : '8px',
         }}>
           {weekDaysList.map((day) => {
             const dayEvents = getEventsForDate(day);
