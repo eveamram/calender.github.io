@@ -35,7 +35,7 @@ const DEFAULT_HABITS: HabitItem[] = [
     owner: 'Eve',
     daysOfWeek: [1, 3, 5],
     created_at: new Date().toISOString(),
-    completedDates: [format(new Date(), 'yyyy-MM-dd')],
+    completedDates: [],
   },
   {
     id: 'habit-2',
@@ -45,7 +45,7 @@ const DEFAULT_HABITS: HabitItem[] = [
     owner: 'Eve',
     daysOfWeek: [1, 2, 3, 4, 5, 6, 0],
     created_at: new Date().toISOString(),
-    completedDates: [format(new Date(), 'yyyy-MM-dd')],
+    completedDates: [],
   },
   {
     id: 'habit-3',
@@ -55,7 +55,7 @@ const DEFAULT_HABITS: HabitItem[] = [
     owner: 'Abbie',
     daysOfWeek: [2, 4],
     created_at: new Date().toISOString(),
-    completedDates: [format(new Date(), 'yyyy-MM-dd')],
+    completedDates: [],
   },
   {
     id: 'habit-4',
@@ -108,7 +108,7 @@ export const HabitsView: React.FC = () => {
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const weekStartStr = format(weekStart, 'yyyy-MM-dd');
 
-  // Automatic Weekly Refresh: prune completed dates older than 14 days to keep checkmarks fresh every week while maintaining streaks
+  // Automatic Weekly Refresh: clear checkmarks when a new week starts so habits start fresh without checks
   useEffect(() => {
     try {
       const lastRefreshedWeek = localStorage.getItem('calender_habits_last_week');
@@ -117,18 +117,14 @@ export const HabitsView: React.FC = () => {
         setHabits((prev) =>
           prev.map((h) => ({
             ...h,
-            // Keep only completed dates from the last 14 days for streak calculation
-            completedDates: h.completedDates.filter((d) => {
-              const diffDays = (new Date(todayStr).getTime() - new Date(d).getTime()) / (1000 * 3600 * 24);
-              return diffDays <= 14;
-            }),
+            completedDates: [],
           }))
         );
       }
     } catch {
       // LocalStorage error catch
     }
-  }, [weekStartStr, todayStr]);
+  }, [weekStartStr]);
 
   // Get active day date string
   const activeDayDateObj = weekDays.find((d) => d.getDay() === selectedDayVal) || new Date();
