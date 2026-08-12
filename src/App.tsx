@@ -17,6 +17,7 @@ import { MobileHeader } from './components/layout/MobileHeader';
 import { MobileBottomNav } from './components/layout/MobileBottomNav';
 import { GroceryView } from './components/grocery/GroceryView';
 import { MealsView } from './components/meals/MealsView';
+import { FloatingAddButton } from './components/ui/FloatingAddButton';
 
 type AppTab = 'calendar' | 'schedule' | 'todo' | 'habits' | 'grocery' | 'meals';
 
@@ -77,29 +78,69 @@ function MainAppContent() {
             flexDirection: 'column',
             gap: '1.25rem',
           }}>
-            <div style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '1.25rem',
-              alignItems: 'start',
-            }}>
-              <div style={{ flex: '1 1 340px', minWidth: 0 }}>
-                <MinimalCalendar
-                  selectedDate={selectedDate}
-                  onSelectDate={setSelectedDate}
-                  onSelectEvent={(evt) => setSelectedDetailsEvent(evt)}
-                  onOpenAddEvent={() => handleOpenAddModal('personal')}
-                />
-              </div>
+            {isMobile ? (
+              /* MOBILE HIERARCHY: 1. DAILY SCHEDULE FIRST, 2. COMPACT MONTH CALENDAR SECOND */
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%' }}>
+                {/* 1. Daily Schedule Agenda First */}
+                <div>
+                  <SelectedDaySchedule
+                    selectedDate={selectedDate}
+                    onSelectEvent={(evt) => setSelectedDetailsEvent(evt)}
+                    onOpenAddEvent={() => handleOpenAddModal('personal')}
+                  />
+                </div>
 
-              <div style={{ flex: isMobile ? '1 1 100%' : '0 0 auto', width: isMobile ? '100%' : '380px' }}>
-                <SelectedDaySchedule
-                  selectedDate={selectedDate}
-                  onSelectEvent={(evt) => setSelectedDetailsEvent(evt)}
-                  onOpenAddEvent={() => handleOpenAddModal('personal')}
-                />
+                {/* 2. Compact Month Calendar Second */}
+                <div>
+                  <div style={{
+                    fontSize: '0.875rem',
+                    fontWeight: 800,
+                    color: 'var(--text-secondary)',
+                    marginBottom: '0.5rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}>
+                    <span>Month Overview</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>Tap date to view agenda</span>
+                  </div>
+                  <MinimalCalendar
+                    selectedDate={selectedDate}
+                    onSelectDate={(d) => {
+                      setSelectedDate(d);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    onSelectEvent={(evt) => setSelectedDetailsEvent(evt)}
+                    onOpenAddEvent={() => handleOpenAddModal('personal')}
+                  />
+                </div>
               </div>
-            </div>
+            ) : (
+              /* DESKTOP HIERARCHY: Side-by-Side */
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '1.25rem',
+                alignItems: 'start',
+              }}>
+                <div style={{ flex: '1 1 340px', minWidth: 0 }}>
+                  <MinimalCalendar
+                    selectedDate={selectedDate}
+                    onSelectDate={setSelectedDate}
+                    onSelectEvent={(evt) => setSelectedDetailsEvent(evt)}
+                    onOpenAddEvent={() => handleOpenAddModal('personal')}
+                  />
+                </div>
+
+                <div style={{ flex: '0 0 auto', width: '380px' }}>
+                  <SelectedDaySchedule
+                    selectedDate={selectedDate}
+                    onSelectEvent={(evt) => setSelectedDetailsEvent(evt)}
+                    onOpenAddEvent={() => handleOpenAddModal('personal')}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         ) : activeTab === 'schedule' ? (
           /* Dedicated Class Timetable View */
@@ -124,6 +165,13 @@ function MainAppContent() {
           <MealsView />
         )}
       </main>
+
+      {/* Mobile Floating + Add Action Button */}
+      {isMobile && (
+        <FloatingAddButton
+          onOpenAddEvent={(category) => handleOpenAddModal(category)}
+        />
+      )}
 
       {/* Mobile Fixed Bottom Navigation Bar */}
       {isMobile && (

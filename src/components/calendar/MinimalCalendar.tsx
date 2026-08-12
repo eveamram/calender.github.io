@@ -19,6 +19,7 @@ import {
   startOfDay,
 } from 'date-fns';
 import { ChevronLeft, ChevronRight, CheckSquare, User } from 'lucide-react';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 interface MinimalCalendarProps {
   selectedDate: Date;
@@ -33,6 +34,7 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
   onSelectEvent,
   onOpenAddEvent,
 }) => {
+  const isMobile = useIsMobile();
   const {
     currentDate,
     setCurrentDate,
@@ -266,6 +268,68 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
             const maxVisible = 3;
             const visibleEvents = dayEvents.slice(0, maxVisible);
             const overflowCount = dayEvents.length - maxVisible;
+
+            if (isMobile) {
+              return (
+                <div
+                  key={day.toISOString()}
+                  onClick={() => onSelectDate(day)}
+                  style={{
+                    height: '46px',
+                    padding: '0.25rem 0.1rem',
+                    borderRadius: 'var(--radius-sm)',
+                    backgroundColor: isSelected
+                      ? 'var(--accent-light)'
+                      : isCurrMonth
+                      ? '#FFFFFF'
+                      : 'var(--bg-hover)',
+                    border: isSelected
+                      ? '2px solid #3B82F6'
+                      : '1px solid var(--border-subtle)',
+                    opacity: isCurrMonth ? (isPastDay ? 0.75 : 1) : 0.35,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '2px',
+                    transition: 'all 0.12s ease',
+                  }}
+                >
+                  <span style={{
+                    fontSize: '0.8rem',
+                    fontWeight: isTodayDay || isSelected ? 800 : 600,
+                    width: '22px',
+                    height: '22px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: isTodayDay ? '#3B82F6' : 'transparent',
+                    color: isTodayDay ? '#FFFFFF' : 'var(--text-primary)',
+                  }}>
+                    {format(day, 'd')}
+                  </span>
+
+                  {/* Clean Event Dots for Mobile Month Grid */}
+                  {dayEvents.length > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                      {dayEvents.slice(0, 3).map((evt, idx) => (
+                        <div
+                          key={evt.id || idx}
+                          style={{
+                            width: '4px',
+                            height: '4px',
+                            borderRadius: '50%',
+                            backgroundColor: evt.color || '#3B82F6',
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            }
 
             return (
               <div
