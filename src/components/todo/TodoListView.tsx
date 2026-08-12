@@ -227,10 +227,12 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onEditTask }) => {
             {task.emoji && <span style={{ fontSize: '0.9rem' }}>{task.emoji}</span>}
 
             <span style={{
-              fontSize: '0.925rem',
+              fontSize: task.title.length > 30 ? '0.775rem' : task.title.length > 20 ? '0.85rem' : '0.925rem',
               fontWeight: 600,
               color: 'var(--text-primary)',
               textDecoration: isCompleted ? 'line-through' : 'none',
+              lineHeight: 1.3,
+              wordBreak: 'break-word',
             }}>
               {task.title}
             </span>

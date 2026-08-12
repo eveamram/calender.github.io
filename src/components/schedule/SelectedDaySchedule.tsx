@@ -300,13 +300,12 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
                   </div>
 
                   <div style={{
-                    fontSize: '0.8rem',
+                    fontSize: evt.title.length > 30 ? '0.725rem' : evt.title.length > 20 ? '0.775rem' : '0.825rem',
                     fontWeight: 700,
                     color: 'var(--text-primary)',
                     textDecoration: isCompleted ? 'line-through' : 'none',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
+                    lineHeight: 1.3,
+                    wordBreak: 'break-word',
                   }}>
                     {evt.title}
                   </div>
