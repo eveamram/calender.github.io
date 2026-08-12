@@ -117,25 +117,25 @@ function MainAppContent() {
                 </div>
               </div>
             ) : (
-              /* DESKTOP HIERARCHY: Side-by-Side */
+              /* DESKTOP HIERARCHY: Daily Schedule First, Calendar Grid Second */
               <div style={{
                 display: 'flex',
                 flexWrap: 'wrap',
                 gap: '1.25rem',
                 alignItems: 'start',
               }}>
-                <div style={{ flex: '1 1 340px', minWidth: 0 }}>
-                  <MinimalCalendar
+                <div style={{ flex: '0 0 380px' }}>
+                  <SelectedDaySchedule
                     selectedDate={selectedDate}
-                    onSelectDate={setSelectedDate}
                     onSelectEvent={(evt) => setSelectedDetailsEvent(evt)}
                     onOpenAddEvent={() => handleOpenAddModal('personal')}
                   />
                 </div>
 
-                <div style={{ flex: '0 0 auto', width: '380px' }}>
-                  <SelectedDaySchedule
+                <div style={{ flex: '1 1 500px', minWidth: 0 }}>
+                  <MinimalCalendar
                     selectedDate={selectedDate}
+                    onSelectDate={setSelectedDate}
                     onSelectEvent={(evt) => setSelectedDetailsEvent(evt)}
                     onOpenAddEvent={() => handleOpenAddModal('personal')}
                   />

@@ -389,48 +389,113 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onEditTask }) => {
         <form onSubmit={handleQuickAdd} style={{ marginBottom: '1.25rem' }}>
           <div style={{
             display: 'flex',
-            alignItems: 'center',
+            flexDirection: 'column',
+            gap: '0.5rem',
             backgroundColor: 'var(--bg-secondary)',
             borderRadius: '16px',
-            padding: '0.4rem 0.6rem 0.4rem 0.85rem',
+            padding: '0.65rem 0.85rem',
             border: '1.5px solid var(--border-color)',
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
           }}>
-            <input
-              type="text"
-              placeholder="What needs to be done?"
-              value={newTaskText}
-              onChange={(e) => setNewTaskText(e.target.value)}
-              style={{
-                flex: 1,
-                border: 'none',
-                background: 'transparent',
-                outline: 'none',
-                fontSize: '0.925rem',
-                fontWeight: 600,
-                color: 'var(--text-primary)',
-              }}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <input
+                type="text"
+                placeholder="What needs to be done?"
+                value={newTaskText}
+                onChange={(e) => setNewTaskText(e.target.value)}
+                style={{
+                  flex: 1,
+                  border: 'none',
+                  background: 'transparent',
+                  outline: 'none',
+                  fontSize: '0.925rem',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                }}
+              />
 
-            <button
-              type="submit"
-              disabled={!newTaskText.trim()}
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '50%',
-                backgroundColor: newTaskText.trim() ? '#3B82F6' : 'var(--bg-hover)',
-                color: newTaskText.trim() ? '#FFFFFF' : 'var(--text-muted)',
-                border: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: newTaskText.trim() ? 'pointer' : 'default',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <Plus size={20} strokeWidth={2.5} />
-            </button>
+              <button
+                type="submit"
+                disabled={!newTaskText.trim()}
+                style={{
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '50%',
+                  backgroundColor: newTaskText.trim() ? '#3B82F6' : 'var(--bg-hover)',
+                  color: newTaskText.trim() ? '#FFFFFF' : 'var(--text-muted)',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: newTaskText.trim() ? 'pointer' : 'default',
+                  transition: 'all 0.15s ease',
+                  flexShrink: 0,
+                }}
+              >
+                <Plus size={18} strokeWidth={2.5} />
+              </button>
+            </div>
+
+            {/* Quick Date & Category Selection Row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', paddingTop: '0.2rem', borderTop: '1px solid var(--border-subtle)' }}>
+              <button
+                type="button"
+                onClick={() => setNewTaskDueDate(format(new Date(), 'yyyy-MM-dd'))}
+                style={{
+                  padding: '0.2rem 0.5rem',
+                  borderRadius: '999px',
+                  border: newTaskDueDate === format(new Date(), 'yyyy-MM-dd') ? '1px solid #3B82F6' : '1px solid var(--border-color)',
+                  backgroundColor: newTaskDueDate === format(new Date(), 'yyyy-MM-dd') ? '#EFF6FF' : 'var(--bg-hover)',
+                  color: newTaskDueDate === format(new Date(), 'yyyy-MM-dd') ? '#1D4ED8' : 'var(--text-muted)',
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                📅 Today
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const tmrw = new Date();
+                  tmrw.setDate(tmrw.getDate() + 1);
+                  setNewTaskDueDate(format(tmrw, 'yyyy-MM-dd'));
+                }}
+                style={{
+                  padding: '0.2rem 0.5rem',
+                  borderRadius: '999px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'var(--bg-hover)',
+                  color: 'var(--text-muted)',
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Tomorrow
+              </button>
+
+              {CATEGORY_TAGS.slice(0, 4).map((c) => (
+                <button
+                  key={c.label}
+                  type="button"
+                  onClick={() => setNewTaskCategory(c.label)}
+                  style={{
+                    padding: '0.2rem 0.5rem',
+                    borderRadius: '999px',
+                    border: newTaskCategory === c.label ? '1px solid #3B82F6' : '1px solid var(--border-color)',
+                    backgroundColor: newTaskCategory === c.label ? '#EFF6FF' : 'transparent',
+                    color: newTaskCategory === c.label ? '#1D4ED8' : 'var(--text-muted)',
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {c.emoji} {c.label}
+                </button>
+              ))}
+            </div>
           </div>
         </form>
 

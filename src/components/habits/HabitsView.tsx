@@ -3,6 +3,7 @@ import { useCalendar } from '../../context/CalendarContext';
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
 import { Plus, Flame, Check, Sparkles, Trash2, User, Calendar as CalendarIcon, Circle, Pencil } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 export interface HabitItem {
   id: string;
@@ -73,6 +74,7 @@ const HABIT_EMOJIS = ['🏋️', '💧', '📖', '🧘', '💻', '🏃', '🎨',
 const HABIT_COLORS = ['#3B82F6', '#EC4899', '#10B981', '#F59E0B', '#8B5CF6', '#06B6D4'];
 
 export const HabitsView: React.FC = () => {
+  const isMobile = useIsMobile();
   const { activePersonaFilter } = useCalendar();
 
   const [habits, setHabits] = useState<HabitItem[]>(() => {
@@ -85,8 +87,8 @@ export const HabitsView: React.FC = () => {
     return DEFAULT_HABITS;
   });
 
-  // Mode: Daily List vs Full Week Grid
-  const [viewType, setViewType] = useState<'daily' | 'weekly'>('daily');
+  // Mode: Daily List vs Full Week Grid (Always daily list on mobile!)
+  const [viewType, setViewType] = useState<'daily' | 'weekly'>(isMobile ? 'daily' : 'daily');
 
   const todayDayNum = new Date().getDay(); // 0=Sun, 1=Mon...
   const [selectedDayVal, setSelectedDayVal] = useState<number>(todayDayNum);

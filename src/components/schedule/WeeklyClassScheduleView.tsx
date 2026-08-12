@@ -16,7 +16,6 @@ export const WeeklyClassScheduleView: React.FC<WeeklyClassScheduleViewProps> = (
 }) => {
   const isMobile = useIsMobile();
   const { filteredEvents, members, activePersonaFilter } = useCalendar();
-  const [viewWeekend, setViewWeekend] = useState(false);
   const [selectedMobileDayIdx, setSelectedMobileDayIdx] = useState<number>(0); // 0 = Mon, 1 = Tue...
 
   // Filter strictly for class events ONLY (exclude birthdays, tasks, exams, appointments, etc.)
@@ -24,11 +23,8 @@ export const WeeklyClassScheduleView: React.FC<WeeklyClassScheduleViewProps> = (
     (e) => e.event_type === 'class' || e.event_type === 'School'
   );
 
-  const daysOfWeek = viewWeekend
-    ? ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-    : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-
-  const shortDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+  const shortDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 
   const getOwnerName = (evt: CalendarEvent) => {
     if (evt.owner_user_id) {
@@ -249,15 +245,6 @@ export const WeeklyClassScheduleView: React.FC<WeeklyClassScheduleViewProps> = (
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <button
             type="button"
-            className="btn btn-secondary"
-            onClick={() => setViewWeekend(!viewWeekend)}
-            style={{ fontSize: '0.775rem', padding: '0.4rem 0.75rem' }}
-          >
-            {viewWeekend ? '5-Day View' : '7-Day View'}
-          </button>
-
-          <button
-            type="button"
             className="btn btn-primary"
             onClick={onOpenAddEvent}
             style={{ padding: '0.45rem 0.95rem', fontSize: '0.825rem' }}
@@ -270,7 +257,7 @@ export const WeeklyClassScheduleView: React.FC<WeeklyClassScheduleViewProps> = (
       {/* Weekly Grid */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: `repeat(auto-fit, minmax(${viewWeekend ? '160px' : '210px'}, 1fr))`,
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
         gap: '1rem',
       }}>
         {daysOfWeek.map((dayName, idx) => {
