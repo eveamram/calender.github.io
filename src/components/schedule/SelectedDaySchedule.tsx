@@ -141,9 +141,10 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
       backgroundColor: 'var(--bg-secondary)',
       border: '1px solid var(--border-color)',
       borderRadius: 'var(--radius-lg)',
-      padding: '1rem',
+      padding: '1.35rem',
       width: '100%',
-      maxWidth: '350px',
+      maxWidth: '400px',
+      minHeight: '520px',
       margin: '0 auto',
       display: 'flex',
       flexDirection: 'column',
@@ -155,16 +156,16 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: '0.65rem',
-        paddingBottom: '0.55rem',
+        marginBottom: '0.85rem',
+        paddingBottom: '0.75rem',
         borderBottom: '1px solid var(--border-color)',
       }}>
         <div>
-          <div style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
+          <div style={{ fontSize: '0.725rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.04em' }}>
             Daily Schedule
           </div>
-          <h3 style={{ fontSize: '0.925rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '1px' }}>
-            {format(selectedDate, 'EEE, MMM d')}
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '2px' }}>
+            {format(selectedDate, 'EEEE, MMM d')}
           </h3>
         </div>
 
@@ -172,29 +173,15 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
           type="button"
           className="btn btn-secondary"
           onClick={onOpenAddEvent}
-          style={{ padding: '0.2rem 0.5rem', fontSize: '0.725rem' }}
+          style={{ padding: '0.35rem 0.65rem', fontSize: '0.775rem' }}
         >
-          <Plus size={12} /> Add
+          <Plus size={13} /> Add
         </button>
       </div>
 
       {/* Habits Section */}
       {dayHabits.length > 0 && (
-        <div style={{ marginBottom: '0.85rem' }}>
-          <div style={{
-            fontSize: '0.625rem',
-            fontWeight: 800,
-            color: 'var(--text-muted)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            marginBottom: '0.35rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '3px',
-          }}>
-            <Flame size={11} color="#F59E0B" /> Daily Habits ({dayHabits.length})
-          </div>
-
+        <div style={{ marginBottom: '0.65rem' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
             {dayHabits.map((habit) => {
               const isDone = habit.completedDates.includes(selectedDateStr);

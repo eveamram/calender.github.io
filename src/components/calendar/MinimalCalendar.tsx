@@ -276,22 +276,23 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
                   onOpenAddEvent();
                 }}
                 style={{
-                  minHeight: '125px',
-                  padding: '0.55rem',
+                  minHeight: '115px',
+                  padding: '0.6rem',
                   borderRadius: 'var(--radius-md)',
                   backgroundColor: isSelected
                     ? 'var(--accent-light)'
                     : isCurrMonth
-                    ? 'var(--bg-secondary)'
-                    : 'transparent',
+                    ? '#FFFFFF'
+                    : 'var(--bg-hover)',
                   border: isSelected
-                    ? '2px solid var(--accent-primary)'
+                    ? '2px solid #3B82F6'
                     : '1px solid var(--border-subtle)',
-                  opacity: isCurrMonth ? (isPastDay ? 0.65 : 1) : 0.3,
+                  opacity: isCurrMonth ? (isPastDay ? 0.75 : 1) : 0.35,
                   cursor: 'pointer',
                   display: 'flex',
                   flexDirection: 'column',
                   transition: 'all 0.12s ease',
+                  boxShadow: isCurrMonth ? '0 1px 3px rgba(0,0,0,0.04)' : 'none',
                 }}
                 title="Click to view schedule • Double-click to add event"
               >
@@ -299,30 +300,39 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  marginBottom: '0.35rem',
+                  marginBottom: '0.4rem',
                 }}>
                   <span style={{
-                    fontSize: '0.8rem',
+                    fontSize: '0.85rem',
                     fontWeight: isTodayDay || isSelected ? 800 : 600,
-                    width: '22px',
-                    height: '22px',
+                    width: '24px',
+                    height: '24px',
                     borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: isTodayDay ? 'var(--accent-primary)' : 'transparent',
+                    backgroundColor: isTodayDay ? '#3B82F6' : 'transparent',
                     color: isTodayDay ? '#FFFFFF' : 'var(--text-primary)',
                   }}>
                     {format(day, 'd')}
                   </span>
 
+                  {/* Clean Blue Dot Indicator for Apple Calendar Aesthetic */}
                   {dayEvents.length > 0 && (
-                    <div style={{
-                      width: '6px',
-                      height: '6px',
-                      borderRadius: '50%',
-                      backgroundColor: dayEvents[0].color || 'var(--accent-primary)',
-                    }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                      {dayEvents.slice(0, 3).map((evt, idx) => (
+                        <div
+                          key={evt.id || idx}
+                          style={{
+                            width: '7px',
+                            height: '7px',
+                            borderRadius: '50%',
+                            backgroundColor: evt.color || '#3B82F6',
+                            boxShadow: '0 1px 2px rgba(59, 130, 246, 0.4)',
+                          }}
+                        />
+                      ))}
+                    </div>
                   )}
                 </div>
 

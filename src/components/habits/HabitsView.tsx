@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCalendar } from '../../context/CalendarContext';
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
-import { Plus, Flame, Check, Sparkles, Trash2, User, Calendar as CalendarIcon, Circle } from 'lucide-react';
+import { Plus, Flame, Check, Sparkles, Trash2, User, Calendar as CalendarIcon, Circle, Pencil } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export interface HabitItem {
@@ -97,6 +97,7 @@ export const HabitsView: React.FC = () => {
   const [newOwner, setNewOwner] = useState<'Eve' | 'Abbie'>('Eve');
   const [newSelectedDays, setNewSelectedDays] = useState<number[]>([1, 2, 3, 4, 5, 6, 0]);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingHabit, setEditingHabit] = useState<HabitItem | null>(null);
 
   useEffect(() => {
     localStorage.setItem('calender_daily_habits_v2', JSON.stringify(habits));
@@ -619,6 +620,36 @@ export const HabitsView: React.FC = () => {
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updatedStatus = habit.showOnSchedule === false ? true : false;
+                          setHabits((prev) => {
+                            const list = prev.map((h) => (h.id === habit.id ? { ...h, showOnSchedule: updatedStatus } : h));
+                            localStorage.setItem('calender_daily_habits_v2', JSON.stringify(list));
+                            return list;
+                          });
+                          window.dispatchEvent(new Event('storage'));
+                        }}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                          fontSize: '0.675rem',
+                          fontWeight: 700,
+                          padding: '0.2rem 0.5rem',
+                          borderRadius: '999px',
+                          border: habit.showOnSchedule !== false ? '1px solid var(--accent-primary)' : '1px solid var(--border-color)',
+                          backgroundColor: habit.showOnSchedule !== false ? 'var(--accent-light)' : 'transparent',
+                          color: habit.showOnSchedule !== false ? 'var(--accent-primary)' : 'var(--text-muted)',
+                          cursor: 'pointer',
+                          transition: 'all 0.12s ease',
+                        }}
+                        title="Toggle whether this habit appears on the Daily Schedule"
+                      >
+                        <CalendarIcon size={11} /> {habit.showOnSchedule !== false ? 'On Schedule' : 'Schedule Off'}
+                      </button>
+
                       <span style={{
                         fontSize: '0.75rem',
                         fontWeight: 800,
@@ -630,6 +661,21 @@ export const HabitsView: React.FC = () => {
                       }}>
                         🔥 {streak}
                       </span>
+
+                      <button
+                        type="button"
+                        onClick={() => setEditingHabit(habit)}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: 'var(--text-muted)',
+                          cursor: 'pointer',
+                          padding: '3px',
+                        }}
+                        title="Edit Habit"
+                      >
+                        <Pencil size={14} />
+                      </button>
 
                       <button
                         type="button"
@@ -765,13 +811,19 @@ export const HabitsView: React.FC = () => {
                     })}
 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 800, color: streak > 0 ? '#B45309' : 'var(--text-muted)' }}>
-                        {streak}
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setEditingHabit(habit)}
+                        style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }}
+                        title="Edit Habit"
+                      >
+                        <Pencil size={12} />
+                      </button>
                       <button
                         type="button"
                         onClick={() => handleDeleteHabit(habit.id)}
                         style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }}
+                        title="Delete Habit"
                       >
                         <Trash2 size={12} />
                       </button>
@@ -781,6 +833,149 @@ export const HabitsView: React.FC = () => {
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* EDIT HABIT MODAL OVERLAY */}
+      {editingHabit && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(9, 9, 11, 0.45)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '1rem',
+        }} onClick={() => setEditingHabit(null)}>
+          <div style={{
+            backgroundColor: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 'var(--radius-lg)',
+            width: '100%',
+            maxWidth: '420px',
+            padding: '1.5rem',
+            boxShadow: 'var(--shadow-lg)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.1rem',
+          }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>Edit Habit</h3>
+              <button
+                type="button"
+                onClick={() => setEditingHabit(null)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.1rem' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <input
+                type="text"
+                className="input-field"
+                value={editingHabit.title}
+                onChange={(e) => setEditingHabit({ ...editingHabit, title: e.target.value })}
+                style={{ flex: 1 }}
+                placeholder="Habit title..."
+                required
+              />
+              <select
+                className="input-field"
+                value={editingHabit.owner}
+                onChange={(e) => setEditingHabit({ ...editingHabit, owner: e.target.value as 'Eve' | 'Abbie' })}
+                style={{ width: 'auto' }}
+              >
+                <option value="Eve">Eve</option>
+                <option value="Abbie">Abbie</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
+                Schedule Days:
+              </label>
+              <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                {WEEKDAYS.map((wd) => {
+                  const active = (editingHabit.daysOfWeek || []).includes(wd.value);
+                  return (
+                    <button
+                      key={wd.value}
+                      type="button"
+                      onClick={() => {
+                        const days = editingHabit.daysOfWeek || [];
+                        const newDays = active ? days.filter((d) => d !== wd.value) : [...days, wd.value];
+                        setEditingHabit({ ...editingHabit, daysOfWeek: newDays });
+                      }}
+                      style={{
+                        padding: '0.3rem 0.65rem',
+                        borderRadius: '6px',
+                        border: active ? '1.5px solid var(--accent-primary)' : '1px solid var(--border-color)',
+                        backgroundColor: active ? 'var(--accent-light)' : 'var(--bg-secondary)',
+                        color: active ? 'var(--accent-primary)' : 'var(--text-muted)',
+                        fontWeight: 700,
+                        fontSize: '0.75rem',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {wd.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              fontSize: '0.825rem',
+              fontWeight: 700,
+              color: 'var(--text-primary)',
+              cursor: 'pointer',
+              padding: '0.5rem 0.75rem',
+              borderRadius: 'var(--radius-md)',
+              backgroundColor: 'var(--bg-hover)',
+              border: '1px solid var(--border-subtle)',
+            }}>
+              <input
+                type="checkbox"
+                checked={editingHabit.showOnSchedule !== false}
+                onChange={(e) => setEditingHabit({ ...editingHabit, showOnSchedule: e.target.checked })}
+                style={{ width: '16px', height: '16px', accentColor: 'var(--accent-primary)', cursor: 'pointer' }}
+              />
+              Show this Habit on Daily Schedule
+            </label>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setEditingHabit(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  setHabits((prev) => {
+                    const list = prev.map((h) => (h.id === editingHabit.id ? editingHabit : h));
+                    localStorage.setItem('calender_daily_habits_v2', JSON.stringify(list));
+                    return list;
+                  });
+                  setEditingHabit(null);
+                }}
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

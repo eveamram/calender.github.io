@@ -67,7 +67,7 @@ function MainAppContent() {
                 />
               </div>
 
-              <div style={{ flex: '0 0 auto', width: '350px' }}>
+              <div style={{ flex: '0 0 auto', width: '380px' }}>
                 <SelectedDaySchedule
                   selectedDate={selectedDate}
                   onSelectEvent={(evt) => setSelectedDetailsEvent(evt)}
