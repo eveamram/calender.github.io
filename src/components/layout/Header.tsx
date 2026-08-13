@@ -157,27 +157,6 @@ export const Header: React.FC<HeaderProps> = ({
             <Flame size={15} /> Habits
           </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('meals')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              padding: '0.45rem 0.9rem',
-              borderRadius: '999px',
-              border: 'none',
-              backgroundColor: activeTab === 'meals' ? 'var(--bg-secondary)' : 'transparent',
-              color: activeTab === 'meals' ? '#EC4899' : 'var(--text-secondary)',
-              fontWeight: 700,
-              fontSize: '0.825rem',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <Utensils size={15} color="#EC4899" /> Meals
-          </button>
-
           {/* Desktop More Options Dropdown Button */}
           <div style={{ position: 'relative' }}>
             <button
@@ -200,7 +179,7 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <MoreHorizontal size={15} />
               <span>
-                {activeTab === 'grocery' ? 'Grocery' : 'More'}
+                {activeTab === 'grocery' ? 'Grocery' : activeTab === 'meals' ? 'Meals' : 'More'}
               </span>
               <ChevronDown size={12} style={{ transform: showMoreMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
             </button>
