@@ -92,8 +92,21 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
 
   // Filter all events/classes/tasks occurring on this selected date
   const dayEvents = filteredEvents.filter((e) => {
-    const eventDate = e.event_date || e.due_date;
-    if (eventDate !== selectedDateStr) return false;
+    const isClassOrRecurring = e.event_type === 'class' || e.event_type === 'School' || (e.recurrence_days && e.recurrence_days.length > 0);
+    
+    if (isClassOrRecurring) {
+      const recDays = e.recurrence_days || [1, 2, 3, 4, 5]; // Default Mon-Fri for classes if undefined
+      const normalizedDayNum = dayNum === 0 ? 7 : dayNum; // Normalize Sunday
+      const matchesRecurringDay = recDays.includes(dayNum) || recDays.includes(normalizedDayNum);
+      const matchesFixedDate = (e.event_date || e.due_date) === selectedDateStr;
+
+      if (!matchesRecurringDay && !matchesFixedDate) {
+        return false;
+      }
+    } else {
+      const eventDate = e.event_date || e.due_date;
+      if (eventDate !== selectedDateStr) return false;
+    }
 
     // Filter out tasks when task calendar sync is OFF, unless task explicitly has show_on_calendar === true
     if (e.event_type === 'task') {

@@ -65,7 +65,13 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
   // Helper to filter events for a given date
   const getEventsForDate = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
+
     return filteredEvents.filter((e) => {
+      // Classes are shown in the Daily Schedule, keep full calendar grid focused on events & tasks
+      if (e.event_type === 'class' || e.event_type === 'School') {
+        return false;
+      }
+
       const eDate = e.event_date || e.due_date;
       if (eDate !== dateStr) return false;
 
