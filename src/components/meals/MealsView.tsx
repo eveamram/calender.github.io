@@ -148,52 +148,7 @@ export const MealsView: React.FC = () => {
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-          {/* Daily vs Weekly Toggle */}
-          <div style={{
-            display: 'flex',
-            backgroundColor: 'var(--bg-hover)',
-            padding: '2px',
-            borderRadius: '999px',
-            border: '1px solid var(--border-color)',
-          }}>
-            <button
-              type="button"
-              onClick={() => setViewMode('daily')}
-              style={{
-                padding: '0.35rem 0.75rem',
-                borderRadius: '999px',
-                border: 'none',
-                backgroundColor: viewMode === 'daily' ? 'var(--bg-secondary)' : 'transparent',
-                color: viewMode === 'daily' ? '#EC4899' : 'var(--text-secondary)',
-                fontWeight: 800,
-                fontSize: '0.775rem',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              Day Detail
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setViewMode('weekly')}
-              style={{
-                padding: '0.35rem 0.75rem',
-                borderRadius: '999px',
-                border: 'none',
-                backgroundColor: viewMode === 'weekly' ? 'var(--bg-secondary)' : 'transparent',
-                color: viewMode === 'weekly' ? '#EC4899' : 'var(--text-secondary)',
-                fontWeight: 800,
-                fontSize: '0.775rem',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              Full Week Grid
-            </button>
-          </div>
-
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <button
             type="button"
             onClick={handleResetMeals}
@@ -212,60 +167,55 @@ export const MealsView: React.FC = () => {
             }}
             title="Reset meals for new week"
           >
-            <RefreshCw size={12} /> Reset
+            <RefreshCw size={12} /> Reset Week
           </button>
         </div>
+      {/* Day Selector Pills */}
+      <div style={{
+        display: 'flex',
+        gap: '0.4rem',
+        marginBottom: '1.25rem',
+        overflowX: 'auto',
+        backgroundColor: 'var(--bg-hover)',
+        padding: '5px',
+        borderRadius: '999px',
+        border: '1px solid var(--border-color)',
+      }}>
+        {DAYS.map((d) => {
+          const isSelected = selectedDay === d;
+          const isTodayDay = d === todayDayName;
+
+          return (
+            <button
+              key={d}
+              type="button"
+              onClick={() => {
+                setSelectedDay(d);
+                setEditingSlot(null);
+              }}
+              style={{
+                flex: 1,
+                padding: '0.45rem 0',
+                minWidth: '42px',
+                borderRadius: '999px',
+                border: 'none',
+                backgroundColor: isSelected ? 'var(--bg-secondary)' : 'transparent',
+                color: isSelected ? '#EC4899' : isTodayDay ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                fontWeight: 800,
+                fontSize: '0.825rem',
+                cursor: 'pointer',
+                boxShadow: isSelected ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              {d} {isTodayDay && '•'}
+            </button>
+          );
+        })}
       </div>
 
-      {/* RENDER 1: DAILY DETAIL VIEW */}
-      {viewMode === 'daily' && (
-        <div>
-          {/* Day Selector Pills */}
-          <div style={{
-            display: 'flex',
-            gap: '0.4rem',
-            marginBottom: '1.25rem',
-            overflowX: 'auto',
-            backgroundColor: 'var(--bg-hover)',
-            padding: '5px',
-            borderRadius: '999px',
-            border: '1px solid var(--border-color)',
-          }}>
-            {DAYS.map((d) => {
-              const isSelected = selectedDay === d;
-              const isTodayDay = d === todayDayName;
-
-              return (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => {
-                    setSelectedDay(d);
-                    setEditingSlot(null);
-                  }}
-                  style={{
-                    flex: 1,
-                    padding: '0.45rem 0',
-                    minWidth: '42px',
-                    borderRadius: '999px',
-                    border: 'none',
-                    backgroundColor: isSelected ? 'var(--bg-secondary)' : 'transparent',
-                    color: isSelected ? '#EC4899' : isTodayDay ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                    fontWeight: 800,
-                    fontSize: '0.825rem',
-                    cursor: 'pointer',
-                    boxShadow: isSelected ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  {d} {isTodayDay && '•'}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Meal Cards */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+      {/* Meal Cards */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
             {SLOT_CONFIG.map((conf) => {
               const val = currentMealSlot[conf.key];
               const isEditingThis = editingSlot?.day === selectedDay && editingSlot?.slot === conf.key;
@@ -443,132 +393,6 @@ export const MealsView: React.FC = () => {
             })}
           </div>
         </div>
-      )}
-
-      {/* RENDER 2: FULL WEEK GRID VIEW (Desktop Optimized Grid) */}
-      {viewMode === 'weekly' && (
-        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%' }}>
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.85rem',
-            minWidth: '600px',
-          }}>
-            {DAYS.map((dayName) => {
-              const dayMeals = meals[dayName] || { breakfast: '', lunch: '', dinner: '', snack: '' };
-              const isTodayDay = dayName === todayDayName;
-
-              return (
-                <div
-                  key={dayName}
-                  style={{
-                    backgroundColor: 'var(--bg-secondary)',
-                    borderRadius: 'var(--radius-md)',
-                    border: isTodayDay ? '2px solid #EC4899' : '1px solid var(--border-color)',
-                    padding: '0.85rem 1rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.5rem',
-                    boxShadow: 'var(--shadow-subtle)',
-                  }}
-                >
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    borderBottom: '1px solid var(--border-subtle)',
-                    paddingBottom: '0.35rem',
-                  }}>
-                    <span style={{ fontSize: '0.9rem', fontWeight: 800, color: isTodayDay ? '#EC4899' : 'var(--text-primary)' }}>
-                      {dayName} {isTodayDay && '(Today)'}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedDay(dayName);
-                        setViewMode('daily');
-                      }}
-                      style={{
-                        fontSize: '0.725rem',
-                        fontWeight: 700,
-                        color: 'var(--accent-primary)',
-                        background: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Edit Day →
-                    </button>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
-                    {SLOT_CONFIG.slice(0, 3).map((conf) => {
-                      const mVal = dayMeals[conf.key];
-                      return (
-                        <div
-                          key={conf.key}
-                          style={{
-                            backgroundColor: 'var(--bg-primary)',
-                            padding: '0.55rem 0.65rem',
-                            borderRadius: '8px',
-                            border: '1px solid var(--border-subtle)',
-                            position: 'relative',
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <div style={{ fontSize: '0.675rem', fontWeight: 800, color: conf.color, textTransform: 'uppercase' }}>
-                              {conf.label}
-                            </div>
-                            {mVal && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  removeMealSlot(dayName, conf.key);
-                                }}
-                                style={{
-                                  background: 'transparent',
-                                  border: 'none',
-                                  color: '#EF4444',
-                                  cursor: 'pointer',
-                                  padding: '2px',
-                                }}
-                                title={`Remove ${conf.label}`}
-                              >
-                                <X size={12} />
-                              </button>
-                            )}
-                          </div>
-                          <div
-                            onClick={() => {
-                              setSelectedDay(dayName);
-                              setViewMode('daily');
-                              startEdit(dayName, conf.key);
-                            }}
-                            style={{
-                              fontSize: '0.8rem',
-                              fontWeight: 700,
-                              color: mVal ? 'var(--text-primary)' : 'var(--text-muted)',
-                              fontStyle: mVal ? 'normal' : 'italic',
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              marginTop: '2px',
-                              cursor: 'pointer',
-                            }}
-                          >
-                            {mVal || '+ Skipped'}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
