@@ -67,7 +67,7 @@ function MainAppContent() {
       <main style={{
         flex: 1,
         padding: isMobile ? '0.5rem 0.5rem 5rem 0.5rem' : '1.25rem 1rem',
-        maxWidth: '1400px',
+        maxWidth: '540px',
         margin: '0 auto',
         width: '100%',
         boxSizing: 'border-box',
