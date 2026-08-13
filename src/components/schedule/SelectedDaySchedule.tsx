@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useCalendar } from '../../context/CalendarContext';
 import { CalendarEvent } from '../../types';
 import { format, isBefore, startOfDay, parseISO, startOfWeek } from 'date-fns';
-import { Plus, CheckCircle2, Circle, Clock, MapPin, User, Flame, Check } from 'lucide-react';
+import { Plus, CheckCircle2, Circle, Clock, MapPin, User, Flame, Check, Pencil, Trash2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { HabitItem } from '../habits/HabitsView';
 
@@ -17,7 +17,7 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
   onSelectEvent,
   onOpenAddEvent,
 }) => {
-  const { filteredEvents, members, toggleEventCompleted, activePersonaFilter, showTodosOnCalendar } = useCalendar();
+  const { filteredEvents, members, toggleEventCompleted, deleteEvent, activePersonaFilter, showTodosOnCalendar } = useCalendar();
 
   const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
   const dayNum = selectedDate.getDay(); // 0=Sun, 1=Mon...
@@ -384,22 +384,62 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleToggleComplete(evt.id, evt.is_completed);
-                  }}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: isCompleted ? '#10B981' : 'var(--text-muted)',
-                    cursor: 'pointer',
-                    padding: '1px',
-                  }}
-                >
-                  {isCompleted ? <CheckCircle2 size={14} /> : <Circle size={14} />}
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelectEvent(evt);
+                    }}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--text-muted)',
+                      cursor: 'pointer',
+                      padding: '2px',
+                    }}
+                    title="Edit Event"
+                  >
+                    <Pencil size={13} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.confirm(`Delete "${evt.title}"?`)) {
+                        deleteEvent(evt.id);
+                      }
+                    }}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--text-muted)',
+                      cursor: 'pointer',
+                      padding: '2px',
+                    }}
+                    title="Delete Event"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleComplete(evt.id, evt.is_completed);
+                    }}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: isCompleted ? '#10B981' : 'var(--text-muted)',
+                      cursor: 'pointer',
+                      padding: '2px',
+                    }}
+                  >
+                    {isCompleted ? <CheckCircle2 size={14} /> : <Circle size={14} />}
+                  </button>
+                </div>
               </div>
             );
           })

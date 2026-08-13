@@ -3,7 +3,7 @@ import { useCalendar } from '../../context/CalendarContext';
 import { useAuth } from '../../context/AuthContext';
 import { CalendarEvent, EventType, CATEGORY_COLORS } from '../../types';
 import { format } from 'date-fns';
-import { X, Calendar as CalendarIcon, CheckSquare, GraduationCap, Image as ImageIcon, Check, Palette, Flame, ShoppingBag, Utensils } from 'lucide-react';
+import { X, Calendar as CalendarIcon, CheckSquare, GraduationCap, Image as ImageIcon, Check, Palette, Flame, ShoppingBag, Utensils, Trash2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 import { useIsMobile } from '../../hooks/useIsMobile';
@@ -24,7 +24,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
   defaultCategory = 'event',
 }) => {
   const isMobile = useIsMobile();
-  const { addEvent, updateEvent, members } = useCalendar();
+  const { addEvent, updateEvent, deleteEvent, members } = useCalendar();
   const { userProfile } = useAuth();
   const activePersonaName = (userProfile?.display_name as 'Eve' | 'Abbie') || 'Eve';
 
@@ -221,6 +221,14 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
       onClose();
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!eventToEdit) return;
+    if (window.confirm(`Delete "${eventToEdit.title}"?`)) {
+      await deleteEvent(eventToEdit.id);
+      onClose();
     }
   };
 
@@ -809,31 +817,56 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'flex-end',
+            justifyContent: eventToEdit ? 'space-between' : 'flex-end',
             gap: '0.6rem',
             marginTop: '0.5rem',
           }}>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={onClose}
-            >
-              Cancel
-            </button>
+            {eventToEdit && (
+              <button
+                type="button"
+                onClick={handleDelete}
+                style={{
+                  padding: '0.5rem 0.85rem',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid #FCA5A5',
+                  backgroundColor: '#FEF2F2',
+                  color: '#DC2626',
+                  fontWeight: 700,
+                  fontSize: '0.8rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  cursor: 'pointer',
+                }}
+              >
+                <Trash2 size={14} /> Delete
+              </button>
+            )}
 
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={isSubmitting || !title.trim()}
-              style={{ fontWeight: 800 }}
-            >
-              {isSubmitting ? 'Saving...' :
-               formMode === 'class' ? 'Add Class' :
-               formMode === 'task' ? 'Add Task' :
-               formMode === 'habit' ? 'Add Habit' :
-               formMode === 'grocery' ? 'Add Grocery Item' :
-               formMode === 'meal' ? 'Save Meal' : 'Create Event'}
-            </button>
+            <div style={{ display: 'flex', gap: '0.6rem' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={onClose}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={isSubmitting || !title.trim()}
+                style={{ fontWeight: 800 }}
+              >
+                {isSubmitting ? 'Saving...' :
+                 eventToEdit ? 'Save Changes' :
+                 formMode === 'class' ? 'Add Class' :
+                 formMode === 'task' ? 'Add Task' :
+                 formMode === 'habit' ? 'Add Habit' :
+                 formMode === 'grocery' ? 'Add Grocery Item' :
+                 formMode === 'meal' ? 'Save Meal' : 'Create Event'}
+              </button>
+            </div>
           </div>
         </form>
       </div>
