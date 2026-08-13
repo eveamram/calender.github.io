@@ -98,9 +98,17 @@ export const NotesView: React.FC = () => {
     }
   };
 
+  const [searchQuery, setSearchQuery] = useState('');
+
   const filteredNotes = notes.filter((n) => {
-    if (activePersonaFilter === 'all') return true;
-    return n.owner === activePersonaFilter || n.owner === 'Both';
+    if (activePersonaFilter !== 'all' && n.owner !== activePersonaFilter && n.owner !== 'Both') {
+      return false;
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      return n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q);
+    }
+    return true;
   });
 
   return (
@@ -153,6 +161,35 @@ export const NotesView: React.FC = () => {
         >
           <Plus size={16} /> New Note
         </button>
+      </div>
+
+      {/* Search Input Bar */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem',
+        backgroundColor: 'var(--bg-secondary)',
+        padding: '0.55rem 0.9rem',
+        borderRadius: '14px',
+        border: '1px solid var(--border-color)',
+        marginBottom: '1.25rem',
+        boxShadow: 'var(--shadow-subtle)',
+      }}>
+        <FileText size={15} color="var(--text-muted)" />
+        <input
+          type="text"
+          placeholder="Search notes by title or content..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{
+            border: 'none',
+            background: 'transparent',
+            outline: 'none',
+            fontSize: '0.85rem',
+            color: 'var(--text-primary)',
+            width: '100%',
+          }}
+        />
       </div>
 
       {/* Notes Card List */}

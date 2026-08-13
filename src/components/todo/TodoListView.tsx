@@ -39,9 +39,24 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onEditTask }) => {
   const [newTaskCategory, setNewTaskCategory] = useState('General');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCompletedOpen, setIsCompletedOpen] = useState(false); // Collapsed by default
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('All');
+
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
 
   // Filter unified events strictly for tasks (type === 'task')
-  const allTasks = filteredEvents.filter((evt) => evt.event_type === 'task');
+  const allTasks = filteredEvents.filter((evt) => {
+    if (evt.event_type !== 'task') return false;
+    if (selectedCategoryFilter !== 'All' && evt.category !== selectedCategoryFilter) {
+      // Check if emoji matches category tag
+      const catObj = CATEGORY_TAGS.find((c) => c.label === selectedCategoryFilter);
+      if (!catObj || evt.emoji !== catObj.emoji) return false;
+    }
+    if (searchQuery.trim() && !evt.title.toLowerCase().includes(searchQuery.toLowerCase().trim())) {
+      return false;
+    }
+    return true;
+  });
 
   const activeTasks = allTasks.filter((t) => !t.is_completed);
   // Completed tasks are kept for today and removed after 1 day
@@ -50,8 +65,6 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onEditTask }) => {
     const d = t.due_date || t.event_date || (t.created_at ? format(new Date(t.created_at), 'yyyy-MM-dd') : todayStr);
     return d >= todayStr;
   });
-
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
 
   // Today Tasks
   const todayTasks = activeTasks.filter((t) => {
@@ -387,6 +400,47 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onEditTask }) => {
           </button>
         </div>
 
+        {/* Category Filter Pills (Mobile) */}
+        <div style={{ display: 'flex', gap: '0.35rem', overflowX: 'auto', marginBottom: '0.85rem', paddingBottom: '2px' }}>
+          <button
+            type="button"
+            onClick={() => setSelectedCategoryFilter('All')}
+            style={{
+              padding: '0.25rem 0.65rem',
+              borderRadius: '999px',
+              border: selectedCategoryFilter === 'All' ? '1px solid #3B82F6' : '1px solid var(--border-color)',
+              backgroundColor: selectedCategoryFilter === 'All' ? '#EFF6FF' : 'var(--bg-secondary)',
+              color: selectedCategoryFilter === 'All' ? '#1D4ED8' : 'var(--text-muted)',
+              fontSize: '0.725rem',
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+              cursor: 'pointer',
+            }}
+          >
+            All Tasks
+          </button>
+          {CATEGORY_TAGS.map((cat) => (
+            <button
+              key={cat.label}
+              type="button"
+              onClick={() => setSelectedCategoryFilter(cat.label)}
+              style={{
+                padding: '0.25rem 0.65rem',
+                borderRadius: '999px',
+                border: selectedCategoryFilter === cat.label ? '1px solid #3B82F6' : '1px solid var(--border-color)',
+                backgroundColor: selectedCategoryFilter === cat.label ? '#EFF6FF' : 'var(--bg-secondary)',
+                color: selectedCategoryFilter === cat.label ? '#1D4ED8' : 'var(--text-muted)',
+                fontSize: '0.725rem',
+                fontWeight: 700,
+                whiteSpace: 'nowrap',
+                cursor: 'pointer',
+              }}
+            >
+              {cat.emoji} {cat.label}
+            </button>
+          ))}
+        </div>
+
         {/* Fast Mobile Quick Add Input */}
         <form onSubmit={handleQuickAdd} style={{ marginBottom: '1.25rem' }}>
           <div style={{
@@ -650,6 +704,47 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onEditTask }) => {
             {showTodosOnCalendar ? 'Calendar Sync: ON' : 'Calendar Sync: OFF'}
           </button>
         </div>
+      </div>
+
+      {/* Category Filter Pills (Desktop) */}
+      <div style={{ display: 'flex', gap: '0.4rem', overflowX: 'auto', marginBottom: '1.25rem', paddingBottom: '2px' }}>
+        <button
+          type="button"
+          onClick={() => setSelectedCategoryFilter('All')}
+          style={{
+            padding: '0.3rem 0.75rem',
+            borderRadius: '999px',
+            border: selectedCategoryFilter === 'All' ? '1.5px solid #3B82F6' : '1px solid var(--border-color)',
+            backgroundColor: selectedCategoryFilter === 'All' ? '#EFF6FF' : 'var(--bg-secondary)',
+            color: selectedCategoryFilter === 'All' ? '#1D4ED8' : 'var(--text-muted)',
+            fontSize: '0.775rem',
+            fontWeight: 700,
+            whiteSpace: 'nowrap',
+            cursor: 'pointer',
+          }}
+        >
+          All Tasks
+        </button>
+        {CATEGORY_TAGS.map((cat) => (
+          <button
+            key={cat.label}
+            type="button"
+            onClick={() => setSelectedCategoryFilter(cat.label)}
+            style={{
+              padding: '0.3rem 0.75rem',
+              borderRadius: '999px',
+              border: selectedCategoryFilter === cat.label ? '1.5px solid #3B82F6' : '1px solid var(--border-color)',
+              backgroundColor: selectedCategoryFilter === cat.label ? '#EFF6FF' : 'var(--bg-secondary)',
+              color: selectedCategoryFilter === cat.label ? '#1D4ED8' : 'var(--text-muted)',
+              fontSize: '0.775rem',
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+              cursor: 'pointer',
+            }}
+          >
+            {cat.emoji} {cat.label}
+          </button>
+        ))}
       </div>
 
       {/* Motivational Celebration Banner if Today's Tasks Complete */}
