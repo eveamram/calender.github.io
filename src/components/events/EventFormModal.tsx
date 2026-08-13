@@ -3,7 +3,7 @@ import { useCalendar } from '../../context/CalendarContext';
 import { useAuth } from '../../context/AuthContext';
 import { CalendarEvent, EventType, CATEGORY_COLORS } from '../../types';
 import { format } from 'date-fns';
-import { X, Calendar as CalendarIcon, CheckSquare, GraduationCap, Image as ImageIcon, Check, Palette, Flame } from 'lucide-react';
+import { X, Calendar as CalendarIcon, CheckSquare, GraduationCap, Image as ImageIcon, Check, Palette, Flame, ShoppingBag, Utensils } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 import { useIsMobile } from '../../hooks/useIsMobile';
@@ -28,7 +28,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
   const { userProfile } = useAuth();
   const activePersonaName = (userProfile?.display_name as 'Eve' | 'Abbie') || 'Eve';
 
-  const [formMode, setFormMode] = useState<'class' | 'task' | 'event' | 'habit'>('event');
+  const [formMode, setFormMode] = useState<'class' | 'task' | 'event' | 'habit' | 'grocery' | 'meal'>('event');
 
   // Form Fields
   const [title, setTitle] = useState('');
@@ -44,6 +44,9 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
   const [imageUrl, setImageUrl] = useState<string>('');
   const [habitEmoji, setHabitEmoji] = useState<string>('✨');
   const [showHabitOnSchedule, setShowHabitOnSchedule] = useState<boolean>(true);
+  const [groceryCategory, setGroceryCategory] = useState<string>('Produce');
+  const [mealSlotType, setMealSlotType] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack'>('lunch');
+  const [mealDay, setMealDay] = useState<string>('Mon');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -87,6 +90,15 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
         setFormMode('task');
         setEventType('task');
         setSelectedColor('#F59E0B');
+      } else if (defaultCategory === 'habit') {
+        setFormMode('habit');
+        setSelectedColor('#F59E0B');
+      } else if (defaultCategory === 'grocery') {
+        setFormMode('grocery');
+        setSelectedColor('#10B981');
+      } else if (defaultCategory === 'meal') {
+        setFormMode('meal');
+        setSelectedColor('#EC4899');
       } else {
         setFormMode('event');
         setEventType('personal');
@@ -96,6 +108,14 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
   }, [eventToEdit, initialDate, isOpen, defaultCategory]);
 
   if (!isOpen) return null;
+
+  const isGenericAdd = !eventToEdit && (defaultCategory === 'all' || defaultCategory === 'generic');
+  const modalHeaderTitle = eventToEdit ? 'Edit Entry' :
+    formMode === 'class' ? 'Add New Class' :
+    formMode === 'task' ? 'Add New Task' :
+    formMode === 'habit' ? 'Add New Habit' :
+    formMode === 'grocery' ? 'Add Grocery Item' :
+    formMode === 'meal' ? 'Add Meal Plan' : 'Add New Event';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,6 +140,46 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
         const existing = existingStr ? JSON.parse(existingStr) : [];
         const updated = [newHabit, ...existing];
         localStorage.setItem('calender_daily_habits_v2', JSON.stringify(updated));
+        window.dispatchEvent(new Event('storage'));
+
+        confetti({ particleCount: 35, spread: 55, origin: { y: 0.7 } });
+        onClose();
+        return;
+      }
+
+      if (formMode === 'grocery') {
+        const newItem = {
+          id: `groc-${Date.now()}`,
+          title: title.trim(),
+          category: groceryCategory,
+          purchased: false,
+          owner: taskOwner,
+          created_at: new Date().toISOString(),
+        };
+
+        const existingStr = localStorage.getItem('calender_grocery_items_v1');
+        const existing = existingStr ? JSON.parse(existingStr) : [];
+        const updated = [newItem, ...existing];
+        localStorage.setItem('calender_grocery_items_v1', JSON.stringify(updated));
+        window.dispatchEvent(new Event('storage'));
+
+        confetti({ particleCount: 35, spread: 55, origin: { y: 0.7 } });
+        onClose();
+        return;
+      }
+
+      if (formMode === 'meal') {
+        const existingStr = localStorage.getItem('calender_meal_plan_v2');
+        const existing = existingStr ? JSON.parse(existingStr) : {};
+        const dayMeals = existing[mealDay] || { breakfast: '', lunch: '', dinner: '', snack: '' };
+        const updatedMeals = {
+          ...existing,
+          [mealDay]: {
+            ...dayMeals,
+            [mealSlotType]: title.trim(),
+          },
+        };
+        localStorage.setItem('calender_meal_plan_v2', JSON.stringify(updatedMeals));
         window.dispatchEvent(new Event('storage'));
 
         confetti({ particleCount: 35, spread: 55, origin: { y: 0.7 } });
@@ -185,26 +245,29 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
         border: '1px solid var(--border-color)',
         borderRadius: '20px',
         width: '100%',
-        maxWidth: isMobile ? '92%' : '440px',
-        maxHeight: '85vh',
+        maxWidth: isMobile ? '94%' : '480px',
+        maxHeight: '88vh',
         overflowY: 'auto',
-        padding: isMobile ? '1.25rem' : '1.5rem',
+        padding: isMobile ? '1.15rem' : '1.5rem',
         boxShadow: '0 20px 45px rgba(0,0,0,0.25)',
       }} onClick={(e) => e.stopPropagation()}>
-        {/* Header Tabs */}
+        {/* Header Tabs (Shown only when generic add button is clicked) */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           marginBottom: '1.25rem',
         }}>
-          {!eventToEdit ? (
+          {isGenericAdd ? (
             <div style={{
               display: 'flex',
+              gap: '3px',
               backgroundColor: 'var(--bg-hover)',
-              padding: '2px',
+              padding: '3px',
               borderRadius: '999px',
               border: '1px solid var(--border-color)',
+              overflowX: 'auto',
+              maxWidth: '100%',
             }}>
               <button
                 type="button"
@@ -212,18 +275,19 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.35rem',
-                  padding: '0.3rem 0.65rem',
+                  gap: '0.25rem',
+                  padding: '0.3rem 0.55rem',
                   borderRadius: '999px',
                   border: 'none',
                   backgroundColor: formMode === 'event' ? 'var(--bg-secondary)' : 'transparent',
                   color: formMode === 'event' ? 'var(--accent-primary)' : 'var(--text-secondary)',
                   fontWeight: 700,
-                  fontSize: '0.775rem',
+                  fontSize: '0.725rem',
                   cursor: 'pointer',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                <CalendarIcon size={13} /> Event
+                <CalendarIcon size={12} /> Event
               </button>
 
               <button
@@ -232,18 +296,19 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.35rem',
-                  padding: '0.3rem 0.65rem',
+                  gap: '0.25rem',
+                  padding: '0.3rem 0.55rem',
                   borderRadius: '999px',
                   border: 'none',
                   backgroundColor: formMode === 'class' ? 'var(--bg-secondary)' : 'transparent',
                   color: formMode === 'class' ? 'var(--accent-primary)' : 'var(--text-secondary)',
                   fontWeight: 700,
-                  fontSize: '0.775rem',
+                  fontSize: '0.725rem',
                   cursor: 'pointer',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                <GraduationCap size={13} /> Class
+                <GraduationCap size={12} /> Class
               </button>
 
               <button
@@ -252,18 +317,19 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.35rem',
-                  padding: '0.3rem 0.65rem',
+                  gap: '0.25rem',
+                  padding: '0.3rem 0.55rem',
                   borderRadius: '999px',
                   border: 'none',
                   backgroundColor: formMode === 'task' ? 'var(--bg-secondary)' : 'transparent',
                   color: formMode === 'task' ? 'var(--accent-primary)' : 'var(--text-secondary)',
                   fontWeight: 700,
-                  fontSize: '0.775rem',
+                  fontSize: '0.725rem',
                   cursor: 'pointer',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                <CheckSquare size={13} /> Task
+                <CheckSquare size={12} /> Task
               </button>
 
               <button
@@ -272,23 +338,66 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.35rem',
-                  padding: '0.3rem 0.65rem',
+                  gap: '0.25rem',
+                  padding: '0.3rem 0.55rem',
                   borderRadius: '999px',
                   border: 'none',
                   backgroundColor: formMode === 'habit' ? 'var(--bg-secondary)' : 'transparent',
                   color: formMode === 'habit' ? '#F59E0B' : 'var(--text-secondary)',
                   fontWeight: 700,
-                  fontSize: '0.775rem',
+                  fontSize: '0.725rem',
                   cursor: 'pointer',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                <Flame size={13} /> Habit
+                <Flame size={12} /> Habit
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setFormMode('grocery'); }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  padding: '0.3rem 0.55rem',
+                  borderRadius: '999px',
+                  border: 'none',
+                  backgroundColor: formMode === 'grocery' ? 'var(--bg-secondary)' : 'transparent',
+                  color: formMode === 'grocery' ? '#10B981' : 'var(--text-secondary)',
+                  fontWeight: 700,
+                  fontSize: '0.725rem',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <ShoppingBag size={12} /> Grocery
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setFormMode('meal'); }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  padding: '0.3rem 0.55rem',
+                  borderRadius: '999px',
+                  border: 'none',
+                  backgroundColor: formMode === 'meal' ? 'var(--bg-secondary)' : 'transparent',
+                  color: formMode === 'meal' ? '#EC4899' : 'var(--text-secondary)',
+                  fontWeight: 700,
+                  fontSize: '0.725rem',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <Utensils size={12} /> Meal
               </button>
             </div>
           ) : (
             <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-              Edit Entry
+              {modalHeaderTitle}
             </h3>
           )}
 
@@ -316,7 +425,9 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
               className="input-field"
               placeholder={
                 formMode === 'class' ? "Class Title (e.g. Calculus II)..." :
-                formMode === 'task' ? "Task description..." : "Event title..."
+                formMode === 'task' ? "Task description..." :
+                formMode === 'grocery' ? "Grocery item (e.g. Oat Milk, Avocado)..." :
+                formMode === 'meal' ? "Meal idea (e.g. Grilled Chicken Salad)..." : "Event title..."
               }
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -326,35 +437,115 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
             />
           </div>
 
-          {/* Date & Time */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-            <div>
-              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
-                {formMode === 'task' ? 'Due Date (Optional)' : 'Date'}
-              </label>
-              <input
-                type="date"
-                className="input-field"
-                value={eventDate}
-                onChange={(e) => setEventDate(e.target.value)}
-                required={formMode !== 'task'}
-              />
-            </div>
+          {/* Grocery Specific Field */}
+          {formMode === 'grocery' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                  Aisle / Category
+                </label>
+                <select
+                  className="input-field"
+                  value={groceryCategory}
+                  onChange={(e) => setGroceryCategory(e.target.value)}
+                >
+                  <option value="Produce">🥦 Produce</option>
+                  <option value="Dairy">🧀 Dairy & Eggs</option>
+                  <option value="Bakery">🍞 Bakery</option>
+                  <option value="Pantry">🥫 Pantry & Snacks</option>
+                  <option value="Frozen">❄️ Frozen</option>
+                  <option value="Beverages">🧃 Beverages</option>
+                  <option value="Other">🛍️ Other</option>
+                </select>
+              </div>
 
-            <div>
-              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
-                Owner
-              </label>
-              <select
-                className="input-field"
-                value={taskOwner}
-                onChange={(e) => setTaskOwner(e.target.value as 'Eve' | 'Abbie')}
-              >
-                <option value="Eve">Eve</option>
-                <option value="Abbie">Abbie</option>
-              </select>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                  Owner
+                </label>
+                <select
+                  className="input-field"
+                  value={taskOwner}
+                  onChange={(e) => setTaskOwner(e.target.value as 'Eve' | 'Abbie')}
+                >
+                  <option value="Eve">Eve</option>
+                  <option value="Abbie">Abbie</option>
+                </select>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Meal Specific Fields */}
+          {formMode === 'meal' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                  Day of Week
+                </label>
+                <select
+                  className="input-field"
+                  value={mealDay}
+                  onChange={(e) => setMealDay(e.target.value)}
+                >
+                  <option value="Mon">Monday</option>
+                  <option value="Tue">Tuesday</option>
+                  <option value="Wed">Wednesday</option>
+                  <option value="Thu">Thursday</option>
+                  <option value="Fri">Friday</option>
+                  <option value="Sat">Saturday</option>
+                  <option value="Sun">Sunday</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                  Meal Slot
+                </label>
+                <select
+                  className="input-field"
+                  value={mealSlotType}
+                  onChange={(e) => setMealSlotType(e.target.value as any)}
+                >
+                  <option value="breakfast">🍳 Breakfast</option>
+                  <option value="lunch">🥗 Lunch</option>
+                  <option value="dinner">🍝 Dinner</option>
+                  <option value="snack">🍎 Snack</option>
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* Date & Time (for Event, Class, Task, Habit) */}
+          {formMode !== 'grocery' && formMode !== 'meal' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                  {formMode === 'task' ? 'Due Date (Optional)' : 'Date'}
+                </label>
+                <input
+                  type="date"
+                  className="input-field"
+                  value={eventDate}
+                  onChange={(e) => setEventDate(e.target.value)}
+                  required={formMode !== 'task'}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                  Owner
+                </label>
+                <select
+                  className="input-field"
+                  value={taskOwner}
+                  onChange={(e) => setTaskOwner(e.target.value as 'Eve' | 'Abbie')}
+                >
+                  <option value="Eve">Eve</option>
+                  <option value="Abbie">Abbie</option>
+                </select>
+              </div>
+            </div>
+          )}
 
           {/* Start & End Time (for Class or Event) */}
           {formMode !== 'task' && (
@@ -636,7 +827,12 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
               disabled={isSubmitting || !title.trim()}
               style={{ fontWeight: 800 }}
             >
-              {isSubmitting ? 'Saving...' : formMode === 'class' ? 'Add Class' : formMode === 'task' ? 'Add Task' : 'Create Event'}
+              {isSubmitting ? 'Saving...' :
+               formMode === 'class' ? 'Add Class' :
+               formMode === 'task' ? 'Add Task' :
+               formMode === 'habit' ? 'Add Habit' :
+               formMode === 'grocery' ? 'Add Grocery Item' :
+               formMode === 'meal' ? 'Save Meal' : 'Create Event'}
             </button>
           </div>
         </form>

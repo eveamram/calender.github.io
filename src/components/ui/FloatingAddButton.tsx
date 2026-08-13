@@ -11,7 +11,7 @@ export const FloatingAddButton: React.FC<FloatingAddButtonProps> = ({ onOpenAddE
   return (
     <button
       type="button"
-      onClick={() => onOpenAddEvent('personal')}
+      onClick={() => onOpenAddEvent('all' as any)}
       aria-label="Add new item"
       style={{
         position: 'fixed',

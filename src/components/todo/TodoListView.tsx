@@ -47,10 +47,9 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onEditTask }) => {
   // Filter unified events strictly for tasks (type === 'task')
   const allTasks = filteredEvents.filter((evt) => {
     if (evt.event_type !== 'task') return false;
-    if (selectedCategoryFilter !== 'All' && evt.category !== selectedCategoryFilter) {
-      // Check if emoji matches category tag
+    if (selectedCategoryFilter !== 'All') {
       const catObj = CATEGORY_TAGS.find((c) => c.label === selectedCategoryFilter);
-      if (!catObj || evt.emoji !== catObj.emoji) return false;
+      if (catObj && evt.emoji !== catObj.emoji && (evt as any).category !== selectedCategoryFilter) return false;
     }
     if (searchQuery.trim() && !evt.title.toLowerCase().includes(searchQuery.toLowerCase().trim())) {
       return false;
