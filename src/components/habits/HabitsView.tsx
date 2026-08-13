@@ -240,12 +240,13 @@ export const HabitsView: React.FC = () => {
       backgroundColor: 'var(--bg-secondary)',
       border: '1px solid var(--border-color)',
       borderRadius: 'var(--radius-lg)',
-      padding: '1.75rem',
+      padding: isMobile ? '0.85rem 0.65rem' : '1.75rem',
       width: '100%',
       maxWidth: '820px',
       margin: '0 auto',
       boxShadow: 'var(--shadow-subtle)',
       fontFamily: "'Plus Jakarta Sans', sans-serif",
+      boxSizing: 'border-box',
     }}>
       {/* Top Header & Controls */}
       <div style={{
@@ -550,10 +551,11 @@ export const HabitsView: React.FC = () => {
                     key={habit.id}
                     style={{
                       display: 'flex',
-                      alignItems: 'center',
+                      flexDirection: isMobile ? 'column' : 'row',
+                      alignItems: isMobile ? 'stretch' : 'center',
                       justifyContent: 'space-between',
-                      gap: '0.85rem',
-                      padding: '0.8rem 1rem',
+                      gap: isMobile ? '0.55rem' : '0.85rem',
+                      padding: isMobile ? '0.75rem 0.85rem' : '0.8rem 1rem',
                       borderRadius: 'var(--radius-md)',
                       backgroundColor: isDone ? 'var(--bg-hover)' : 'var(--bg-secondary)',
                       border: '1px solid var(--border-subtle)',
@@ -562,7 +564,7 @@ export const HabitsView: React.FC = () => {
                       transition: 'all 0.15s ease',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
                       <button
                         type="button"
                         onClick={() => handleToggleHabit(habit.id, activeDayDateStr)}
@@ -570,16 +572,17 @@ export const HabitsView: React.FC = () => {
                           background: 'transparent',
                           border: 'none',
                           cursor: 'pointer',
-                          padding: 0,
+                          padding: '2px',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
+                          flexShrink: 0,
                         }}
                       >
                         {isDone ? (
                           <div style={{
-                            width: '24px',
-                            height: '24px',
+                            width: '26px',
+                            height: '26px',
                             borderRadius: '50%',
                             backgroundColor: habit.color,
                             color: '#FFFFFF',
@@ -588,29 +591,30 @@ export const HabitsView: React.FC = () => {
                             justifyContent: 'center',
                             boxShadow: `0 2px 6px ${habit.color}40`,
                           }}>
-                            <Check size={15} strokeWidth={3} />
+                            <Check size={16} strokeWidth={3} />
                           </div>
                         ) : (
-                          <Circle size={24} strokeWidth={1.8} color="var(--text-muted)" />
+                          <Circle size={26} strokeWidth={1.8} color="var(--text-muted)" />
                         )}
                       </button>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '1.1rem' }}>{habit.emoji}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flex: 1, minWidth: 0, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '1.15rem' }}>{habit.emoji}</span>
                         <span style={{
                           fontSize: '0.925rem',
                           fontWeight: 700,
                           color: 'var(--text-primary)',
                           textDecoration: isDone ? 'line-through' : 'none',
+                          wordBreak: 'break-word',
                         }}>
                           {habit.title}
                         </span>
 
                         {activePersonaFilter === 'all' && (
                           <span style={{
-                            fontSize: '0.65rem',
+                            fontSize: '0.625rem',
                             fontWeight: 800,
-                            padding: '0.1rem 0.45rem',
+                            padding: '0.08rem 0.4rem',
                             borderRadius: '999px',
                             backgroundColor: habit.owner === 'Eve' ? '#EFF6FF' : '#FDF2F8',
                             color: habit.owner === 'Eve' ? '#1E40AF' : '#9D174D',
@@ -624,7 +628,14 @@ export const HabitsView: React.FC = () => {
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: isMobile ? 'space-between' : 'flex-end',
+                      gap: '0.5rem',
+                      paddingTop: isMobile ? '0.4rem' : '0',
+                      borderTop: isMobile ? '1px solid var(--border-subtle)' : 'none',
+                    }}>
                       <button
                         type="button"
                         onClick={() => {
@@ -655,47 +666,49 @@ export const HabitsView: React.FC = () => {
                         <CalendarIcon size={11} /> {habit.showOnSchedule !== false ? 'On Schedule' : 'Schedule Off'}
                       </button>
 
-                      <span style={{
-                        fontSize: '0.75rem',
-                        fontWeight: 800,
-                        color: streak > 0 ? '#B45309' : 'var(--text-muted)',
-                        backgroundColor: 'var(--bg-hover)',
-                        padding: '0.2rem 0.55rem',
-                        borderRadius: '999px',
-                        border: '1px solid var(--border-color)',
-                      }}>
-                        🔥 {streak}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                        <span style={{
+                          fontSize: '0.725rem',
+                          fontWeight: 800,
+                          color: streak > 0 ? '#B45309' : 'var(--text-muted)',
+                          backgroundColor: 'var(--bg-hover)',
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: '999px',
+                          border: '1px solid var(--border-color)',
+                        }}>
+                          🔥 {streak}
+                        </span>
 
-                      <button
-                        type="button"
-                        onClick={() => setEditingHabit(habit)}
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: 'var(--text-muted)',
-                          cursor: 'pointer',
-                          padding: '3px',
-                        }}
-                        title="Edit Habit"
-                      >
-                        <Pencil size={14} />
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingHabit(habit)}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: 'var(--text-muted)',
+                            cursor: 'pointer',
+                            padding: '3px',
+                          }}
+                          title="Edit Habit"
+                        >
+                          <Pencil size={14} />
+                        </button>
 
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteHabit(habit.id)}
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: 'var(--text-muted)',
-                          cursor: 'pointer',
-                          padding: '3px',
-                        }}
-                        title="Delete Habit"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteHabit(habit.id)}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: 'var(--text-muted)',
+                            cursor: 'pointer',
+                            padding: '3px',
+                          }}
+                          title="Delete Habit"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
