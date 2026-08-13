@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCalendar } from '../../context/CalendarContext';
 import { CalendarEvent } from '../../types';
-import { format, isBefore, startOfDay, parseISO } from 'date-fns';
+import { format, isBefore, startOfDay, parseISO, startOfWeek } from 'date-fns';
 import { Plus, CheckCircle2, Circle, Clock, MapPin, User, Flame, Check } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { HabitItem } from '../habits/HabitsView';
@@ -22,11 +22,19 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
   const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
   const dayNum = selectedDate.getDay(); // 0=Sun, 1=Mon...
 
-  // Load habits from localStorage
+  const currentWeekStartStr = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
+
+  // Load habits from localStorage & prune checkmarks older than current week
   const [habits, setHabits] = useState<HabitItem[]>(() => {
     try {
       const stored = localStorage.getItem('calender_daily_habits_v2');
-      if (stored) return JSON.parse(stored);
+      if (stored) {
+        const parsed: HabitItem[] = JSON.parse(stored);
+        return parsed.map((h) => ({
+          ...h,
+          completedDates: (h.completedDates || []).filter((d) => d >= currentWeekStartStr),
+        }));
+      }
     } catch {
       // Fallback
     }
@@ -37,14 +45,22 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
     const handleStorageChange = () => {
       try {
         const stored = localStorage.getItem('calender_daily_habits_v2');
-        if (stored) setHabits(JSON.parse(stored));
+        if (stored) {
+          const parsed: HabitItem[] = JSON.parse(stored);
+          setHabits(
+            parsed.map((h) => ({
+              ...h,
+              completedDates: (h.completedDates || []).filter((d) => d >= currentWeekStartStr),
+            }))
+          );
+        }
       } catch {
         // Fallback
       }
     };
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  }, [currentWeekStartStr]);
 
   // Filter habits for selected date & active persona
   const dayHabits = habits.filter((h) => {
@@ -285,13 +301,18 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
                   justifyContent: 'space-between',
                   gap: '0.5rem',
                   cursor: 'pointer',
-                  padding: '0.45rem 0.65rem',
+                  padding: '0.5rem 0.7rem',
                   borderRadius: 'var(--radius-sm)',
-                  backgroundColor: isCompleted ? 'var(--bg-hover)' : 'var(--bg-primary)',
-                  border: '1px solid var(--border-subtle)',
-                  borderLeft: `3px solid ${itemColor}`,
-                  transition: 'background-color 0.12s ease',
+                  backgroundColor: isCompleted
+                    ? 'var(--bg-hover)'
+                    : `${itemColor}16`,
+                  border: isCompleted
+                    ? '1px solid var(--border-subtle)'
+                    : `1px solid ${itemColor}40`,
+                  borderLeft: `4px solid ${itemColor}`,
+                  transition: 'all 0.12s ease',
                   opacity: isCompleted ? 0.6 : 1,
+                  boxShadow: isCompleted ? 'none' : `0 2px 6px ${itemColor}18`,
                 }}
               >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0, flex: 1 }}>

@@ -119,7 +119,8 @@ export const HabitsView: React.FC = () => {
         setHabits((prev) =>
           prev.map((h) => ({
             ...h,
-            completedDates: [],
+            // Keep only completion checkmarks that belong to the current week (>= weekStartStr)
+            completedDates: (h.completedDates || []).filter((d) => d >= weekStartStr),
           }))
         );
       }

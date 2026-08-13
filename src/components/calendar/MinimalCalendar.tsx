@@ -272,36 +272,59 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
             const visibleEvents = dayEvents.slice(0, maxVisible);
             const overflowCount = dayEvents.length - maxVisible;
 
+            const primaryColor = dayEvents[0]?.color || '#3B82F6';
+            const hasEvents = dayEvents.length > 0;
+
             if (isMobile) {
               return (
                 <div
                   key={day.toISOString()}
                   onClick={() => onSelectDate(day)}
                   style={{
-                    height: '46px',
+                    height: '48px',
                     padding: '0.25rem 0.1rem',
                     borderRadius: 'var(--radius-sm)',
                     backgroundColor: isSelected
                       ? 'var(--accent-light)'
+                      : hasEvents
+                      ? `${primaryColor}22`
                       : isCurrMonth
                       ? '#FFFFFF'
                       : 'var(--bg-hover)',
                     border: isSelected
                       ? '2px solid #3B82F6'
+                      : hasEvents
+                      ? `1.5px solid ${primaryColor}70`
                       : '1px solid var(--border-subtle)',
+                    boxShadow: hasEvents && !isSelected ? `0 2px 6px ${primaryColor}25` : 'none',
                     opacity: isCurrMonth ? (isPastDay ? 0.75 : 1) : 0.35,
                     cursor: 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '2px',
+                    gap: '3px',
                     transition: 'all 0.12s ease',
+                    position: 'relative',
+                    overflow: 'hidden',
                   }}
                 >
+                  {/* Vibrant top bar indicator for dates with events */}
+                  {hasEvents && !isSelected && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: '15%',
+                      right: '15%',
+                      height: '3px',
+                      borderRadius: '0 0 3px 3px',
+                      backgroundColor: primaryColor,
+                    }} />
+                  )}
+
                   <span style={{
                     fontSize: '0.8rem',
-                    fontWeight: isTodayDay || isSelected ? 800 : 600,
+                    fontWeight: isTodayDay || isSelected || hasEvents ? 800 : 600,
                     width: '22px',
                     height: '22px',
                     borderRadius: '50%',
@@ -309,22 +332,23 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
                     alignItems: 'center',
                     justifyContent: 'center',
                     backgroundColor: isTodayDay ? '#3B82F6' : 'transparent',
-                    color: isTodayDay ? '#FFFFFF' : 'var(--text-primary)',
+                    color: isTodayDay ? '#FFFFFF' : hasEvents ? primaryColor : 'var(--text-primary)',
                   }}>
                     {format(day, 'd')}
                   </span>
 
-                  {/* Clean Event Dots for Mobile Month Grid */}
-                  {dayEvents.length > 0 && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-                      {dayEvents.slice(0, 3).map((evt, idx) => (
+                  {/* Vibrant Event Dots for Mobile Month Grid */}
+                  {hasEvents && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                      {dayEvents.slice(0, 4).map((evt, idx) => (
                         <div
                           key={evt.id || idx}
                           style={{
-                            width: '4px',
-                            height: '4px',
+                            width: '5px',
+                            height: '5px',
                             borderRadius: '50%',
                             backgroundColor: evt.color || '#3B82F6',
+                            boxShadow: `0 0 5px ${evt.color || '#3B82F6'}`,
                           }}
                         />
                       ))}
@@ -348,18 +372,22 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
                   borderRadius: 'var(--radius-md)',
                   backgroundColor: isSelected
                     ? 'var(--accent-light)'
+                    : hasEvents
+                    ? `${primaryColor}18`
                     : isCurrMonth
                     ? '#FFFFFF'
                     : 'var(--bg-hover)',
                   border: isSelected
                     ? '2px solid #3B82F6'
+                    : hasEvents
+                    ? `1.5px solid ${primaryColor}60`
                     : '1px solid var(--border-subtle)',
                   opacity: isCurrMonth ? (isPastDay ? 0.75 : 1) : 0.35,
                   cursor: 'pointer',
                   display: 'flex',
                   flexDirection: 'column',
                   transition: 'all 0.12s ease',
-                  boxShadow: isCurrMonth ? '0 1px 3px rgba(0,0,0,0.04)' : 'none',
+                  boxShadow: isCurrMonth ? (hasEvents ? `0 2px 8px ${primaryColor}20` : '0 1px 3px rgba(0,0,0,0.04)') : 'none',
                 }}
                 title="Click to view schedule • Double-click to add event"
               >
@@ -371,7 +399,7 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
                 }}>
                   <span style={{
                     fontSize: '0.85rem',
-                    fontWeight: isTodayDay || isSelected ? 800 : 600,
+                    fontWeight: isTodayDay || isSelected || hasEvents ? 800 : 600,
                     width: '24px',
                     height: '24px',
                     borderRadius: '50%',
@@ -379,23 +407,23 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
                     alignItems: 'center',
                     justifyContent: 'center',
                     backgroundColor: isTodayDay ? '#3B82F6' : 'transparent',
-                    color: isTodayDay ? '#FFFFFF' : 'var(--text-primary)',
+                    color: isTodayDay ? '#FFFFFF' : hasEvents ? primaryColor : 'var(--text-primary)',
                   }}>
                     {format(day, 'd')}
                   </span>
 
-                  {/* Clean Blue Dot Indicator for Apple Calendar Aesthetic */}
-                  {dayEvents.length > 0 && (
+                  {/* Vibrant Dot Indicators for Desktop Month View */}
+                  {hasEvents && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                      {dayEvents.slice(0, 3).map((evt, idx) => (
+                      {dayEvents.slice(0, 4).map((evt, idx) => (
                         <div
                           key={evt.id || idx}
                           style={{
-                            width: '7px',
-                            height: '7px',
+                            width: '8px',
+                            height: '8px',
                             borderRadius: '50%',
                             backgroundColor: evt.color || '#3B82F6',
-                            boxShadow: '0 1px 2px rgba(59, 130, 246, 0.4)',
+                            boxShadow: `0 1px 4px ${(evt.color || '#3B82F6')}90`,
                           }}
                         />
                       ))}
@@ -416,10 +444,10 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
                           onSelectEvent(evt);
                         }}
                         style={{
-                          padding: '0.2rem 0.4rem',
-                          borderRadius: '4px',
-                          backgroundColor: `${evt.color || '#3B82F6'}15`,
-                          borderLeft: `2.5px solid ${evt.color || '#3B82F6'}`,
+                          padding: '0.25rem 0.45rem',
+                          borderRadius: '5px',
+                          backgroundColor: `${evt.color || '#3B82F6'}28`,
+                          borderLeft: `3.5px solid ${evt.color || '#3B82F6'}`,
                           fontSize: '0.7rem',
                           fontWeight: 700,
                           color: 'var(--text-primary)',
@@ -432,6 +460,7 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           gap: '2px',
+                          boxShadow: `0 1px 3px ${(evt.color || '#3B82F6')}18`,
                         }}
                       >
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{evt.title}</span>
@@ -476,6 +505,8 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
             const dayEvents = getEventsForDate(day);
             const isTodayDay = isToday(day);
             const isSelected = isSameDay(day, selectedDate);
+            const primaryColor = dayEvents[0]?.color || '#3B82F6';
+            const hasEvents = dayEvents.length > 0;
 
             return (
               <div
@@ -489,8 +520,8 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
                   minHeight: '260px',
                   padding: '0.6rem',
                   borderRadius: 'var(--radius-md)',
-                  backgroundColor: isTodayDay ? 'var(--accent-light)' : 'var(--bg-primary)',
-                  border: isSelected ? '2px solid var(--accent-primary)' : '1px solid var(--border-subtle)',
+                  backgroundColor: isTodayDay ? 'var(--accent-light)' : hasEvents ? `${primaryColor}12` : 'var(--bg-primary)',
+                  border: isSelected ? '2px solid var(--accent-primary)' : hasEvents ? `1.5px solid ${primaryColor}50` : '1px solid var(--border-subtle)',
                   cursor: 'pointer',
                   display: 'flex',
                   flexDirection: 'column',
@@ -498,7 +529,7 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
                 }}
               >
                 <div style={{ textAlign: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.35rem' }}>
-                  <span style={{ fontSize: '0.9rem', fontWeight: 800, color: isTodayDay ? 'var(--accent-primary)' : 'var(--text-primary)' }}>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 800, color: isTodayDay ? 'var(--accent-primary)' : hasEvents ? primaryColor : 'var(--text-primary)' }}>
                     {format(day, 'd')}
                   </span>
                 </div>
@@ -516,8 +547,8 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
                         style={{
                           padding: '0.35rem 0.5rem',
                           borderRadius: '6px',
-                          backgroundColor: `${evt.color || '#3B82F6'}15`,
-                          borderLeft: `3px solid ${evt.color || '#3B82F6'}`,
+                          backgroundColor: `${evt.color || '#3B82F6'}28`,
+                          borderLeft: `3.5px solid ${evt.color || '#3B82F6'}`,
                           fontSize: '0.725rem',
                           fontWeight: 700,
                           color: 'var(--text-primary)',
@@ -525,6 +556,7 @@ export const MinimalCalendar: React.FC<MinimalCalendarProps> = ({
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           gap: '2px',
+                          boxShadow: `0 1px 3px ${(evt.color || '#3B82F6')}20`,
                         }}
                       >
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{evt.title}</span>
