@@ -144,7 +144,7 @@ export const MealsView: React.FC = () => {
             Meal Prep & Planner <Utensils size={20} color="#EC4899" />
           </h2>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px', margin: 0 }}>
-            {activePersonaFilter === 'all' ? 'Weekly meals for Eve & Abbie • Refreshes weekly' : `Meals for ${activePersonaFilter} • Refreshes weekly`}
+            {activePersonaFilter === 'all' ? 'Weekly meals for Eve & Abbie • Refreshes weekly' : 'Weekly meal plan • Refreshes weekly'}
           </p>
         </div>
 

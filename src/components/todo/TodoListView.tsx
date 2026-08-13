@@ -374,7 +374,7 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onEditTask }) => {
               To-Do
             </h2>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
-              {activePersonaFilter === 'all' ? 'Eve & Abbie' : activePersonaFilter} • {activeTasks.length} active
+              {activePersonaFilter === 'all' ? 'Eve & Abbie • ' : ''}{activeTasks.length} active tasks
             </p>
           </div>
 
@@ -673,7 +673,7 @@ export const TodoListView: React.FC<TodoListViewProps> = ({ onEditTask }) => {
             To-Do List <Sparkles size={18} color="#F59E0B" />
           </h2>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-            {activePersonaFilter === 'all' ? 'Tasks for Eve & Abbie' : `Tasks for ${activePersonaFilter}`}
+            {activePersonaFilter === 'all' ? 'Tasks for Eve & Abbie' : 'Organize your daily tasks'}
           </p>
         </div>
 
