@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useCalendar } from '../../context/CalendarContext';
-import { Utensils, Edit2, Check, RefreshCw, Sun, Sunset, Moon, Coffee, Grid, Calendar as CalendarIcon } from 'lucide-react';
+import { Utensils, Edit2, Check, RefreshCw, Sun, Sunset, Coffee, Trash2, Plus, X } from 'lucide-react';
 import { format, startOfWeek } from 'date-fns';
 
 interface MealSlot {
@@ -84,6 +84,19 @@ export const MealsView: React.FC = () => {
     setEditingSlot(null);
   };
 
+  const removeMealSlot = (day: string, slot: keyof MealSlot) => {
+    setMeals((prev) => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        [slot]: '',
+      },
+    }));
+    if (editingSlot?.day === day && editingSlot?.slot === slot) {
+      setEditingSlot(null);
+    }
+  };
+
   const handleResetMeals = () => {
     if (window.confirm('Reset this week’s meal plan back to default template?')) {
       setMeals(DEFAULT_MEALS);
@@ -101,7 +114,7 @@ export const MealsView: React.FC = () => {
 
   return (
     <div style={{
-      maxWidth: '750px',
+      maxWidth: '850px',
       margin: '0 auto',
       paddingBottom: '5rem',
       fontFamily: "'Plus Jakarta Sans', sans-serif",
@@ -126,10 +139,11 @@ export const MealsView: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             gap: '0.4rem',
+            margin: 0,
           }}>
             Meal Prep & Planner <Utensils size={20} color="#EC4899" />
           </h2>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px', margin: 0 }}>
             {activePersonaFilter === 'all' ? 'Weekly meals for Eve & Abbie • Refreshes weekly' : `Meals for ${activePersonaFilter} • Refreshes weekly`}
           </p>
         </div>
@@ -292,46 +306,90 @@ export const MealsView: React.FC = () => {
                       </span>
                     </div>
 
-                    {!isEditingThis ? (
-                      <button
-                        type="button"
-                        onClick={() => startEdit(selectedDay, conf.key)}
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: 'var(--text-muted)',
-                          cursor: 'pointer',
-                          padding: '4px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '3px',
-                          fontSize: '0.725rem',
-                          fontWeight: 700,
-                        }}
-                      >
-                        <Edit2 size={13} /> Edit
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={saveEdit}
-                        style={{
-                          padding: '0.2rem 0.65rem',
-                          borderRadius: '6px',
-                          border: 'none',
-                          backgroundColor: '#EC4899',
-                          color: '#FFFFFF',
-                          fontSize: '0.75rem',
-                          fontWeight: 800,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '3px',
-                        }}
-                      >
-                        <Check size={13} /> Save
-                      </button>
-                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      {val && !isEditingThis && (
+                        <button
+                          type="button"
+                          onClick={() => removeMealSlot(selectedDay, conf.key)}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#EF4444',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '2px',
+                            fontSize: '0.725rem',
+                            fontWeight: 700,
+                          }}
+                          title={`Remove ${conf.label}`}
+                        >
+                          <Trash2 size={13} /> Remove
+                        </button>
+                      )}
+
+                      {!isEditingThis ? (
+                        <button
+                          type="button"
+                          onClick={() => startEdit(selectedDay, conf.key)}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: 'var(--text-muted)',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                            fontSize: '0.725rem',
+                            fontWeight: 700,
+                          }}
+                        >
+                          <Edit2 size={13} /> {val ? 'Edit' : 'Add'}
+                        </button>
+                      ) : (
+                        <div style={{ display: 'flex', gap: '0.35rem' }}>
+                          {val && (
+                            <button
+                              type="button"
+                              onClick={() => removeMealSlot(selectedDay, conf.key)}
+                              style={{
+                                padding: '0.2rem 0.5rem',
+                                borderRadius: '6px',
+                                border: '1px solid #EF4444',
+                                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                color: '#EF4444',
+                                fontSize: '0.725rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              Clear
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={saveEdit}
+                            style={{
+                              padding: '0.2rem 0.65rem',
+                              borderRadius: '6px',
+                              border: 'none',
+                              backgroundColor: '#EC4899',
+                              color: '#FFFFFF',
+                              fontSize: '0.75rem',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '3px',
+                            }}
+                          >
+                            <Check size={13} /> Save
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {isEditingThis ? (
@@ -365,10 +423,19 @@ export const MealsView: React.FC = () => {
                         fontStyle: val ? 'normal' : 'italic',
                         cursor: 'pointer',
                         padding: '0.2rem 0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
                       }}
                       title="Click to edit meal"
                     >
-                      {val || `Tap to add ${conf.label.toLowerCase()}...`}
+                      {val ? (
+                        val
+                      ) : (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '3px', color: 'var(--text-muted)' }}>
+                          <Plus size={14} color="#EC4899" /> No {conf.label.toLowerCase()} planned (Tap to add)
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>
@@ -378,7 +445,7 @@ export const MealsView: React.FC = () => {
         </div>
       )}
 
-      {/* RENDER 2: FULL WEEK GRID VIEW */}
+      {/* RENDER 2: FULL WEEK GRID VIEW (Desktop Optimized Grid) */}
       {viewMode === 'weekly' && (
         <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%' }}>
           <div style={{
@@ -440,32 +507,57 @@ export const MealsView: React.FC = () => {
                       return (
                         <div
                           key={conf.key}
-                          onClick={() => {
-                            setSelectedDay(dayName);
-                            setViewMode('daily');
-                            startEdit(dayName, conf.key);
-                          }}
                           style={{
                             backgroundColor: 'var(--bg-primary)',
                             padding: '0.55rem 0.65rem',
                             borderRadius: '8px',
                             border: '1px solid var(--border-subtle)',
-                            cursor: 'pointer',
+                            position: 'relative',
                           }}
                         >
-                          <div style={{ fontSize: '0.675rem', fontWeight: 800, color: conf.color, textTransform: 'uppercase' }}>
-                            {conf.label}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div style={{ fontSize: '0.675rem', fontWeight: 800, color: conf.color, textTransform: 'uppercase' }}>
+                              {conf.label}
+                            </div>
+                            {mVal && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeMealSlot(dayName, conf.key);
+                                }}
+                                style={{
+                                  background: 'transparent',
+                                  border: 'none',
+                                  color: '#EF4444',
+                                  cursor: 'pointer',
+                                  padding: '2px',
+                                }}
+                                title={`Remove ${conf.label}`}
+                              >
+                                <X size={12} />
+                              </button>
+                            )}
                           </div>
-                          <div style={{
-                            fontSize: '0.8rem',
-                            fontWeight: 700,
-                            color: mVal ? 'var(--text-primary)' : 'var(--text-muted)',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            marginTop: '2px',
-                          }}>
-                            {mVal || 'Empty'}
+                          <div
+                            onClick={() => {
+                              setSelectedDay(dayName);
+                              setViewMode('daily');
+                              startEdit(dayName, conf.key);
+                            }}
+                            style={{
+                              fontSize: '0.8rem',
+                              fontWeight: 700,
+                              color: mVal ? 'var(--text-primary)' : 'var(--text-muted)',
+                              fontStyle: mVal ? 'normal' : 'italic',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              marginTop: '2px',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {mVal || '+ Skipped'}
                           </div>
                         </div>
                       );
@@ -480,4 +572,5 @@ export const MealsView: React.FC = () => {
     </div>
   );
 };
+
 
