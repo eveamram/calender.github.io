@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "postbuild": "rm -rf ./assets && cp dist/index.html ./index.html && cp -r dist/assets ./assets && cp public/404.html ./404.html 2>/dev/null || true",
     "preview": "vite preview",
     "lint": "tsc",
     "predeploy": "npm run build",
