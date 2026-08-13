@@ -114,7 +114,7 @@ export const MealsView: React.FC = () => {
 
   return (
     <div style={{
-      maxWidth: '850px',
+      maxWidth: '100%',
       margin: '0 auto',
       paddingBottom: '5rem',
       fontFamily: "'Plus Jakarta Sans', sans-serif",
@@ -170,7 +170,9 @@ export const MealsView: React.FC = () => {
             <RefreshCw size={12} /> Reset Week
           </button>
         </div>
-      {/* Day Selector Pills */}
+      </div>
+
+      {/* Day Selector Pills - Full Width Row */}
       <div style={{
         display: 'flex',
         gap: '0.4rem',
@@ -180,6 +182,8 @@ export const MealsView: React.FC = () => {
         padding: '5px',
         borderRadius: '999px',
         border: '1px solid var(--border-color)',
+        width: '100%',
+        boxSizing: 'border-box',
       }}>
         {DAYS.map((d) => {
           const isSelected = selectedDay === d;
@@ -195,8 +199,8 @@ export const MealsView: React.FC = () => {
               }}
               style={{
                 flex: 1,
-                padding: '0.45rem 0',
-                minWidth: '42px',
+                padding: '0.5rem 0',
+                minWidth: '44px',
                 borderRadius: '999px',
                 border: 'none',
                 backgroundColor: isSelected ? 'var(--bg-secondary)' : 'transparent',
@@ -214,8 +218,13 @@ export const MealsView: React.FC = () => {
         })}
       </div>
 
-      {/* Meal Cards */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+      {/* Meal Cards Grid - Fluidly adjusts 1 column on mobile, 2 columns on larger screens */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+        gap: '1rem',
+        width: '100%',
+      }}>
             {SLOT_CONFIG.map((conf) => {
               const val = currentMealSlot[conf.key];
               const isEditingThis = editingSlot?.day === selectedDay && editingSlot?.slot === conf.key;
@@ -392,7 +401,6 @@ export const MealsView: React.FC = () => {
               );
             })}
           </div>
-        </div>
     </div>
   );
 };
