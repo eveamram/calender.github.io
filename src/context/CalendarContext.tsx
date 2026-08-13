@@ -220,6 +220,27 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     localStorage.setItem('calender_unified_events', JSON.stringify(events));
   }, [events]);
 
+  // Sync state automatically when storage changes or window regains focus
+  useEffect(() => {
+    const handleStorageChange = () => {
+      try {
+        const storedEvents = localStorage.getItem('calender_unified_events');
+        if (storedEvents) {
+          setEvents(JSON.parse(storedEvents));
+        }
+      } catch (e) {
+        console.error('Storage sync error:', e);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('focus', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', handleStorageChange);
+    };
+  }, []);
+
   const addToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     const id = Date.now().toString();
     setToasts((prev) => [...prev, { id, message, type }]);
