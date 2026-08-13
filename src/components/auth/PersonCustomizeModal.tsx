@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { X, User, Palette, Image as ImageIcon, Check } from 'lucide-react';
+import { X, Check, Upload } from 'lucide-react';
 
 interface PersonCustomizeModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const PRESET_AVATARS = ['👩‍🎓', '👩‍💻', '🌸', '🎨', '📚', '🌊', '⚡', '🌟', '🍒', '🔮'];
+const PRESET_AVATARS = ['👩‍🎓', '👩‍💻', '🌸', '🎨', '📚', '⚡', '🌟'];
 const COLOR_PRESETS = [
   { name: 'Blue', hex: '#3B82F6' },
   { name: 'Pink', hex: '#EC4899' },
@@ -72,9 +72,9 @@ export const PersonCustomizeModal: React.FC<PersonCustomizeModalProps> = ({
       <div style={{
         backgroundColor: 'var(--bg-secondary)',
         border: '1px solid var(--border-color)',
-        borderRadius: 'var(--radius-lg)',
+        borderRadius: '24px',
         width: '100%',
-        maxWidth: '420px',
+        maxWidth: '380px',
         padding: '1.5rem',
         boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
       }} onClick={(e) => e.stopPropagation()}>
@@ -85,8 +85,8 @@ export const PersonCustomizeModal: React.FC<PersonCustomizeModalProps> = ({
           justifyContent: 'space-between',
           marginBottom: '1.25rem',
         }}>
-          <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-            Profile & Settings
+          <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+            Edit Profile
           </h3>
 
           <button
@@ -97,7 +97,11 @@ export const PersonCustomizeModal: React.FC<PersonCustomizeModalProps> = ({
               border: 'none',
               color: 'var(--text-muted)',
               cursor: 'pointer',
-              padding: '2px',
+              padding: '4px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
             <X size={18} />
@@ -106,41 +110,41 @@ export const PersonCustomizeModal: React.FC<PersonCustomizeModalProps> = ({
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {/* Avatar Preview & Selection */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.85rem' }}>
             <div style={{
-              width: '72px',
-              height: '72px',
+              width: '76px',
+              height: '76px',
               borderRadius: '50%',
               backgroundColor: `${selectedColor}18`,
               border: `3px solid ${selectedColor}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '2rem',
+              fontSize: '2.2rem',
               overflow: 'hidden',
               boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
             }}>
-              {avatarUrl.startsWith('http') ? (
+              {avatarUrl.startsWith('http') || avatarUrl.startsWith('data:') ? (
                 <img src={avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : (
                 avatarUrl || '👩‍🎓'
               )}
             </div>
 
-            {/* Avatar Presets */}
-            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+            {/* Single Row Emoji Pills */}
+            <div style={{ display: 'flex', gap: '0.45rem', justifyContent: 'center' }}>
               {PRESET_AVATARS.map((emoji) => (
                 <button
                   key={emoji}
                   type="button"
                   onClick={() => setAvatarUrl(emoji)}
                   style={{
-                    width: '34px',
-                    height: '34px',
+                    width: '36px',
+                    height: '36px',
                     borderRadius: '50%',
-                    border: avatarUrl === emoji ? `2px solid ${selectedColor}` : '1px solid var(--border-color)',
+                    border: avatarUrl === emoji ? `2.5px solid ${selectedColor}` : '1px solid var(--border-color)',
                     backgroundColor: avatarUrl === emoji ? `${selectedColor}15` : 'var(--bg-primary)',
-                    fontSize: '1.1rem',
+                    fontSize: '1.15rem',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -152,63 +156,45 @@ export const PersonCustomizeModal: React.FC<PersonCustomizeModalProps> = ({
                 </button>
               ))}
             </div>
+
+            {/* Custom Photo Upload Button */}
+            <label style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              padding: '0.35rem 0.75rem',
+              borderRadius: '999px',
+              backgroundColor: 'var(--bg-hover)',
+              border: '1px solid var(--border-color)',
+              color: 'var(--text-secondary)',
+              fontWeight: 700,
+              fontSize: '0.75rem',
+              cursor: 'pointer',
+            }}>
+              <Upload size={13} /> Upload photo
+              <input
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (evt) => {
+                      if (evt.target?.result) {
+                        setAvatarUrl(evt.target.result as string);
+                      }
+                    };
+                    reader.readAsDataURL(file);
+                  }
+                }}
+              />
+            </label>
           </div>
 
-          {/* Image Upload & URL Input */}
+          {/* Name */}
           <div>
             <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
-              Profile Photo (Upload from Pictures / Downloads)
-            </label>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <input
-                type="text"
-                className="input-field"
-                placeholder="https://example.com/photo.jpg or upload..."
-                value={avatarUrl.startsWith('http') || avatarUrl.startsWith('data:') ? avatarUrl : ''}
-                onChange={(e) => setAvatarUrl(e.target.value)}
-                style={{ flex: 1 }}
-              />
-
-              <label style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.3rem',
-                padding: '0.65rem 0.85rem',
-                borderRadius: 'var(--radius-sm)',
-                backgroundColor: 'var(--bg-hover)',
-                border: '1px solid var(--border-color)',
-                color: 'var(--text-primary)',
-                fontWeight: 700,
-                fontSize: '0.775rem',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}>
-                <ImageIcon size={15} /> Upload File
-                <input
-                  type="file"
-                  accept="image/*"
-                  style={{ display: 'none' }}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = (evt) => {
-                        if (evt.target?.result) {
-                          setAvatarUrl(evt.target.result as string);
-                        }
-                      };
-                      reader.readAsDataURL(file);
-                    }
-                  }}
-                />
-              </label>
-            </div>
-          </div>
-
-          {/* Display Name */}
-          <div>
-            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
               Name
             </label>
             <input
@@ -216,16 +202,18 @@ export const PersonCustomizeModal: React.FC<PersonCustomizeModalProps> = ({
               className="input-field"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="Enter your name"
               required
+              style={{ fontSize: '0.9rem', padding: '0.65rem 0.85rem', borderRadius: '12px' }}
             />
           </div>
 
-          {/* Profile Accent Color */}
+          {/* Color Presets */}
           <div>
             <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.35rem' }}>
-              Accent Color
+              Profile Color
             </label>
-            <div style={{ display: 'flex', gap: '0.6rem' }}>
+            <div style={{ display: 'flex', gap: '0.65rem' }}>
               {COLOR_PRESETS.map((col) => (
                 <button
                   key={col.hex}
@@ -242,26 +230,29 @@ export const PersonCustomizeModal: React.FC<PersonCustomizeModalProps> = ({
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: '#FFFFFF',
+                    transition: 'all 0.12s ease',
                   }}
+                  title={col.name}
                 >
-                  {selectedColor === col.hex && <Check size={14} />}
+                  {selectedColor === col.hex && <Check size={14} strokeWidth={3} />}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Action Buttons */}
+          {/* Actions */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'flex-end',
-            gap: '0.6rem',
+            gap: '0.5rem',
             marginTop: '0.5rem',
           }}>
             <button
               type="button"
               className="btn btn-secondary"
               onClick={onClose}
+              style={{ borderRadius: '999px', padding: '0.5rem 1rem' }}
             >
               Cancel
             </button>
@@ -270,7 +261,7 @@ export const PersonCustomizeModal: React.FC<PersonCustomizeModalProps> = ({
               type="submit"
               className="btn btn-primary"
               disabled={isSubmitting || !displayName.trim()}
-              style={{ fontWeight: 800 }}
+              style={{ borderRadius: '999px', padding: '0.5rem 1.25rem', fontWeight: 800 }}
             >
               {isSubmitting ? 'Saving...' : 'Save Profile'}
             </button>
