@@ -140,22 +140,24 @@ export const HabitsView: React.FC = () => {
     return h.owner === activePersonaFilter;
   });
 
-  // Filter for single day view
+  // Filter for single day view with fallback to all persona habits
   const singleDayHabits = personaHabits.filter((h) => {
     const days = h.daysOfWeek || [1, 2, 3, 4, 5, 6, 0];
     return days.includes(selectedDayVal);
   });
+  const displayHabits = singleDayHabits.length > 0 ? singleDayHabits : personaHabits;
 
   const handleToggleHabit = (habitId: string, dateStr: string) => {
-    setHabits((prev) =>
-      prev.map((h) => {
+    setHabits((prev) => {
+      const updated = prev.map((h) => {
         if (h.id !== habitId) return h;
-        const isDone = h.completedDates.includes(dateStr);
+        const completed = h.completedDates || [];
+        const isDone = completed.includes(dateStr);
         const newDates = isDone
-          ? h.completedDates.filter((d) => d !== dateStr)
-          : [...h.completedDates, dateStr];
+          ? completed.filter((d) => d !== dateStr)
+          : [...completed, dateStr];
 
-        if (!isDone && dateStr === todayStr) {
+        if (!isDone) {
           confetti({
             particleCount: 50,
             spread: 60,
@@ -165,8 +167,12 @@ export const HabitsView: React.FC = () => {
         }
 
         return { ...h, completedDates: newDates };
-      })
-    );
+      });
+      try {
+        localStorage.setItem('calender_daily_habits_v2', JSON.stringify(updated));
+      } catch (err) {}
+      return updated;
+    });
   };
 
   const toggleDaySelection = (dayVal: number) => {
@@ -523,19 +529,19 @@ export const HabitsView: React.FC = () => {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
             <h3 style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              {activeDayLabel}'s Habits ({singleDayHabits.length})
+              {activeDayLabel}'s Habits ({displayHabits.length})
             </h3>
           </div>
 
-          {singleDayHabits.length === 0 ? (
+          {displayHabits.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-muted)' }}>
               <Sparkles size={24} style={{ marginBottom: '0.5rem', opacity: 0.6 }} />
-              <p style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>No habits scheduled for {activeDayLabel}!</p>
+              <p style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>No habits added yet!</p>
               <p style={{ fontSize: '0.8rem', marginTop: '3px' }}>Click "Add Habit" to customize your day!</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
-              {singleDayHabits.map((habit) => {
+              {displayHabits.map((habit) => {
                 const isDone = habit.completedDates.includes(activeDayDateStr);
                 const streak = calculateStreak(habit);
 

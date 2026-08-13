@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { X, Check, Upload } from 'lucide-react';
+import { useCalendar } from '../../context/CalendarContext';
+import { X, Check, Upload, RotateCcw } from 'lucide-react';
 
 interface PersonCustomizeModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ export const PersonCustomizeModal: React.FC<PersonCustomizeModalProps> = ({
   onClose,
 }) => {
   const { userProfile, updateProfile } = useAuth();
+  const { resetAllData } = useCalendar();
   const [displayName, setDisplayName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [selectedColor, setSelectedColor] = useState('#3B82F6');
@@ -238,6 +240,35 @@ export const PersonCustomizeModal: React.FC<PersonCustomizeModalProps> = ({
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Reset All Data Button */}
+          <div style={{ paddingTop: '0.5rem', borderTop: '1px solid var(--border-color)', marginTop: '0.5rem' }}>
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm('Reset all calendar events, tasks, classes, meals & habits back to fresh state?')) {
+                  resetAllData();
+                }
+              }}
+              style={{
+                width: '100%',
+                padding: '0.55rem',
+                borderRadius: '12px',
+                border: '1px solid #FCA5A5',
+                backgroundColor: '#FEF2F2',
+                color: '#DC2626',
+                fontWeight: 700,
+                fontSize: '0.8rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.4rem',
+                cursor: 'pointer',
+              }}
+            >
+              <RotateCcw size={14} /> Reset Everything (Calendar, Classes, Tasks)
+            </button>
           </div>
 
           {/* Actions */}

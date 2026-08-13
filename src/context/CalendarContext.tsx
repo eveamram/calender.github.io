@@ -46,6 +46,7 @@ interface CalendarContextType {
 
   showTodosOnCalendar: boolean;
   setShowTodosOnCalendar: (show: boolean) => void;
+  resetAllData: () => void;
 }
 
 const CalendarContext = createContext<CalendarContextType | undefined>(undefined);
@@ -294,6 +295,16 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return true;
   };
 
+  const resetAllData = () => {
+    localStorage.removeItem('calender_unified_events');
+    localStorage.removeItem('calender_daily_habits_v2');
+    localStorage.removeItem('calender_weekly_meals');
+    localStorage.removeItem('calender_habits_last_week');
+    setEvents([]);
+    addToast('All calendar events, classes, tasks & habits reset!', 'info');
+    window.location.reload();
+  };
+
   return (
     <CalendarContext.Provider
       value={{
@@ -321,6 +332,7 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setThemeColor,
         showTodosOnCalendar,
         setShowTodosOnCalendar,
+        resetAllData,
       }}
     >
       {children}
