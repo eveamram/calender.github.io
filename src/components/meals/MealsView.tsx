@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useCalendar } from '../../context/CalendarContext';
-import { Utensils, Edit2, Check, RefreshCw, Sun, Sunset, Coffee, Trash2, Plus, X } from 'lucide-react';
+import { Utensils, Edit2, Check, Sparkles, RefreshCw, Sun, Sunset, Coffee, Trash2, Plus, X } from 'lucide-react';
 import { format, startOfWeek } from 'date-fns';
+import { subscribeToSync, syncUpdateItem } from '../../lib/syncEngine';
 
-interface MealSlot {
-  breakfast: string;
-  lunch: string;
-  dinner: string;
+export interface MealSlot {
+  breakfast?: string;
+  lunch?: string;
+  dinner?: string;
   snack?: string;
 }
 
@@ -62,13 +63,22 @@ export const MealsView: React.FC = () => {
     localStorage.setItem('calender_meal_category_labels', JSON.stringify(slotLabels));
   }, [slotLabels]);
 
+  const PRESET_CATEGORIES = ['Breakfast 🥣', 'Lunch 🥗', 'Dinner 🍝', 'Snack / Drink 🥤', 'Meal Prep 🍱', 'Dessert 🍦'];
+
   const handleRenameCategory = (slotKey: keyof MealSlot) => {
     const currentLabel = slotLabels[slotKey] || slotKey;
-    const newLabel = window.prompt(`Rename "${currentLabel}" category to:`, currentLabel);
-    if (newLabel && newLabel.trim()) {
+    const choicesStr = PRESET_CATEGORIES.map((c, i) => `${i + 1}. ${c}`).join('\n');
+    const input = window.prompt(`Choose or type category for "${currentLabel}":\n\n${choicesStr}\n\nType a number (1-6) or custom name:`, currentLabel);
+    
+    if (input && input.trim()) {
+      const num = parseInt(input.trim(), 10);
+      const chosenLabel = (!isNaN(num) && num >= 1 && num <= PRESET_CATEGORIES.length)
+        ? PRESET_CATEGORIES[num - 1]
+        : input.trim();
+      
       setSlotLabels((prev) => ({
         ...prev,
-        [slotKey]: newLabel.trim(),
+        [slotKey]: chosenLabel,
       }));
     }
   };
@@ -92,6 +102,21 @@ export const MealsView: React.FC = () => {
     window.dispatchEvent(new Event('storage'));
   }, [meals]);
 
+  useEffect(() => {
+    const unsubscribe = subscribeToSync('meal_plans', (event) => {
+      if (event.type === 'UPDATE' && event.id && event.payload) {
+        setMeals((prev) => ({
+          ...prev,
+          [event.id!]: {
+            ...prev[event.id!],
+            ...event.payload,
+          },
+        }));
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   const startEdit = (day: string, slot: keyof MealSlot) => {
     setEditingSlot({ day, slot });
     setEditValue(meals[day]?.[slot] || '');
@@ -99,13 +124,18 @@ export const MealsView: React.FC = () => {
 
   const saveEdit = () => {
     if (!editingSlot) return;
+    const { day, slot } = editingSlot;
+    const trimmed = editValue.trim();
+
     setMeals((prev) => ({
       ...prev,
-      [editingSlot.day]: {
-        ...prev[editingSlot.day],
-        [editingSlot.slot]: editValue.trim(),
+      [day]: {
+        ...prev[day],
+        [slot]: trimmed,
       },
     }));
+
+    syncUpdateItem('meal_plans', day, { [slot]: trimmed });
     setEditingSlot(null);
   };
 
@@ -117,6 +147,8 @@ export const MealsView: React.FC = () => {
         [slot]: '',
       },
     }));
+
+    syncUpdateItem('meal_plans', day, { [slot]: '' });
     if (editingSlot?.day === day && editingSlot?.slot === slot) {
       setEditingSlot(null);
     }

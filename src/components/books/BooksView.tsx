@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useCalendar } from '../../context/CalendarContext';
 import { BookItem, BookStatus } from '../../types';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { subscribeToSync, syncInsertItem, syncUpdateItem, syncDeleteItem } from '../../lib/syncEngine';
 import {
   BookOpen,
   Plus,
@@ -106,6 +107,19 @@ export const BooksView: React.FC = () => {
   }, [books]);
 
   useEffect(() => {
+    const unsubscribe = subscribeToSync('books', (event) => {
+      if (event.type === 'INSERT' && event.payload) {
+        const item = event.payload as BookItem;
+        setBooks((prev) => (prev.some((b) => b.id === item.id) ? prev : [item, ...prev]));
+      } else if (event.type === 'UPDATE' && event.id) {
+        setBooks((prev) =>
+          prev.map((b) => (b.id === event.id ? { ...b, ...event.payload } : b))
+        );
+      } else if (event.type === 'DELETE' && event.id) {
+        setBooks((prev) => prev.filter((b) => b.id !== event.id));
+      }
+    });
+
     const handleStorageChange = () => {
       try {
         const saved = localStorage.getItem('calender_shared_books_v1');
@@ -117,6 +131,7 @@ export const BooksView: React.FC = () => {
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('focus', handleStorageChange);
     return () => {
+      unsubscribe();
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('focus', handleStorageChange);
     };
@@ -178,8 +193,10 @@ export const BooksView: React.FC = () => {
 
     if (editingBook) {
       setBooks((prev) => prev.map((b) => (b.id === editingBook.id ? bookData : b)));
+      syncUpdateItem('books', editingBook.id, bookData);
     } else {
       setBooks((prev) => [bookData, ...prev]);
+      syncInsertItem('books', bookData);
     }
 
     setIsModalOpen(false);
@@ -188,6 +205,7 @@ export const BooksView: React.FC = () => {
   const handleDeleteBook = (id: string) => {
     if (window.confirm('Are you sure you want to remove this book from your library?')) {
       setBooks((prev) => prev.filter((b) => b.id !== id));
+      syncDeleteItem('books', id);
     }
   };
 
@@ -201,45 +219,39 @@ export const BooksView: React.FC = () => {
     if (newPgStr !== null) {
       const parsed = parseInt(newPgStr, 10);
       if (!isNaN(parsed) && parsed >= 0) {
+        const updates: Partial<BookItem> = {
+          [persona === 'Eve' ? 'eve_current_page' : 'abbie_current_page']: parsed,
+          updated_at: new Date().toISOString(),
+        };
+
+        if (targetBook.total_pages && parsed >= targetBook.total_pages && (persona === 'Eve' ? targetBook.abbie_current_page : targetBook.eve_current_page) === targetBook.total_pages) {
+          updates.status = 'completed';
+          updates.completed_date = format(new Date(), 'yyyy-MM-dd');
+        }
+
         setBooks((prev) =>
-          prev.map((b) => {
-            if (b.id === bookId) {
-              const updated = {
-                ...b,
-                [persona === 'Eve' ? 'eve_current_page' : 'abbie_current_page']: parsed,
-                updated_at: new Date().toISOString(),
-              };
-              // Check if both reached total pages
-              if (b.total_pages && parsed >= b.total_pages && (persona === 'Eve' ? b.abbie_current_page : b.eve_current_page) === b.total_pages) {
-                updated.status = 'completed';
-                updated.completed_date = format(new Date(), 'yyyy-MM-dd');
-              }
-              return updated;
-            }
-            return b;
-          })
+          prev.map((b) => (b.id === bookId ? { ...b, ...updates } : b))
         );
+        syncUpdateItem('books', bookId, updates);
       }
     }
   };
 
   const handleMarkAsCompleted = (bookId: string) => {
+    const target = books.find((b) => b.id === bookId);
+    const tot = target?.total_pages || 100;
+    const updates: Partial<BookItem> = {
+      status: 'completed',
+      eve_current_page: tot,
+      abbie_current_page: tot,
+      completed_date: format(new Date(), 'yyyy-MM-dd'),
+      updated_at: new Date().toISOString(),
+    };
+
     setBooks((prev) =>
-      prev.map((b) => {
-        if (b.id === bookId) {
-          const tot = b.total_pages || 100;
-          return {
-            ...b,
-            status: 'completed',
-            eve_current_page: tot,
-            abbie_current_page: tot,
-            completed_date: format(new Date(), 'yyyy-MM-dd'),
-            updated_at: new Date().toISOString(),
-          };
-        }
-        return b;
-      })
+      prev.map((b) => (b.id === bookId ? { ...b, ...updates } : b))
     );
+    syncUpdateItem('books', bookId, updates);
   };
 
   const currentlyReadingBooks = books.filter((b) => b.status === 'reading');

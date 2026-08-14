@@ -4,6 +4,7 @@ import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
 import { Plus, Flame, Check, Sparkles, Trash2, User, Calendar as CalendarIcon, Circle, Pencil } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { subscribeToSync, syncInsertItem, syncUpdateItem, syncDeleteItem } from '../../lib/syncEngine';
 
 export interface HabitItem {
   id: string;
@@ -105,6 +106,22 @@ export const HabitsView: React.FC = () => {
     localStorage.setItem('calender_daily_habits_v2', JSON.stringify(habits));
   }, [habits]);
 
+  useEffect(() => {
+    const unsubscribe = subscribeToSync('habits', (event) => {
+      if (event.type === 'INSERT' && event.payload) {
+        const item = event.payload as HabitItem;
+        setHabits((prev) => (prev.some((h) => h.id === item.id) ? prev : [item, ...prev]));
+      } else if (event.type === 'UPDATE' && event.id) {
+        setHabits((prev) =>
+          prev.map((h) => (h.id === event.id ? { ...h, ...event.payload } : h))
+        );
+      } else if (event.type === 'DELETE' && event.id) {
+        setHabits((prev) => prev.filter((h) => h.id !== event.id));
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -148,31 +165,29 @@ export const HabitsView: React.FC = () => {
   const displayHabits = singleDayHabits.length > 0 ? singleDayHabits : personaHabits;
 
   const handleToggleHabit = (habitId: string, dateStr: string) => {
-    setHabits((prev) => {
-      const updated = prev.map((h) => {
-        if (h.id !== habitId) return h;
-        const completed = h.completedDates || [];
-        const isDone = completed.includes(dateStr);
-        const newDates = isDone
-          ? completed.filter((d) => d !== dateStr)
-          : [...completed, dateStr];
+    const targetHabit = habits.find((h) => h.id === habitId);
+    if (!targetHabit) return;
 
-        if (!isDone) {
-          confetti({
-            particleCount: 50,
-            spread: 60,
-            origin: { y: 0.7 },
-            colors: [h.color, '#3B82F6', '#EC4899', '#10B981'],
-          });
-        }
+    const completed = targetHabit.completedDates || [];
+    const isDone = completed.includes(dateStr);
+    const newDates = isDone
+      ? completed.filter((d) => d !== dateStr)
+      : [...completed, dateStr];
 
-        return { ...h, completedDates: newDates };
+    if (!isDone) {
+      confetti({
+        particleCount: 50,
+        spread: 60,
+        origin: { y: 0.7 },
+        colors: [targetHabit.color, '#3B82F6', '#EC4899', '#10B981'],
       });
-      try {
-        localStorage.setItem('calender_daily_habits_v2', JSON.stringify(updated));
-      } catch (err) {}
-      return updated;
-    });
+    }
+
+    setHabits((prev) =>
+      prev.map((h) => (h.id === habitId ? { ...h, completedDates: newDates } : h))
+    );
+
+    syncUpdateItem('habits', habitId, { completedDates: newDates });
   };
 
   const toggleDaySelection = (dayVal: number) => {
@@ -200,12 +215,14 @@ export const HabitsView: React.FC = () => {
     };
 
     setHabits((prev) => [habit, ...prev]);
+    syncInsertItem('habits', habit);
     setNewTitle('');
     setShowAddForm(false);
   };
 
   const handleDeleteHabit = (id: string) => {
     setHabits((prev) => prev.filter((h) => h.id !== id));
+    syncDeleteItem('habits', id);
   };
 
   const calculateStreak = (habit: HabitItem) => {

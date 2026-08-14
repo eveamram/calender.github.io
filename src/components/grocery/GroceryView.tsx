@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCalendar } from '../../context/CalendarContext';
 import { ShoppingBag, Plus, Check, Trash2, Tag, Search, Sparkles, X } from 'lucide-react';
+import { subscribeToSync, syncInsertItem, syncUpdateItem, syncDeleteItem } from '../../lib/syncEngine';
 
 export interface GroceryItem {
   id: string;
@@ -53,6 +54,22 @@ export const GroceryView: React.FC = () => {
     window.dispatchEvent(new Event('storage'));
   }, [items]);
 
+  useEffect(() => {
+    const unsubscribe = subscribeToSync('grocery_items', (event) => {
+      if (event.type === 'INSERT' && event.payload) {
+        const item = event.payload as GroceryItem;
+        setItems((prev) => (prev.some((g) => g.id === item.id) ? prev : [item, ...prev]));
+      } else if (event.type === 'UPDATE' && event.id) {
+        setItems((prev) =>
+          prev.map((g) => (g.id === event.id ? { ...g, ...event.payload } : g))
+        );
+      } else if (event.type === 'DELETE' && event.id) {
+        setItems((prev) => prev.filter((g) => g.id !== event.id));
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   const handleAddItem = (e?: React.FormEvent, customName?: string, customCategory?: string) => {
     if (e) e.preventDefault();
     const nameToAdd = customName || newItemName;
@@ -68,21 +85,30 @@ export const GroceryView: React.FC = () => {
     };
 
     setItems((prev) => [newItem, ...prev]);
+    syncInsertItem('grocery_items', newItem);
     if (!customName) setNewItemName('');
   };
 
   const toggleItem = (id: string) => {
+    const target = items.find((i) => i.id === id);
+    if (!target) return;
+
+    const nextState = !target.purchased;
     setItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, purchased: !item.purchased } : item))
+      prev.map((item) => (item.id === id ? { ...item, purchased: nextState } : item))
     );
+    syncUpdateItem('grocery_items', id, { purchased: nextState });
   };
 
   const deleteItem = (id: string) => {
     setItems((prev) => prev.filter((item) => item.id !== id));
+    syncDeleteItem('grocery_items', id);
   };
 
   const clearPurchased = () => {
+    const purchasedIds = items.filter((i) => i.purchased).map((i) => i.id);
     setItems((prev) => prev.filter((i) => !i.purchased));
+    purchasedIds.forEach((id) => syncDeleteItem('grocery_items', id));
   };
 
   const filteredItems = items.filter((item) => {

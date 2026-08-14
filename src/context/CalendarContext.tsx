@@ -10,6 +10,7 @@ import {
 import { format, addDays } from 'date-fns';
 import confetti from 'canvas-confetti';
 import { generateAnniversaryEvents, ANNIVERSARY_PASSWORD } from '../utils/anniversary';
+import { subscribeToSync, syncInsertItem, syncUpdateItem, syncDeleteItem } from '../lib/syncEngine';
 
 export interface ToastMessage {
   id: string;
@@ -239,8 +240,21 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     localStorage.setItem('calender_unified_events', JSON.stringify(events));
   }, [events]);
 
-  // Sync state automatically when storage changes or window regains focus
+  // Subscribe to item-level Realtime changes
   useEffect(() => {
+    const unsubscribe = subscribeToSync('events', (event) => {
+      if (event.type === 'INSERT' && event.payload) {
+        const item = event.payload as CalendarEvent;
+        setEvents((prev) => (prev.some((e) => e.id === item.id) ? prev : [item, ...prev]));
+      } else if (event.type === 'UPDATE' && event.id) {
+        setEvents((prev) =>
+          prev.map((e) => (e.id === event.id ? { ...e, ...event.payload } : e))
+        );
+      } else if (event.type === 'DELETE' && event.id) {
+        setEvents((prev) => prev.filter((e) => e.id !== event.id));
+      }
+    });
+
     const handleStorageChange = () => {
       try {
         const storedEvents = localStorage.getItem('calender_unified_events');
@@ -267,6 +281,7 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('focus', handleStorageChange);
     return () => {
+      unsubscribe();
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('focus', handleStorageChange);
     };
@@ -313,6 +328,7 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
 
     setEvents((prev) => [newEvent, ...prev]);
+    await syncInsertItem('events', newEvent);
     addToast('Saved successfully', 'success');
     return newEvent;
   };
@@ -330,6 +346,7 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setEvents((prev) =>
       prev.map((evt) => (evt.id === id ? { ...evt, ...updates, updated_at: new Date().toISOString() } : evt))
     );
+    await syncUpdateItem('events', id, updates);
     addToast('Updated', 'info');
     return true;
   };
@@ -345,23 +362,24 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
 
     setEvents((prev) => prev.filter((evt) => evt.id !== id));
+    await syncDeleteItem('events', id);
     addToast('Deleted', 'info');
     return true;
   };
 
   const toggleEventCompleted = async (id: string): Promise<boolean> => {
+    const targetEvt = events.find((e) => e.id === id);
+    if (!targetEvt) return false;
+
+    const nextVal = !targetEvt.is_completed;
+    if (nextVal) {
+      confetti({ particleCount: 40, spread: 60, origin: { y: 0.7 } });
+    }
+
     setEvents((prev) =>
-      prev.map((evt) => {
-        if (evt.id === id) {
-          const nextVal = !evt.is_completed;
-          if (nextVal) {
-            confetti({ particleCount: 40, spread: 60, origin: { y: 0.7 } });
-          }
-          return { ...evt, is_completed: nextVal, updated_at: new Date().toISOString() };
-        }
-        return evt;
-      })
+      prev.map((evt) => (evt.id === id ? { ...evt, is_completed: nextVal, updated_at: new Date().toISOString() } : evt))
     );
+    await syncUpdateItem('events', id, { is_completed: nextVal, updated_at: new Date().toISOString() });
     return true;
   };
 
