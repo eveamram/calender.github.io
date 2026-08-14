@@ -48,6 +48,31 @@ export const MealsView: React.FC = () => {
   const [editingSlot, setEditingSlot] = useState<{ day: string; slot: keyof MealSlot } | null>(null);
   const [editValue, setEditValue] = useState('');
 
+  const [slotLabels, setSlotLabels] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem('calender_meal_category_labels');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed loading meal slot labels', e);
+    }
+    return { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack / Drink' };
+  });
+
+  useEffect(() => {
+    localStorage.setItem('calender_meal_category_labels', JSON.stringify(slotLabels));
+  }, [slotLabels]);
+
+  const handleRenameCategory = (slotKey: keyof MealSlot) => {
+    const currentLabel = slotLabels[slotKey] || slotKey;
+    const newLabel = window.prompt(`Rename "${currentLabel}" category to:`, currentLabel);
+    if (newLabel && newLabel.trim()) {
+      setSlotLabels((prev) => ({
+        ...prev,
+        [slotKey]: newLabel.trim(),
+      }));
+    }
+  };
+
   // Weekly Refresh Check: Automatically refresh meal plan check/reset when a new week starts
   useEffect(() => {
     try {
@@ -106,10 +131,10 @@ export const MealsView: React.FC = () => {
   const currentMealSlot = meals[selectedDay] || { breakfast: '', lunch: '', dinner: '', snack: '' };
 
   const SLOT_CONFIG: { key: keyof MealSlot; label: string; icon: React.ReactNode; color: string; bg: string }[] = [
-    { key: 'breakfast', label: 'Breakfast', icon: <Sun size={16} color="#F59E0B" />, color: '#B45309', bg: '#FEF3C7' },
-    { key: 'lunch', label: 'Lunch', icon: <Utensils size={16} color="#10B981" />, color: '#047857', bg: '#D1FAE5' },
-    { key: 'dinner', label: 'Dinner', icon: <Sunset size={16} color="#EC4899" />, color: '#BE185D', bg: '#FCE7F3' },
-    { key: 'snack', label: 'Snack / Drink', icon: <Coffee size={16} color="#8B5CF6" />, color: '#6D28D9', bg: '#EDE9FE' },
+    { key: 'breakfast', label: slotLabels.breakfast || 'Breakfast', icon: <Sun size={16} color="#F59E0B" />, color: '#B45309', bg: '#FEF3C7' },
+    { key: 'lunch', label: slotLabels.lunch || 'Lunch', icon: <Utensils size={16} color="#10B981" />, color: '#047857', bg: '#D1FAE5' },
+    { key: 'dinner', label: slotLabels.dinner || 'Dinner', icon: <Sunset size={16} color="#EC4899" />, color: '#BE185D', bg: '#FCE7F3' },
+    { key: 'snack', label: slotLabels.snack || 'Snack / Drink', icon: <Coffee size={16} color="#8B5CF6" />, color: '#6D28D9', bg: '#EDE9FE' },
   ];
 
   return (
@@ -260,8 +285,20 @@ export const MealsView: React.FC = () => {
                       }}>
                         {conf.icon}
                       </span>
-                      <span style={{ fontSize: '0.825rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                        {conf.label}
+                      <span
+                        onClick={() => handleRenameCategory(conf.key)}
+                        style={{
+                          fontSize: '0.825rem',
+                          fontWeight: 800,
+                          color: 'var(--text-primary)',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
+                        title="Click to rename meal category (e.g., Breakfast, Snack, Dessert)"
+                      >
+                        {conf.label} <Edit2 size={11} color="var(--text-muted)" style={{ opacity: 0.6 }} />
                       </span>
                     </div>
 
