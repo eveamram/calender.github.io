@@ -203,12 +203,22 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       console.error('Failed to parse local events:', e);
     }
 
-    // Automatically seed/merge monthly anniversary events starting from 13th month (August 30, 2026)
+    // Automatically seed/merge/update monthly anniversary events
     const anniversaries = generateAnniversaryEvents();
-    const existingIds = new Set(initialList.map((e) => e.id));
+    const anniversaryMap = new Map(anniversaries.map((a) => [a.id, a]));
+
+    const updatedList = initialList.map((evt) => {
+      if (evt.is_anniversary || evt.id.startsWith('anniversary-')) {
+        const fresh = anniversaryMap.get(evt.id);
+        if (fresh) return { ...evt, title: fresh.title };
+      }
+      return evt;
+    });
+
+    const existingIds = new Set(updatedList.map((e) => e.id));
     const missingAnniversaries = anniversaries.filter((a: CalendarEvent) => !existingIds.has(a.id));
 
-    return [...initialList, ...missingAnniversaries];
+    return [...updatedList, ...missingAnniversaries];
   });
 
   const [activeCalendar] = useState<SharedCalendar>(DEMO_CALENDAR);
@@ -237,9 +247,17 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (storedEvents) {
           const parsed: CalendarEvent[] = JSON.parse(storedEvents);
           const anniversaries = generateAnniversaryEvents();
-          const existingIds = new Set(parsed.map((e) => e.id));
+          const anniversaryMap = new Map(anniversaries.map((a) => [a.id, a]));
+          const updatedParsed = parsed.map((evt) => {
+            if (evt.is_anniversary || evt.id.startsWith('anniversary-')) {
+              const fresh = anniversaryMap.get(evt.id);
+              if (fresh) return { ...evt, title: fresh.title };
+            }
+            return evt;
+          });
+          const existingIds = new Set(updatedParsed.map((e) => e.id));
           const missingAnniversaries = anniversaries.filter((a: CalendarEvent) => !existingIds.has(a.id));
-          setEvents([...parsed, ...missingAnniversaries]);
+          setEvents([...updatedParsed, ...missingAnniversaries]);
         }
       } catch (e) {
         console.error('Storage sync error:', e);
