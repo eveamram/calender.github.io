@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && cp -r dist/* .",
+    "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "tsc",
     "predeploy": "npm run build",
