@@ -9,6 +9,7 @@ import {
 } from '../types';
 import { format, addDays } from 'date-fns';
 import confetti from 'canvas-confetti';
+import { generateAnniversaryEvents, ANNIVERSARY_PASSWORD } from '../utils/anniversary';
 
 export interface ToastMessage {
   id: string;
@@ -47,6 +48,7 @@ interface CalendarContextType {
   showTodosOnCalendar: boolean;
   setShowTodosOnCalendar: (show: boolean) => void;
   resetAllData: () => void;
+  resetAnniversaryWithPassword: () => boolean;
 }
 
 const CalendarContext = createContext<CalendarContextType | undefined>(undefined);
@@ -193,13 +195,20 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [showTodosOnCalendar]);
 
   const [events, setEvents] = useState<CalendarEvent[]>(() => {
+    let initialList: CalendarEvent[] = INITIAL_SEED_EVENTS;
     try {
       const stored = localStorage.getItem('calender_unified_events');
-      if (stored) return JSON.parse(stored);
+      if (stored) initialList = JSON.parse(stored);
     } catch (e) {
       console.error('Failed to parse local events:', e);
     }
-    return INITIAL_SEED_EVENTS;
+
+    // Automatically seed/merge monthly anniversary events starting from 13th month (August 30, 2026)
+    const anniversaries = generateAnniversaryEvents();
+    const existingIds = new Set(initialList.map((e) => e.id));
+    const missingAnniversaries = anniversaries.filter((a: CalendarEvent) => !existingIds.has(a.id));
+
+    return [...initialList, ...missingAnniversaries];
   });
 
   const [activeCalendar] = useState<SharedCalendar>(DEMO_CALENDAR);
@@ -226,7 +235,11 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       try {
         const storedEvents = localStorage.getItem('calender_unified_events');
         if (storedEvents) {
-          setEvents(JSON.parse(storedEvents));
+          const parsed: CalendarEvent[] = JSON.parse(storedEvents);
+          const anniversaries = generateAnniversaryEvents();
+          const existingIds = new Set(parsed.map((e) => e.id));
+          const missingAnniversaries = anniversaries.filter((a: CalendarEvent) => !existingIds.has(a.id));
+          setEvents([...parsed, ...missingAnniversaries]);
         }
       } catch (e) {
         console.error('Storage sync error:', e);
@@ -258,10 +271,10 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const abbieUser = members.find((m) => m.display_name === 'Abbie');
 
     if (activePersonaFilter === 'Eve' && eveUser) {
-      return evt.owner_user_id === eveUser.user_id || evt.created_by === eveUser.user_id || !evt.owner_user_id;
+      return evt.owner_user_id === eveUser.user_id || evt.created_by === eveUser.user_id || !evt.owner_user_id || evt.is_anniversary;
     }
     if (activePersonaFilter === 'Abbie' && abbieUser) {
-      return evt.owner_user_id === abbieUser.user_id || evt.created_by === abbieUser.user_id;
+      return evt.owner_user_id === abbieUser.user_id || evt.created_by === abbieUser.user_id || evt.is_anniversary;
     }
 
     return true;
@@ -287,6 +300,15 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const updateEvent = async (id: string, updates: Partial<CalendarEvent>): Promise<boolean> => {
+    const targetEvt = events.find((evt) => evt.id === id);
+    if (targetEvt?.is_anniversary || id.startsWith('anniversary-')) {
+      const pass = window.prompt('🔒 Password required to edit Anniversary event (MacLeod):');
+      if (pass !== 'MacLeod') {
+        addToast('Incorrect password. Anniversary is protected!', 'error');
+        return false;
+      }
+    }
+
     setEvents((prev) =>
       prev.map((evt) => (evt.id === id ? { ...evt, ...updates, updated_at: new Date().toISOString() } : evt))
     );
@@ -295,6 +317,15 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const deleteEvent = async (id: string): Promise<boolean> => {
+    const targetEvt = events.find((evt) => evt.id === id);
+    if (targetEvt?.is_anniversary || id.startsWith('anniversary-')) {
+      const pass = window.prompt('🔒 Password required to delete Anniversary event (MacLeod):');
+      if (pass !== 'MacLeod') {
+        addToast('Incorrect password. Anniversary is protected!', 'error');
+        return false;
+      }
+    }
+
     setEvents((prev) => prev.filter((evt) => evt.id !== id));
     addToast('Deleted', 'info');
     return true;
@@ -317,13 +348,31 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const resetAllData = () => {
-    localStorage.removeItem('calender_unified_events');
+    // Preserve anniversary events when resetting normal user events
+    const anniversaryList = events.filter((e) => e.is_anniversary || e.id.startsWith('anniversary-'));
+    localStorage.setItem('calender_unified_events', JSON.stringify(anniversaryList));
     localStorage.removeItem('calender_daily_habits_v2');
     localStorage.removeItem('calender_weekly_meals');
     localStorage.removeItem('calender_habits_last_week');
-    setEvents([]);
-    addToast('All calendar events, classes, tasks & habits reset!', 'info');
+    setEvents(anniversaryList);
+    addToast('Events, classes, tasks & habits reset! (Anniversaries preserved)', 'info');
     window.location.reload();
+  };
+
+  const resetAnniversaryWithPassword = (): boolean => {
+    const pass = window.prompt('🔒 Password required to reset Anniversary milestones (MacLeod):');
+    if (pass === 'MacLeod') {
+      const nonAnniversaries = events.filter((e) => !e.is_anniversary && !e.id.startsWith('anniversary-'));
+      const freshAnniversaries = generateAnniversaryEvents();
+      const updated = [...nonAnniversaries, ...freshAnniversaries];
+      setEvents(updated);
+      localStorage.setItem('calender_unified_events', JSON.stringify(updated));
+      addToast('Anniversary milestones reset successfully! 💕', 'success');
+      return true;
+    } else {
+      addToast('Incorrect password. Anniversary reset cancelled!', 'error');
+      return false;
+    }
   };
 
   return (
@@ -354,6 +403,7 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         showTodosOnCalendar,
         setShowTodosOnCalendar,
         resetAllData,
+        resetAnniversaryWithPassword,
       }}
     >
       {children}

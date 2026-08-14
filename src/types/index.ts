@@ -65,6 +65,7 @@ export interface CalendarEvent {
   course?: string;
   instructor?: string;
   is_completed?: boolean;
+  is_anniversary?: boolean;
   show_on_calendar?: boolean; // Specific toggle per to-do item
   priority?: 'high' | 'normal' | 'low';
   recurrence_days?: number[]; // 1 = Mon, 2 = Tue, 3 = Wed, 4 = Thu, 5 = Fri, 6 = Sat, 7 = Sun

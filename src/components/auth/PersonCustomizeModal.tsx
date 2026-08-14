@@ -22,7 +22,7 @@ export const PersonCustomizeModal: React.FC<PersonCustomizeModalProps> = ({
   onClose,
 }) => {
   const { userProfile, updateProfile } = useAuth();
-  const { resetAllData } = useCalendar();
+  const { resetAllData, resetAnniversaryWithPassword } = useCalendar();
   const [displayName, setDisplayName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [selectedColor, setSelectedColor] = useState('#3B82F6');
@@ -242,12 +242,36 @@ export const PersonCustomizeModal: React.FC<PersonCustomizeModalProps> = ({
             </div>
           </div>
 
-          {/* Reset All Data Button */}
-          <div style={{ paddingTop: '0.5rem', borderTop: '1px solid var(--border-color)', marginTop: '0.5rem' }}>
+          {/* Protected Anniversary Reset & Data Reset */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-color)', marginTop: '0.5rem' }}>
             <button
               type="button"
               onClick={() => {
-                if (window.confirm('Reset all calendar events, tasks, classes, meals & habits back to fresh state?')) {
+                resetAnniversaryWithPassword();
+              }}
+              style={{
+                width: '100%',
+                padding: '0.55rem',
+                borderRadius: '12px',
+                border: '1px solid #FBCFE8',
+                backgroundColor: '#FDF2F8',
+                color: '#BE185D',
+                fontWeight: 800,
+                fontSize: '0.8rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.4rem',
+                cursor: 'pointer',
+              }}
+            >
+              💖 Reset Anniversary (Password: MacLeod)
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm('Reset calendar events, tasks, classes, meals & habits? (Anniversary events will be kept!)')) {
                   resetAllData();
                 }
               }}
@@ -267,7 +291,7 @@ export const PersonCustomizeModal: React.FC<PersonCustomizeModalProps> = ({
                 cursor: 'pointer',
               }}
             >
-              <RotateCcw size={14} /> Reset Everything (Calendar, Classes, Tasks)
+              <RotateCcw size={14} /> Reset App Data
             </button>
           </div>
 
