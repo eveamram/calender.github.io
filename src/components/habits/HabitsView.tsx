@@ -251,17 +251,18 @@ export const HabitsView: React.FC = () => {
       {/* Top Header & Controls */}
       <div style={{
         display: 'flex',
-        alignItems: 'center',
+        flexDirection: isMobile ? 'column' : 'row',
+        alignItems: isMobile ? 'stretch' : 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: '1rem',
+        gap: '0.85rem',
         marginBottom: '1.25rem',
         paddingBottom: '1rem',
         borderBottom: '1px solid var(--border-color)',
       }}>
         <div>
           <h2 style={{
-            fontSize: '1.5rem',
+            fontSize: isMobile ? '1.25rem' : '1.5rem',
             fontWeight: 800,
             color: 'var(--text-primary)',
             letterSpacing: '-0.02em',
@@ -269,15 +270,22 @@ export const HabitsView: React.FC = () => {
             alignItems: 'center',
             gap: '0.4rem',
           }}>
-            Daily Habits <Flame size={20} color="#F59E0B" />
+            Daily Habits <Flame size={18} color="#F59E0B" />
           </h2>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+          <p style={{ fontSize: '0.775rem', color: 'var(--text-muted)', marginTop: '2px' }}>
             {activePersonaFilter === 'all' ? 'Habits for Eve & Abbie' : `Habits for ${activePersonaFilter}`}
           </p>
         </div>
 
         {/* View Switcher: Daily vs Weekly Grid */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: isMobile ? 'space-between' : 'flex-end',
+          gap: '0.5rem',
+          width: isMobile ? '100%' : 'auto',
+          flexWrap: 'wrap',
+        }}>
           <div style={{
             display: 'flex',
             backgroundColor: 'var(--bg-hover)',
@@ -289,13 +297,13 @@ export const HabitsView: React.FC = () => {
               type="button"
               onClick={() => setViewType('daily')}
               style={{
-                padding: '0.35rem 0.85rem',
+                padding: '0.3rem 0.75rem',
                 borderRadius: '999px',
                 border: 'none',
                 backgroundColor: viewType === 'daily' ? 'var(--bg-secondary)' : 'transparent',
                 color: viewType === 'daily' ? 'var(--accent-primary)' : 'var(--text-secondary)',
                 fontWeight: 800,
-                fontSize: '0.775rem',
+                fontSize: '0.75rem',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
@@ -307,13 +315,13 @@ export const HabitsView: React.FC = () => {
               type="button"
               onClick={() => setViewType('weekly')}
               style={{
-                padding: '0.35rem 0.85rem',
+                padding: '0.3rem 0.75rem',
                 borderRadius: '999px',
                 border: 'none',
                 backgroundColor: viewType === 'weekly' ? 'var(--bg-secondary)' : 'transparent',
                 color: viewType === 'weekly' ? 'var(--accent-primary)' : 'var(--text-secondary)',
                 fontWeight: 800,
-                fontSize: '0.775rem',
+                fontSize: '0.75rem',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
@@ -326,9 +334,9 @@ export const HabitsView: React.FC = () => {
             type="button"
             className="btn btn-primary"
             onClick={() => setShowAddForm(!showAddForm)}
-            style={{ padding: '0.5rem 0.85rem', fontSize: '0.825rem' }}
+            style={{ padding: '0.45rem 0.75rem', fontSize: '0.8rem' }}
           >
-            <Plus size={15} /> Add Habit
+            <Plus size={14} /> Add Habit
           </button>
         </div>
       </div>
@@ -338,13 +346,16 @@ export const HabitsView: React.FC = () => {
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '0.4rem',
-          marginBottom: '1.5rem',
+          gap: isMobile ? '0.25rem' : '0.4rem',
+          marginBottom: '1.25rem',
           backgroundColor: 'var(--bg-hover)',
           padding: '4px',
-          borderRadius: '999px',
+          borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-color)',
           overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          width: '100%',
+          boxSizing: 'border-box',
         }}>
           {WEEKDAYS.map((wd) => {
             const isSelected = selectedDayVal === wd.value;
@@ -356,14 +367,14 @@ export const HabitsView: React.FC = () => {
                 type="button"
                 onClick={() => setSelectedDayVal(wd.value)}
                 style={{
-                  flex: 1,
-                  padding: '0.45rem 0.75rem',
+                  flex: isMobile ? '1 0 auto' : 1,
+                  padding: isMobile ? '0.35rem 0.55rem' : '0.45rem 0.75rem',
                   borderRadius: '999px',
                   border: 'none',
                   backgroundColor: isSelected ? (isTodayWd ? 'var(--accent-primary)' : 'var(--bg-secondary)') : 'transparent',
                   color: isSelected ? (isTodayWd ? '#FFFFFF' : 'var(--accent-primary)') : (isTodayWd ? 'var(--accent-primary)' : 'var(--text-secondary)'),
                   fontWeight: 800,
-                  fontSize: '0.8rem',
+                  fontSize: isMobile ? '0.75rem' : '0.8rem',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   textAlign: 'center',
