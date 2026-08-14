@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Calendar, GraduationCap, CheckSquare, MoreHorizontal, Flame, ShoppingBag, Utensils, FileText, Settings, Plus } from 'lucide-react';
+import { Calendar, GraduationCap, CheckSquare, MoreHorizontal, Flame, ShoppingBag, Utensils, FileText, Settings, Plus, BookOpen } from 'lucide-react';
 import { BottomSheet } from '../ui/BottomSheet';
+import { AppTab } from '../../types';
 
 interface MobileBottomNavProps {
-  activeTab: 'calendar' | 'schedule' | 'todo' | 'habits' | 'grocery' | 'meals';
-  setActiveTab: (tab: 'calendar' | 'schedule' | 'todo' | 'habits' | 'grocery' | 'meals') => void;
+  activeTab: AppTab;
+  setActiveTab: (tab: AppTab) => void;
   onOpenAddModal: () => void;
   onOpenSettings?: () => void;
 }
@@ -27,6 +28,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
     { id: 'habits' as const, label: 'Daily Habits', icon: Flame, color: '#F59E0B' },
     { id: 'grocery' as const, label: 'Grocery List', icon: ShoppingBag, color: '#10B981' },
     { id: 'meals' as const, label: 'Meal Planner', icon: Utensils, color: '#EC4899' },
+    { id: 'books' as const, label: 'Books & Reading', icon: BookOpen, color: '#6366F1' },
   ];
 
   const isMoreActive = moreItems.some((item) => item.id === activeTab);

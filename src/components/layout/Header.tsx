@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { AppLogo } from '../ui/AppLogo';
-import { Calendar as CalendarIcon, GraduationCap, CheckSquare, Settings, Plus, Palette, Check, Sparkles, Flame, MoreHorizontal, ShoppingBag, Utensils, FileText, ChevronDown } from 'lucide-react';
+import { Calendar as CalendarIcon, GraduationCap, CheckSquare, Settings, Plus, Palette, Check, Sparkles, Flame, MoreHorizontal, ShoppingBag, Utensils, FileText, ChevronDown, BookOpen } from 'lucide-react';
 import { useCalendar } from '../../context/CalendarContext';
-
-type AppTab = 'calendar' | 'schedule' | 'todo' | 'habits' | 'grocery' | 'meals';
+import { AppTab } from '../../types';
 
 interface HeaderProps {
   activeTab: AppTab;
@@ -34,7 +33,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   const handleOpenProfile = onOpenPersonModal || onOpenSettings || (() => {});
 
-  const isMoreActive = activeTab === 'grocery' || activeTab === 'meals';
+  const isMoreActive = activeTab === 'grocery' || activeTab === 'meals' || activeTab === 'books';
 
   return (
     <header style={{
@@ -251,6 +250,31 @@ export const Header: React.FC<HeaderProps> = ({
                   }}
                 >
                   <Utensils size={16} color="#EC4899" /> Meal Planner
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('books');
+                    setShowMoreMenu(false);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.65rem',
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: '10px',
+                    border: 'none',
+                    backgroundColor: activeTab === 'books' ? 'var(--accent-light)' : 'transparent',
+                    color: activeTab === 'books' ? '#6366F1' : 'var(--text-primary)',
+                    fontWeight: 700,
+                    fontSize: '0.875rem',
+                    cursor: 'pointer',
+                    width: '100%',
+                    textAlign: 'left',
+                  }}
+                >
+                  <BookOpen size={16} color="#6366F1" /> Books & Reading
                 </button>
 
                 <div style={{ height: '1px', backgroundColor: 'var(--border-color)', margin: '0.25rem 0' }} />

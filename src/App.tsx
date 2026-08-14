@@ -17,9 +17,9 @@ import { MobileHeader } from './components/layout/MobileHeader';
 import { MobileBottomNav } from './components/layout/MobileBottomNav';
 import { GroceryView } from './components/grocery/GroceryView';
 import { MealsView } from './components/meals/MealsView';
+import { BooksView } from './components/books/BooksView';
 import { FloatingAddButton } from './components/ui/FloatingAddButton';
-
-type AppTab = 'calendar' | 'schedule' | 'todo' | 'habits' | 'grocery' | 'meals';
+import { AppTab } from './types';
 
 function MainAppContent() {
   const isMobile = useIsMobile();
@@ -161,9 +161,12 @@ function MainAppContent() {
         ) : activeTab === 'grocery' ? (
           /* Mobile Grocery List */
           <GroceryView />
-        ) : (
+        ) : activeTab === 'meals' ? (
           /* Mobile Meal Planner */
           <MealsView />
+        ) : (
+          /* Shared Books & Reading Tracker */
+          <BooksView />
         )}
       </main>
 

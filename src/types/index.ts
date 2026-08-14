@@ -111,3 +111,26 @@ export interface FilterState {
   personFilter?: string;
   courseFilter?: string;
 }
+
+export type AppTab = 'calendar' | 'schedule' | 'todo' | 'habits' | 'grocery' | 'meals' | 'books';
+
+export type BookStatus = 'reading' | 'want_to_read' | 'completed';
+
+export interface BookItem {
+  id: string;
+  title: string;
+  author: string;
+  status: BookStatus;
+  total_pages?: number;
+  eve_current_page?: number;
+  abbie_current_page?: number;
+  eve_rating?: number; // 1-5
+  abbie_rating?: number; // 1-5
+  cover_color?: string;
+  cover_url?: string;
+  genre?: string;
+  completed_date?: string;
+  thoughts_notes?: string;
+  created_at: string;
+  updated_at?: string;
+}

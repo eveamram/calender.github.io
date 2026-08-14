@@ -5,9 +5,11 @@ import { BottomSheet } from '../ui/BottomSheet';
 import { Check, Users } from 'lucide-react';
 import { format } from 'date-fns';
 
+import { AppTab } from '../../types';
+
 interface MobileHeaderProps {
-  activeTab: 'calendar' | 'schedule' | 'todo' | 'habits' | 'grocery' | 'meals';
-  setActiveTab: (tab: 'calendar' | 'schedule' | 'todo' | 'habits' | 'grocery' | 'meals') => void;
+  activeTab: AppTab;
+  setActiveTab: (tab: AppTab) => void;
   selectedDate: Date;
   onOpenAddModal: () => void;
   onOpenSettings?: () => void;
