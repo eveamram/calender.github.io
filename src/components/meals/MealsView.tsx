@@ -63,24 +63,38 @@ export const MealsView: React.FC = () => {
     localStorage.setItem('calender_meal_category_labels', JSON.stringify(slotLabels));
   }, [slotLabels]);
 
-  const PRESET_CATEGORIES = ['Breakfast 🥣', 'Lunch 🥗', 'Dinner 🍝', 'Snack / Drink 🥤', 'Meal Prep 🍱', 'Dessert 🍦'];
+  const [categoryModalSlot, setCategoryModalSlot] = useState<keyof MealSlot | null>(null);
+  const [categoryInputValue, setCategoryInputValue] = useState('');
 
-  const handleRenameCategory = (slotKey: keyof MealSlot) => {
+  const PRESET_CATEGORIES = [
+    'Breakfast 🥣',
+    'Lunch 🥗',
+    'Dinner 🍝',
+    'Snack / Drink 🥤',
+    'Meal Prep 🍱',
+    'Dessert 🍦',
+    'Late Night 🌙',
+    'Pre-Workout 🍌',
+  ];
+
+  const handleOpenCategoryModal = (slotKey: keyof MealSlot) => {
     const currentLabel = slotLabels[slotKey] || slotKey;
-    const choicesStr = PRESET_CATEGORIES.map((c, i) => `${i + 1}. ${c}`).join('\n');
-    const input = window.prompt(`Choose or type category for "${currentLabel}":\n\n${choicesStr}\n\nType a number (1-6) or custom name:`, currentLabel);
-    
-    if (input && input.trim()) {
-      const num = parseInt(input.trim(), 10);
-      const chosenLabel = (!isNaN(num) && num >= 1 && num <= PRESET_CATEGORIES.length)
-        ? PRESET_CATEGORIES[num - 1]
-        : input.trim();
-      
+    setCategoryModalSlot(slotKey);
+    setCategoryInputValue(currentLabel);
+  };
+
+  const handleSaveCategoryModal = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!categoryModalSlot) return;
+
+    const trimmed = categoryInputValue.trim();
+    if (trimmed) {
       setSlotLabels((prev) => ({
         ...prev,
-        [slotKey]: chosenLabel,
+        [categoryModalSlot]: trimmed,
       }));
     }
+    setCategoryModalSlot(null);
   };
 
   // Weekly Refresh Check: Automatically refresh meal plan check/reset when a new week starts
@@ -318,7 +332,7 @@ export const MealsView: React.FC = () => {
                         {conf.icon}
                       </span>
                       <span
-                        onClick={() => handleRenameCategory(conf.key)}
+                        onClick={() => handleOpenCategoryModal(conf.key)}
                         style={{
                           fontSize: '0.825rem',
                           fontWeight: 800,
@@ -328,7 +342,7 @@ export const MealsView: React.FC = () => {
                           alignItems: 'center',
                           gap: '4px',
                         }}
-                        title="Click to rename meal category (e.g., Breakfast, Snack, Dessert)"
+                        title="Click to customize category title (e.g. Breakfast, Snack, Meal Prep)"
                       >
                         {conf.label} <Edit2 size={11} color="var(--text-muted)" style={{ opacity: 0.6 }} />
                       </span>
@@ -470,6 +484,170 @@ export const MealsView: React.FC = () => {
               );
             })}
           </div>
+
+      {/* Modern Glassmorphic Category Customization Modal */}
+      {categoryModalSlot && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.55)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+            padding: '1rem',
+          }}
+          onClick={() => setCategoryModalSlot(null)}
+        >
+          <div
+            style={{
+              backgroundColor: 'var(--bg-secondary)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '24px',
+              width: '100%',
+              maxWidth: '440px',
+              padding: '1.6rem',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              animation: 'modalSlideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.1rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                  Customize Category Title 🍽️
+                </h3>
+                <p style={{ fontSize: '0.775rem', color: 'var(--text-muted)', margin: '3px 0 0 0' }}>
+                  Pick a quick preset or type a custom category name
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCategoryModalSlot(null)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  borderRadius: '50%',
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCategoryModal} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {/* Preset Chips */}
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', display: 'block', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Quick Presets
+                </label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
+                  {PRESET_CATEGORIES.map((preset) => {
+                    const isSelected = categoryInputValue.trim() === preset.trim();
+                    return (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setCategoryInputValue(preset)}
+                        style={{
+                          padding: '0.4rem 0.75rem',
+                          borderRadius: '999px',
+                          border: isSelected ? '1.5px solid #EC4899' : '1px solid var(--border-color)',
+                          backgroundColor: isSelected ? '#FCE7F3' : 'var(--bg-hover)',
+                          color: isSelected ? '#BE185D' : 'var(--text-primary)',
+                          fontSize: '0.775rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        {preset} {isSelected && <Check size={12} />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Custom Input */}
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', display: 'block', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Category Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={categoryInputValue}
+                  onChange={(e) => setCategoryInputValue(e.target.value)}
+                  placeholder="e.g. Smoothie & Snack 🥤"
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 0.9rem',
+                    borderRadius: '12px',
+                    border: '1.5px solid var(--border-color)',
+                    backgroundColor: 'var(--bg-primary)',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.9rem',
+                    fontWeight: 700,
+                    boxSizing: 'border-box',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', marginTop: '0.25rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setCategoryModalSlot(null)}
+                  style={{
+                    padding: '0.55rem 1rem',
+                    borderRadius: '999px',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--bg-hover)',
+                    color: 'var(--text-secondary)',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  style={{
+                    padding: '0.55rem 1.2rem',
+                    borderRadius: '999px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%)',
+                    color: '#FFFFFF',
+                    fontSize: '0.8rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(236, 72, 153, 0.3)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <Check size={14} /> Save Category
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
