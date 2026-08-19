@@ -20,7 +20,6 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "@rollup/rollup-darwin-arm64": "^4.62.4",
     "@types/canvas-confetti": "^1.6.4",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
