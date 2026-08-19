@@ -254,13 +254,13 @@ export const WeeklyClassScheduleView: React.FC<WeeklyClassScheduleViewProps> = (
         </div>
       </div>
 
-      {/* Weekly Grid (5 Columns Mon - Fri) */}
-      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%' }}>
+      {/* Weekly Grid (5 Columns Mon - Fri, Fluid Responsive Grid) */}
+      <div style={{ width: '100%' }}>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(5, minmax(170px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
           gap: '0.85rem',
-          minWidth: '850px',
+          width: '100%',
         }}>
         {daysOfWeek.map((dayName, idx) => {
           const dayNumber = idx + 1; // 1 = Mon, 2 = Tue, 3 = Wed, 4 = Thu, 5 = Fri, 6 = Sat, 7 = Sun
