@@ -30,6 +30,24 @@ const notifySubscribers = (event: SyncPayload) => {
   }
 };
 
+/**
+ * Fetch initial remote database data for a table if Supabase is configured.
+ */
+export const fetchInitialData = async <T = any>(table: string): Promise<T[] | null> => {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const { data, error } = await supabase.from(table).select('*');
+    if (error) {
+      console.warn(`Supabase fetch error for ${table}:`, error.message);
+      return null;
+    }
+    return data as T[];
+  } catch (e) {
+    console.error(`Failed fetching initial data for ${table}:`, e);
+    return null;
+  }
+};
+
 // Listen on BroadcastChannel for live multi-window / multi-tab cross-device sync
 if (broadcastChannel) {
   broadcastChannel.onmessage = (msg: MessageEvent<SyncPayload>) => {

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useCalendar } from '../../context/CalendarContext';
 import { BookItem, BookStatus } from '../../types';
 import { useIsMobile } from '../../hooks/useIsMobile';
-import { subscribeToSync, syncInsertItem, syncUpdateItem, syncDeleteItem } from '../../lib/syncEngine';
+import { subscribeToSync, syncInsertItem, syncUpdateItem, syncDeleteItem, fetchInitialData } from '../../lib/syncEngine';
 import {
   BookOpen,
   Plus,
@@ -107,6 +107,12 @@ export const BooksView: React.FC = () => {
   }, [books]);
 
   useEffect(() => {
+    fetchInitialData<BookItem>('books').then((remoteBooks) => {
+      if (remoteBooks && remoteBooks.length > 0) {
+        setBooks(remoteBooks);
+      }
+    });
+
     const unsubscribe = subscribeToSync('books', (event) => {
       if (event.type === 'INSERT' && event.payload) {
         const item = event.payload as BookItem;

@@ -10,7 +10,7 @@ import {
 import { format, addDays } from 'date-fns';
 import confetti from 'canvas-confetti';
 import { generateAnniversaryEvents, ANNIVERSARY_PASSWORD } from '../utils/anniversary';
-import { subscribeToSync, syncInsertItem, syncUpdateItem, syncDeleteItem } from '../lib/syncEngine';
+import { subscribeToSync, syncInsertItem, syncUpdateItem, syncDeleteItem, fetchInitialData } from '../lib/syncEngine';
 
 export interface ToastMessage {
   id: string;
@@ -240,8 +240,26 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     localStorage.setItem('calender_unified_events', JSON.stringify(events));
   }, [events]);
 
-  // Subscribe to item-level Realtime changes
+  // Subscribe to item-level Realtime changes & fetch remote initial state
   useEffect(() => {
+    // Fetch initial remote events if Supabase is configured
+    fetchInitialData<CalendarEvent>('events').then((remoteEvents) => {
+      if (remoteEvents && remoteEvents.length > 0) {
+        const anniversaries = generateAnniversaryEvents();
+        const anniversaryMap = new Map(anniversaries.map((a) => [a.id, a]));
+        const updatedList = remoteEvents.map((evt) => {
+          if (evt.is_anniversary || evt.id.startsWith('anniversary-')) {
+            const fresh = anniversaryMap.get(evt.id);
+            if (fresh) return { ...evt, title: fresh.title };
+          }
+          return evt;
+        });
+        const existingIds = new Set(updatedList.map((e) => e.id));
+        const missingAnniversaries = anniversaries.filter((a: CalendarEvent) => !existingIds.has(a.id));
+        setEvents([...updatedList, ...missingAnniversaries]);
+      }
+    });
+
     const unsubscribe = subscribeToSync('events', (event) => {
       if (event.type === 'INSERT' && event.payload) {
         const item = event.payload as CalendarEvent;

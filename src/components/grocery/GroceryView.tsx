@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCalendar } from '../../context/CalendarContext';
 import { ShoppingBag, Plus, Check, Trash2, Tag, Search, Sparkles, X } from 'lucide-react';
-import { subscribeToSync, syncInsertItem, syncUpdateItem, syncDeleteItem } from '../../lib/syncEngine';
+import { subscribeToSync, syncInsertItem, syncUpdateItem, syncDeleteItem, fetchInitialData } from '../../lib/syncEngine';
 
 export interface GroceryItem {
   id: string;
@@ -55,6 +55,12 @@ export const GroceryView: React.FC = () => {
   }, [items]);
 
   useEffect(() => {
+    fetchInitialData<GroceryItem>('grocery_items').then((remoteItems) => {
+      if (remoteItems && remoteItems.length > 0) {
+        setItems(remoteItems);
+      }
+    });
+
     const unsubscribe = subscribeToSync('grocery_items', (event) => {
       if (event.type === 'INSERT' && event.payload) {
         const item = event.payload as GroceryItem;

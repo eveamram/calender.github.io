@@ -3,6 +3,7 @@ import { useCalendar } from '../../context/CalendarContext';
 import { BottomSheet } from '../ui/BottomSheet';
 import { FileText, Plus, Trash2, Edit3, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
+import { subscribeToSync, syncInsertItem, syncUpdateItem, syncDeleteItem, fetchInitialData } from '../../lib/syncEngine';
 
 export interface NoteItem {
   id: string;
@@ -53,6 +54,29 @@ export const NotesView: React.FC = () => {
     window.dispatchEvent(new Event('storage'));
   }, [notes]);
 
+  useEffect(() => {
+    fetchInitialData<NoteItem>('notes').then((remoteNotes) => {
+      if (remoteNotes && remoteNotes.length > 0) {
+        setNotes(remoteNotes);
+      }
+    });
+
+    const unsubscribe = subscribeToSync('notes', (event) => {
+      if (event.type === 'INSERT' && event.payload) {
+        const item = event.payload as NoteItem;
+        setNotes((prev) => (prev.some((n) => n.id === item.id) ? prev : [item, ...prev]));
+      } else if (event.type === 'UPDATE' && event.id) {
+        setNotes((prev) =>
+          prev.map((n) => (n.id === event.id ? { ...n, ...event.payload } : n))
+        );
+      } else if (event.type === 'DELETE' && event.id) {
+        setNotes((prev) => prev.filter((n) => n.id !== event.id));
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   const handleOpenNote = (note: NoteItem) => {
     setActiveNote(note);
     setEditTitle(note.title);
@@ -69,29 +93,28 @@ export const NotesView: React.FC = () => {
       updatedAt: new Date().toISOString(),
     };
     setNotes((prev) => [newNote, ...prev]);
+    syncInsertItem('notes', newNote);
     handleOpenNote(newNote);
   };
 
   const handleSaveNote = () => {
     if (!activeNote) return;
+    const updates = {
+      title: editTitle.trim() || 'Untitled Note',
+      content: editContent,
+      updatedAt: new Date().toISOString(),
+    };
     setNotes((prev) =>
-      prev.map((n) =>
-        n.id === activeNote.id
-          ? {
-              ...n,
-              title: editTitle.trim() || 'Untitled Note',
-              content: editContent,
-              updatedAt: new Date().toISOString(),
-            }
-          : n
-      )
+      prev.map((n) => (n.id === activeNote.id ? { ...n, ...updates } : n))
     );
+    syncUpdateItem('notes', activeNote.id, updates);
     setIsEditing(false);
     setActiveNote(null);
   };
 
   const handleDeleteNote = (id: string) => {
     setNotes((prev) => prev.filter((n) => n.id !== id));
+    syncDeleteItem('notes', id);
     if (activeNote?.id === id) {
       setIsEditing(false);
       setActiveNote(null);

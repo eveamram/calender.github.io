@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useCalendar } from '../../context/CalendarContext';
 import { Utensils, Edit2, Check, Sparkles, RefreshCw, Sun, Sunset, Coffee, Trash2, Plus, X } from 'lucide-react';
 import { format, startOfWeek } from 'date-fns';
-import { subscribeToSync, syncUpdateItem } from '../../lib/syncEngine';
+import { subscribeToSync, syncUpdateItem, fetchInitialData } from '../../lib/syncEngine';
 
 export interface MealSlot {
   breakfast?: string;
@@ -117,6 +117,24 @@ export const MealsView: React.FC = () => {
   }, [meals]);
 
   useEffect(() => {
+    fetchInitialData<any>('meal_plans').then((remoteData) => {
+      if (remoteData && remoteData.length > 0) {
+        if (remoteData[0]?.meals) {
+          setMeals(remoteData[0].meals);
+        } else {
+          const merged: WeekMeals = {};
+          remoteData.forEach((item) => {
+            if (item.id && (item.breakfast || item.lunch || item.dinner || item.snack)) {
+              merged[item.id] = item;
+            }
+          });
+          if (Object.keys(merged).length > 0) {
+            setMeals((prev) => ({ ...prev, ...merged }));
+          }
+        }
+      }
+    });
+
     const unsubscribe = subscribeToSync('meal_plans', (event) => {
       if (event.type === 'UPDATE' && event.id && event.payload) {
         setMeals((prev) => ({

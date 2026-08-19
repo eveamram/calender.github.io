@@ -4,7 +4,7 @@ import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
 import { Plus, Flame, Check, Sparkles, Trash2, User, Calendar as CalendarIcon, Circle, Pencil } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useIsMobile } from '../../hooks/useIsMobile';
-import { subscribeToSync, syncInsertItem, syncUpdateItem, syncDeleteItem } from '../../lib/syncEngine';
+import { subscribeToSync, syncInsertItem, syncUpdateItem, syncDeleteItem, fetchInitialData } from '../../lib/syncEngine';
 
 export interface HabitItem {
   id: string;
@@ -107,6 +107,12 @@ export const HabitsView: React.FC = () => {
   }, [habits]);
 
   useEffect(() => {
+    fetchInitialData<HabitItem>('habits').then((remoteHabits) => {
+      if (remoteHabits && remoteHabits.length > 0) {
+        setHabits(remoteHabits);
+      }
+    });
+
     const unsubscribe = subscribeToSync('habits', (event) => {
       if (event.type === 'INSERT' && event.payload) {
         const item = event.payload as HabitItem;
