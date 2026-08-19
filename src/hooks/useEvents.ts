@@ -1,225 +1,271 @@
-import { useState, useEffect } from 'react';
+/**
+ * useEvents – Real-time Firestore sync with version-based conflict resolution.
+ *
+ * KEY DESIGN:
+ * • onSnapshot listener keeps local state perfectly in sync with Firestore.
+ * • Creates use addDoc (no conflict possible – new document).
+ * • Updates use a Firestore TRANSACTION that:
+ *     1. Reads the latest doc
+ *     2. Compares `version` to what the user loaded in the edit form
+ *     3. If match → writes update + increments version
+ *     4. If mismatch → throws ConflictError (caller shows conflict UI)
+ * • Deletes also use a transaction with version check.
+ * • Zero localStorage. Firestore is the only source of truth.
+ */
+import { useState, useEffect, useCallback } from 'react';
 import {
   collection,
   onSnapshot,
   addDoc,
-  updateDoc,
-  deleteDoc,
   doc,
   query,
   orderBy,
   serverTimestamp,
   Timestamp,
+  runTransaction,
 } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '../lib/firebase';
-import { CalendarEvent, NewCalendarEventPayload, EventCategory, CATEGORY_COLORS } from '../types/event';
+import {
+  CalendarEvent,
+  CreateEventPayload,
+  EventCategory,
+  CATEGORY_COLORS,
+} from '../types/event';
 
-// Initial fallback sample events for local testing or when Firebase env is connecting
-const SAMPLE_EVENTS: CalendarEvent[] = [
-  {
-    id: 'sample-1',
-    title: '🚀 Team Sprint Planning',
-    start: new Date(Date.now() + 86400000).toISOString().slice(0, 16),
-    end: new Date(Date.now() + 86400000 + 3600000 * 2).toISOString().slice(0, 16),
-    description: 'Quarterly roadmap discussion and sprint task allocations.',
-    category: 'Work',
-    color: CATEGORY_COLORS.Work.hex,
-    createdBy: 'Sarah Jenkins',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'sample-2',
-    title: '☕ Coffee & Catchup',
-    start: new Date(Date.now() + 86400000 * 2).toISOString().slice(0, 16),
-    end: new Date(Date.now() + 86400000 * 2 + 3600000).toISOString().slice(0, 16),
-    description: 'Informal sync on project design.',
-    category: 'Meeting',
-    color: CATEGORY_COLORS.Meeting.hex,
-    createdBy: 'Alex Rivera',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'sample-3',
-    title: '🏃‍♂️ Morning Gym & Run',
-    start: new Date(Date.now() + 86400000 * 3 + 3600000 * 8).toISOString().slice(0, 16),
-    end: new Date(Date.now() + 86400000 * 3 + 3600000 * 9.5).toISOString().slice(0, 16),
-    description: 'Leg day workout and 5km cardio run.',
-    category: 'Personal',
-    color: CATEGORY_COLORS.Personal.hex,
-    createdBy: 'Anonymous',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'sample-4',
-    title: '🛒 Weekly Grocery Run',
-    start: new Date(Date.now() + 86400000 * 4 + 3600000 * 14).toISOString().slice(0, 16),
-    end: new Date(Date.now() + 86400000 * 4 + 3600000 * 15.5).toISOString().slice(0, 16),
-    description: 'Buy fresh produce, milk, and household essentials.',
-    category: 'Other',
-    color: CATEGORY_COLORS.Other.hex,
-    createdBy: 'Eve',
-    createdAt: new Date().toISOString(),
-  },
-];
+// ---------------------------------------------------------------------------
+// Custom error for version conflicts
+// ---------------------------------------------------------------------------
+export class ConflictError extends Error {
+  constructor(public latestEvent: CalendarEvent) {
+    super('This event was modified by someone else while you were editing.');
+    this.name = 'ConflictError';
+  }
+}
 
+// ---------------------------------------------------------------------------
+// Firestore Timestamp → ISO string helper
+// ---------------------------------------------------------------------------
+function toISO(val: unknown): string {
+  if (!val) return new Date().toISOString();
+  if (val instanceof Timestamp) return val.toDate().toISOString();
+  if (typeof (val as any)?.toDate === 'function') return (val as any).toDate().toISOString();
+  if (typeof val === 'string') return val;
+  return new Date(val as number).toISOString();
+}
+
+/** Convert a Firestore doc snapshot to our CalendarEvent type */
+function docToEvent(id: string, data: Record<string, any>): CalendarEvent {
+  return {
+    id,
+    title: data.title || 'Untitled',
+    start: toISO(data.start),
+    end: toISO(data.end || data.start),
+    description: data.description || '',
+    color: data.color || CATEGORY_COLORS[(data.category as EventCategory) || 'Other']?.hex || '#3B82F6',
+    category: (data.category as EventCategory) || 'Other',
+    createdBy: data.createdBy || 'Anonymous',
+    lastEditedBy: data.lastEditedBy || data.createdBy || 'Anonymous',
+    createdAt: toISO(data.createdAt),
+    updatedAt: toISO(data.updatedAt),
+    version: typeof data.version === 'number' ? data.version : 1,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Sample events for the seed button
+// ---------------------------------------------------------------------------
+function makeSamples(): CreateEventPayload[] {
+  const now = Date.now();
+  const day = 86_400_000;
+  const hour = 3_600_000;
+  return [
+    {
+      title: '🚀 Sprint Planning',
+      start: new Date(now + day).toISOString().slice(0, 16),
+      end: new Date(now + day + hour * 2).toISOString().slice(0, 16),
+      description: 'Quarterly sprint planning session.',
+      category: 'Work',
+      color: CATEGORY_COLORS.Work.hex,
+      createdBy: 'Eve',
+    },
+    {
+      title: '☕ Coffee Chat',
+      start: new Date(now + day * 2 + hour * 10).toISOString().slice(0, 16),
+      end: new Date(now + day * 2 + hour * 11).toISOString().slice(0, 16),
+      description: 'Catch up with the design team.',
+      category: 'Meeting',
+      color: CATEGORY_COLORS.Meeting.hex,
+      createdBy: 'Abbie',
+    },
+    {
+      title: '🏃 Morning Run',
+      start: new Date(now + day * 3 + hour * 7).toISOString().slice(0, 16),
+      end: new Date(now + day * 3 + hour * 8).toISOString().slice(0, 16),
+      description: '5K around the park.',
+      category: 'Personal',
+      color: CATEGORY_COLORS.Personal.hex,
+      createdBy: 'Eve',
+    },
+    {
+      title: '🛒 Grocery Shopping',
+      start: new Date(now + day * 4 + hour * 14).toISOString().slice(0, 16),
+      end: new Date(now + day * 4 + hour * 15.5).toISOString().slice(0, 16),
+      description: 'Weekly grocery run.',
+      category: 'Other',
+      color: CATEGORY_COLORS.Other.hex,
+      createdBy: 'Abbie',
+    },
+  ];
+}
+
+// ---------------------------------------------------------------------------
+// Hook
+// ---------------------------------------------------------------------------
 export interface UseEventsReturn {
   events: CalendarEvent[];
   filteredEvents: CalendarEvent[];
   selectedCategory: string;
-  setSelectedCategory: (cat: string) => void;
+  setSelectedCategory: (c: string) => void;
   loading: boolean;
   error: string | null;
-  createEvent: (payload: NewCalendarEventPayload) => Promise<void>;
-  updateEvent: (id: string, updates: Partial<CalendarEvent>) => Promise<void>;
-  deleteEvent: (id: string) => Promise<void>;
-  seedSampleEvents: () => Promise<void>;
+  createEvent: (payload: CreateEventPayload) => Promise<void>;
+  /** Throws ConflictError if the version has changed since the user loaded the form */
+  updateEvent: (id: string, expectedVersion: number, updates: Partial<CalendarEvent>, editedBy: string) => Promise<void>;
+  /** Throws ConflictError if the version has changed since the user loaded the form */
+  deleteEvent: (id: string, expectedVersion: number) => Promise<void>;
+  seedSampleEvents: (createdBy: string) => Promise<void>;
 }
 
 export function useEvents(): UseEventsReturn {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [loading, setLoading] = useState<boolean>(true);
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // -------------------------------------------------------------------
+  // Real-time listener
+  // -------------------------------------------------------------------
   useEffect(() => {
-    // Firestore Collection reference
-    const eventsRef = collection(db, 'events');
-    const q = query(eventsRef, orderBy('start', 'asc'));
+    if (!isFirebaseConfigured) {
+      setLoading(false);
+      setError('Firebase is not configured. Add your credentials to .env and restart.');
+      return;
+    }
 
-    // Set up real-time listener using onSnapshot
-    const unsubscribe = onSnapshot(
+    const q = query(collection(db, 'events'), orderBy('start', 'asc'));
+
+    const unsub = onSnapshot(
       q,
-      (snapshot) => {
-        const fetchedEvents: CalendarEvent[] = snapshot.docs.map((docSnap) => {
-          const data = docSnap.data();
-
-          // Safely parse Firestore Timestamps or ISO strings
-          const parseTime = (val: any): string => {
-            if (!val) return new Date().toISOString();
-            if (val instanceof Timestamp) return val.toDate().toISOString();
-            if (typeof val?.toDate === 'function') return val.toDate().toISOString();
-            if (typeof val === 'string') return val;
-            return new Date(val).toISOString();
-          };
-
-          return {
-            id: docSnap.id,
-            title: data.title || 'Untitled Event',
-            start: parseTime(data.start),
-            end: parseTime(data.end || data.start),
-            description: data.description || '',
-            color: data.color || CATEGORY_COLORS[(data.category as EventCategory) || 'Other']?.hex || '#3B82F6',
-            category: (data.category as EventCategory) || 'Other',
-            createdBy: data.createdBy || 'Anonymous',
-            createdAt: parseTime(data.createdAt),
-            updatedAt: parseTime(data.updatedAt),
-          };
-        });
-
-        setEvents(fetchedEvents);
+      (snap) => {
+        const evts = snap.docs.map((d) => docToEvent(d.id, d.data()));
+        setEvents(evts);
         setLoading(false);
         setError(null);
       },
       (err) => {
-        console.warn('Firestore onSnapshot listener notice:', err);
-        // Fallback to initial state if Firestore is not yet created in Console
-        setEvents((prev) => (prev.length === 0 ? SAMPLE_EVENTS : prev));
+        console.error('[useEvents] onSnapshot error:', err);
         setLoading(false);
-        setError('Firestore is running in local fallback mode until project credentials connect.');
+        setError(`Firestore error: ${err.message}`);
       }
     );
 
-    return () => unsubscribe();
+    return () => unsub();
   }, []);
 
-  const createEvent = async (payload: NewCalendarEventPayload): Promise<void> => {
-    try {
-      if (isFirebaseConfigured) {
-        const eventsRef = collection(db, 'events');
-        await addDoc(eventsRef, {
-          title: payload.title,
-          start: payload.start,
-          end: payload.end,
-          description: payload.description || '',
-          color: payload.color || CATEGORY_COLORS[payload.category]?.hex || '#3B82F6',
-          category: payload.category,
-          createdBy: payload.createdBy || 'Anonymous',
-          createdAt: serverTimestamp(),
+  // -------------------------------------------------------------------
+  // CREATE — no conflict possible (new document)
+  // -------------------------------------------------------------------
+  const createEvent = useCallback(async (payload: CreateEventPayload) => {
+    if (!isFirebaseConfigured) throw new Error('Firebase not configured');
+    await addDoc(collection(db, 'events'), {
+      title: payload.title,
+      start: payload.start,
+      end: payload.end,
+      description: payload.description || '',
+      color: payload.color,
+      category: payload.category,
+      createdBy: payload.createdBy,
+      lastEditedBy: payload.createdBy,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      version: 1,
+    });
+  }, []);
+
+  // -------------------------------------------------------------------
+  // UPDATE — transactional with version check
+  // -------------------------------------------------------------------
+  const updateEvent = useCallback(
+    async (id: string, expectedVersion: number, updates: Partial<CalendarEvent>, editedBy: string) => {
+      if (!isFirebaseConfigured) throw new Error('Firebase not configured');
+
+      const ref = doc(db, 'events', id);
+
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(ref);
+        if (!snap.exists()) throw new Error('Event no longer exists.');
+
+        const data = snap.data();
+        const currentVersion = typeof data.version === 'number' ? data.version : 1;
+
+        if (currentVersion !== expectedVersion) {
+          // Someone else changed this event since the user opened the edit form
+          throw new ConflictError(docToEvent(snap.id, data));
+        }
+
+        // Version matches → safe to write
+        const { id: _id, createdAt: _ca, version: _v, ...safeUpdates } = updates as any;
+        tx.update(ref, {
+          ...safeUpdates,
+          lastEditedBy: editedBy,
           updatedAt: serverTimestamp(),
+          version: currentVersion + 1,
         });
-      } else {
-        // Fallback local memory addition for immediate interactive demo
-        const newEvt: CalendarEvent = {
-          id: `local-${Date.now()}`,
-          ...payload,
-          createdAt: new Date().toISOString(),
-        };
-        setEvents((prev) => [...prev, newEvt]);
-      }
-    } catch (err: any) {
-      console.error('Error creating event in Firestore:', err);
-      throw new Error(err.message || 'Failed to create event');
-    }
-  };
+      });
+    },
+    []
+  );
 
-  const updateEvent = async (id: string, updates: Partial<CalendarEvent>): Promise<void> => {
-    try {
-      if (isFirebaseConfigured && !id.startsWith('sample-') && !id.startsWith('local-')) {
-        const docRef = doc(db, 'events', id);
-        await updateDoc(docRef, {
-          ...updates,
-          updatedAt: serverTimestamp(),
-        });
-      } else {
-        setEvents((prev) =>
-          prev.map((e) => (e.id === id ? { ...e, ...updates, updatedAt: new Date().toISOString() } : e))
-        );
-      }
-    } catch (err: any) {
-      console.error('Error updating event in Firestore:', err);
-      throw new Error(err.message || 'Failed to update event');
-    }
-  };
+  // -------------------------------------------------------------------
+  // DELETE — transactional with version check
+  // -------------------------------------------------------------------
+  const deleteEvent = useCallback(async (id: string, expectedVersion: number) => {
+    if (!isFirebaseConfigured) throw new Error('Firebase not configured');
 
-  const deleteEvent = async (id: string): Promise<void> => {
-    try {
-      if (isFirebaseConfigured && !id.startsWith('sample-') && !id.startsWith('local-')) {
-        const docRef = doc(db, 'events', id);
-        await deleteDoc(docRef);
-      } else {
-        setEvents((prev) => prev.filter((e) => e.id !== id));
-      }
-    } catch (err: any) {
-      console.error('Error deleting event from Firestore:', err);
-      throw new Error(err.message || 'Failed to delete event');
-    }
-  };
+    const ref = doc(db, 'events', id);
 
-  const seedSampleEvents = async (): Promise<void> => {
-    try {
-      setLoading(true);
-      for (const sample of SAMPLE_EVENTS) {
-        await createEvent({
-          title: sample.title,
-          start: sample.start,
-          end: sample.end,
-          description: sample.description,
-          category: sample.category,
-          color: sample.color,
-          createdBy: sample.createdBy,
-        });
-      }
-    } catch (err) {
-      console.error('Error seeding sample events:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists()) return; // already deleted — fine
 
-  const filteredEvents = events.filter((e) => {
-    if (selectedCategory === 'All') return true;
-    return e.category === selectedCategory;
-  });
+      const data = snap.data();
+      const currentVersion = typeof data.version === 'number' ? data.version : 1;
+
+      if (currentVersion !== expectedVersion) {
+        throw new ConflictError(docToEvent(snap.id, data));
+      }
+
+      tx.delete(ref);
+    });
+  }, []);
+
+  // -------------------------------------------------------------------
+  // SEED
+  // -------------------------------------------------------------------
+  const seedSampleEvents = useCallback(
+    async (createdBy: string) => {
+      for (const s of makeSamples()) {
+        await createEvent({ ...s, createdBy });
+      }
+    },
+    [createEvent]
+  );
+
+  // -------------------------------------------------------------------
+  // Filtering
+  // -------------------------------------------------------------------
+  const filteredEvents =
+    selectedCategory === 'All' ? events : events.filter((e) => e.category === selectedCategory);
 
   return {
     events,

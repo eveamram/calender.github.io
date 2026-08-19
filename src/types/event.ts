@@ -1,19 +1,26 @@
 export type EventCategory = 'Work' | 'Personal' | 'Meeting' | 'Other';
 
+/**
+ * The core calendar event type as stored in Firestore and used in the UI.
+ * `version` is critical for optimistic concurrency control.
+ */
 export interface CalendarEvent {
   id: string;
   title: string;
-  start: string; // ISO date string (YYYY-MM-DD or YYYY-MM-DDTHH:mm)
-  end: string;   // ISO date string
-  description?: string;
+  start: string;   // ISO date string
+  end: string;      // ISO date string
+  description: string;
   color: string;
   category: EventCategory;
   createdBy: string;
-  createdAt?: string;
-  updatedAt?: string;
+  lastEditedBy: string;
+  createdAt: string;
+  updatedAt: string;
+  version: number;  // Incremented on every write; used for conflict detection
 }
 
-export interface NewCalendarEventPayload {
+/** Payload for creating a new event (id, timestamps, version assigned server-side) */
+export interface CreateEventPayload {
   title: string;
   start: string;
   end: string;
@@ -23,9 +30,10 @@ export interface NewCalendarEventPayload {
   createdBy: string;
 }
 
-export const CATEGORY_COLORS: Record<EventCategory, { hex: string; bg: string; border: string; text: string }> = {
-  Work: { hex: '#3B82F6', bg: 'bg-blue-100', border: 'border-blue-500', text: 'text-blue-700' },
-  Personal: { hex: '#10B981', bg: 'bg-emerald-100', border: 'border-emerald-500', text: 'text-emerald-700' },
-  Meeting: { hex: '#8B5CF6', bg: 'bg-purple-100', border: 'border-purple-500', text: 'text-purple-700' },
-  Other: { hex: '#F59E0B', bg: 'bg-amber-100', border: 'border-amber-500', text: 'text-amber-700' },
+/** Category → color mapping */
+export const CATEGORY_COLORS: Record<EventCategory, { hex: string; label: string }> = {
+  Work:     { hex: '#3B82F6', label: 'Blue' },
+  Personal: { hex: '#10B981', label: 'Emerald' },
+  Meeting:  { hex: '#8B5CF6', label: 'Purple' },
+  Other:    { hex: '#F59E0B', label: 'Amber' },
 };
