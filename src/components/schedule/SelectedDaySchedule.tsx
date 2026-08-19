@@ -5,6 +5,7 @@ import { format, isBefore, startOfDay, parseISO, startOfWeek } from 'date-fns';
 import { Plus, CheckCircle2, Circle, Clock, MapPin, User, Flame, Check, Pencil, Trash2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { HabitItem } from '../habits/HabitsView';
+import { subscribeToSync, syncUpdateItem, fetchInitialData } from '../../lib/syncEngine';
 
 interface SelectedDayScheduleProps {
   selectedDate: Date;
@@ -24,7 +25,7 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
 
   const currentWeekStartStr = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
 
-  // Load habits from localStorage & prune checkmarks older than current week
+  // Load habits from remote DB / sync engine & fallback to local storage
   const [habits, setHabits] = useState<HabitItem[]>(() => {
     try {
       const stored = localStorage.getItem('calender_daily_habits_v2');
@@ -42,6 +43,30 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
   });
 
   useEffect(() => {
+    fetchInitialData<HabitItem>('habits').then((remoteHabits) => {
+      if (remoteHabits && remoteHabits.length > 0) {
+        setHabits(
+          remoteHabits.map((h) => ({
+            ...h,
+            completedDates: (h.completedDates || []).filter((d) => d >= currentWeekStartStr),
+          }))
+        );
+      }
+    });
+
+    const unsubscribe = subscribeToSync('habits', (event) => {
+      if (event.type === 'INSERT' && event.payload) {
+        const item = event.payload as HabitItem;
+        setHabits((prev) => (prev.some((h) => h.id === item.id) ? prev : [item, ...prev]));
+      } else if (event.type === 'UPDATE' && event.id) {
+        setHabits((prev) =>
+          prev.map((h) => (h.id === event.id ? { ...h, ...event.payload } : h))
+        );
+      } else if (event.type === 'DELETE' && event.id) {
+        setHabits((prev) => prev.filter((h) => h.id !== event.id));
+      }
+    });
+
     const handleStorageChange = () => {
       try {
         const stored = localStorage.getItem('calender_daily_habits_v2');
@@ -58,8 +83,12 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
         // Fallback
       }
     };
+
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    return () => {
+      unsubscribe();
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, [currentWeekStartStr]);
 
   // Filter habits for selected date & active persona
@@ -72,12 +101,15 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
 
   const handleToggleHabit = (habitId: string) => {
     setHabits((prev) => {
+      let targetNewDates: string[] = [];
       const updated = prev.map((h) => {
         if (h.id !== habitId) return h;
         const isDone = h.completedDates.includes(selectedDateStr);
         const newDates = isDone
           ? h.completedDates.filter((d) => d !== selectedDateStr)
           : [...h.completedDates, selectedDateStr];
+
+        targetNewDates = newDates;
 
         if (!isDone) {
           confetti({ particleCount: 35, spread: 55, origin: { y: 0.8 } });
@@ -86,6 +118,7 @@ export const SelectedDaySchedule: React.FC<SelectedDayScheduleProps> = ({
         return { ...h, completedDates: newDates };
       });
       localStorage.setItem('calender_daily_habits_v2', JSON.stringify(updated));
+      syncUpdateItem('habits', habitId, { completedDates: targetNewDates });
       return updated;
     });
   };
