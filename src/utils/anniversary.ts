@@ -4,8 +4,8 @@ import { format } from 'date-fns';
 export const ANNIVERSARY_PASSWORD = 'MacLeod';
 
 /**
- * Generates monthly anniversary events starting from July 30, 2025 (Month 0).
- * August 30, 2026 is Month 13 (1 Year & 1 Month Anniversary).
+ * Generates monthly anniversary events starting from June 30, 2025 (Month 0).
+ * August 30, 2026 is Month 14 (14 Months Anniversary).
  */
 export const generateAnniversaryEvents = (): CalendarEvent[] => {
   const anniversaryEvents: CalendarEvent[] = [];
@@ -14,8 +14,8 @@ export const generateAnniversaryEvents = (): CalendarEvent[] => {
 
   for (let year = startYear; year <= endYear; year++) {
     for (let month = 0; month < 12; month++) {
-      // Calculate total months since July 2025 (year 2025, month 6)
-      const totalMonths = (year - 2025) * 12 + (month - 6);
+      // Calculate total months since June 2025 (year 2025, month 5)
+      const totalMonths = (year - 2025) * 12 + (month - 5);
 
       if (totalMonths >= 1) {
         // Handle February (28/29) if shorter month, otherwise 30th
