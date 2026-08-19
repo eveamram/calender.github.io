@@ -51,19 +51,29 @@
   box-sizing: border-box;
 }
 
+img, video, svg, canvas {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   background-color: var(--bg-primary);
   color: var(--text-primary);
   min-height: 100vh;
+  min-height: 100dvh;
   transition: background-color 0.15s ease, color 0.15s ease;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
   letter-spacing: -0.015em;
+  word-break: break-word;
 }
 
 /* Minimal Input */
@@ -159,4 +169,24 @@ input[type="color"]::-webkit-color-swatch {
 input[type="color"]::-moz-color-swatch {
   border: none;
   border-radius: 50%;
+}
+
+/* Responsive container & touch target helpers */
+.container-responsive {
+  width: 100%;
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 0.5rem;
+}
+
+@media (min-width: 768px) {
+  .container-responsive {
+    padding: 1.25rem 1rem;
+  }
+}
+
+@media (max-width: 767px) {
+  button, input, select, textarea {
+    min-height: 36px;
+  }
 }

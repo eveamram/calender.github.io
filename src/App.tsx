@@ -117,14 +117,15 @@ function MainAppContent() {
                 </div>
               </div>
             ) : (
-              /* DESKTOP HIERARCHY: Daily Schedule First, Calendar Grid Second */
+              /* DESKTOP & TABLET HIERARCHY: Responsive side-by-side or fluid stacked layout */
               <div style={{
                 display: 'flex',
                 flexWrap: 'wrap',
                 gap: '1.25rem',
                 alignItems: 'start',
+                width: '100%',
               }}>
-                <div style={{ flex: '0 0 380px' }}>
+                <div style={{ flex: '1 1 360px', maxWidth: '100%', minWidth: 0 }}>
                   <SelectedDaySchedule
                     selectedDate={selectedDate}
                     onSelectEvent={(evt) => setSelectedDetailsEvent(evt)}
@@ -132,7 +133,7 @@ function MainAppContent() {
                   />
                 </div>
 
-                <div style={{ flex: '1 1 500px', minWidth: 0 }}>
+                <div style={{ flex: '2 1 500px', minWidth: 0, maxWidth: '100%' }}>
                   <MinimalCalendar
                     selectedDate={selectedDate}
                     onSelectDate={setSelectedDate}
