@@ -354,85 +354,74 @@ export const WeeklyClassScheduleView: React.FC<WeeklyClassScheduleViewProps> = (
             })}
           </div>
         )}
-      </div>
 
-      {/* ========================================================================= */}
-      {/* EXAM DATES SECTION (Chronologically ordered by time)                    */}
-      {/* ========================================================================= */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 sm:p-6">
-        <div className="flex items-center justify-between flex-wrap gap-4 pb-4 mb-5 border-b border-slate-100">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center font-bold">
-              <FileText className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-lg font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-                Exam Dates
-                <span className="text-[10px] font-bold bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full">
-                  {examEvents.length} Scheduled
-                </span>
-              </h2>
-              <p className="text-xs text-slate-500 font-medium">Sorted chronologically by date and start time</p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={onOpenAddEvent}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition-all"
-          >
-            <Plus className="w-4 h-4" /> Add Exam
-          </button>
-        </div>
-
-        {examEvents.length === 0 ? (
-          <div className="text-center py-10 bg-slate-50 rounded-2xl border border-dashed border-slate-200 p-6 space-y-2">
-            <AlertCircle className="w-8 h-8 text-rose-400 mx-auto" />
-            <p className="text-xs font-bold text-slate-700">No upcoming exams scheduled</p>
-            <p className="text-[11px] text-slate-400 font-medium">Click "+ Add Exam" to create an exam date entry.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-            {examEvents.map((exam) => (
-              <div
-                key={exam.id}
-                onClick={() => onSelectEvent && onSelectEvent(exam)}
-                className="p-4 bg-slate-50/80 hover:bg-rose-50/40 rounded-xl border border-slate-200/80 border-l-4 border-l-rose-500 cursor-pointer transition-all space-y-2 shadow-2xs group"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-extrabold text-slate-900 group-hover:text-rose-700 transition-colors">
-                    {exam.title}
-                  </span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">
-                    Exam
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-3 text-xs font-semibold text-slate-600">
-                  <div className="flex items-center gap-1">
-                    <CalendarIcon className="w-3.5 h-3.5 text-rose-500" />
-                    <span>{formatDateDisplay(exam.start || exam.event_date || exam.due_date || '')}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5 text-rose-500" />
-                    <span>{formatTimeDisplay(exam)}</span>
-                  </div>
-                </div>
-
-                {exam.description && (
-                  <p className="text-xs text-slate-500 line-clamp-2 italic">{exam.description}</p>
-                )}
-
-                <div className="flex items-center justify-between pt-2 border-t border-slate-200/50 text-[10px] text-slate-400 font-medium">
-                  <span className="flex items-center gap-1">
-                    <User className="w-3 h-3 text-slate-400" /> {exam.createdBy || 'Eve'}
-                  </span>
-                  <span className="text-slate-400">Click to edit</span>
-                </div>
+        {/* ========================================================================= */}
+        {/* UPCOMING EXAMS (DIRECTLY UNDER MONDAY-FRIDAY TIMETABLE GRID)            */}
+        {/* ========================================================================= */}
+        <div className="mt-6 pt-5 border-t border-slate-200/80 space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center font-bold">
+                <FileText className="w-4 h-4" />
               </div>
-            ))}
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+                  Upcoming Exams
+                  <span className="text-[10px] font-bold bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full">
+                    {examEvents.length} Scheduled
+                  </span>
+                </h3>
+                <p className="text-[11px] text-slate-500 font-medium">Exam dates & tests for your registered courses</p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={onOpenAddEvent}
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition-all shadow-2xs"
+            >
+              <Plus className="w-3.5 h-3.5" /> Add Exam
+            </button>
           </div>
-        )}
+
+          {examEvents.length === 0 ? (
+            <div className="text-center py-6 bg-slate-50/80 rounded-xl border border-dashed border-slate-200 p-4 space-y-1.5">
+              <AlertCircle className="w-6 h-6 text-rose-400 mx-auto" />
+              <p className="text-xs font-bold text-slate-700">No upcoming exams scheduled</p>
+              <p className="text-[11px] text-slate-400 font-medium">Click "+ Add Exam" above to schedule an exam date entry.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {examEvents.map((exam) => (
+                <div
+                  key={exam.id}
+                  onClick={() => onSelectEvent && onSelectEvent(exam)}
+                  className="p-3.5 bg-slate-50/90 hover:bg-rose-50/50 rounded-xl border border-slate-200/80 border-l-4 border-l-rose-500 cursor-pointer transition-all space-y-1.5 shadow-2xs group"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-extrabold text-slate-900 group-hover:text-rose-700 transition-colors">
+                      {exam.title}
+                    </span>
+                    <span className="text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">
+                      Exam
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3 text-[11px] font-semibold text-slate-600">
+                    <div className="flex items-center gap-1">
+                      <CalendarIcon className="w-3.5 h-3.5 text-rose-500" />
+                      <span>{formatDateDisplay(exam.start || exam.event_date || exam.due_date || '')}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-rose-500" />
+                      <span>{formatTimeDisplay(exam)}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
