@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useCalendar } from '../../context/CalendarContext';
 import { BookItem, BookStatus } from '../../types';
 import { useIsMobile } from '../../hooks/useIsMobile';
-import { subscribeToSync, syncInsertItem, syncUpdateItem, syncDeleteItem, fetchInitialData } from '../../lib/syncEngine';
+import { subscribeToSync, syncInsertItem, syncUpdateItem, syncDeleteItem, fetchInitialData, startAutoPolling } from '../../lib/syncEngine';
 import {
   BookOpen,
   Plus,
@@ -75,15 +75,7 @@ export const BooksView: React.FC = () => {
   const { activePersonaFilter } = useCalendar();
   const [filterShelf, setFilterShelf] = useState<'all' | BookStatus>('all');
 
-  const [books, setBooks] = useState<BookItem[]>(() => {
-    try {
-      const saved = localStorage.getItem('calender_shared_books_v1');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error('Failed to parse saved books', e);
-    }
-    return INITIAL_BOOKS;
-  });
+  const [books, setBooks] = useState<BookItem[]>(INITIAL_BOOKS);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBook, setEditingBook] = useState<BookItem | null>(null);
@@ -102,16 +94,17 @@ export const BooksView: React.FC = () => {
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
-    localStorage.setItem('calender_shared_books_v1', JSON.stringify(books));
-    window.dispatchEvent(new Event('storage'));
-  }, [books]);
-
-  useEffect(() => {
     fetchInitialData<BookItem>('books').then((remoteBooks) => {
       if (remoteBooks && remoteBooks.length > 0) {
         setBooks(remoteBooks);
       }
     });
+
+    const stopPolling = startAutoPolling<BookItem>('books', (remoteBooks) => {
+      if (remoteBooks && remoteBooks.length > 0) {
+        setBooks(remoteBooks);
+      }
+    }, 2500);
 
     const unsubscribe = subscribeToSync('books', (event) => {
       if (event.type === 'INSERT' && event.payload) {
@@ -126,20 +119,9 @@ export const BooksView: React.FC = () => {
       }
     });
 
-    const handleStorageChange = () => {
-      try {
-        const saved = localStorage.getItem('calender_shared_books_v1');
-        if (saved) setBooks(JSON.parse(saved));
-      } catch (e) {
-        console.error('Storage sync error for books:', e);
-      }
-    };
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('focus', handleStorageChange);
     return () => {
+      stopPolling();
       unsubscribe();
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('focus', handleStorageChange);
     };
   }, []);
 

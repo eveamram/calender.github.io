@@ -44,7 +44,7 @@
 }
 
 .fc-event {
-  @apply rounded-md border-0 shadow-xs transition-transform duration-150 cursor-pointer overflow-hidden text-xs font-semibold px-1.5 py-0.5 my-0.5;
+  @apply rounded-md border-0 shadow-sm transition-transform duration-150 cursor-pointer overflow-hidden text-xs font-semibold px-1.5 py-0.5 my-0.5;
 }
 
 .fc-event:hover {

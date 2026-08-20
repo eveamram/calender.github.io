@@ -16,10 +16,18 @@ const broadcastChannel = typeof window !== 'undefined' && 'BroadcastChannel' in 
 type SyncCallback = (event: SyncPayload) => void;
 const tableSubscribers = new Map<string, Set<SyncCallback>>();
 
-// Provision or get cloud fallback blob ID for unconfigured Supabase setups
-const getCloudBlobKey = (table: string): string => {
-  return `calender_cloud_blob_${table}`;
+// Master shared cloud store IDs (Public REST API shared across ALL devices worldwide)
+const MASTER_SHARED_CLOUD_STORE_MAP: Record<string, string> = {
+  events: 'ff8081819ff5b11001a020fe326b625b',
+  habits: 'ff8081819ff5b11001a020fe33e5625c',
+  grocery_items: 'ff8081819ff5b11001a020fe35bc625d',
+  meal_plans: 'ff8081819ff5b11001a020fe3704625e',
+  notes: 'ff8081819ff5b11001a020fe3a31625f',
+  books: 'ff8081819ff5b11001a020fe3ba86260',
 };
+
+// Memory cache for cloud fallback
+const memoryCache: Record<string, any[]> = {};
 
 // Dispatch incoming payload to subscribers
 const notifySubscribers = (event: SyncPayload) => {
@@ -36,7 +44,7 @@ const notifySubscribers = (event: SyncPayload) => {
 };
 
 /**
- * Fetch remote database data for a table using Supabase or Cloud Fallback.
+ * Fetch remote database data for a table using Supabase or Master Shared Cloud Store.
  */
 export const fetchInitialData = async <T = any>(table: string): Promise<T[] | null> => {
   if (isSupabaseConfigured()) {
@@ -46,30 +54,34 @@ export const fetchInitialData = async <T = any>(table: string): Promise<T[] | nu
         console.warn(`Supabase fetch error for ${table}:`, error.message);
         return null;
       }
-      return data as T[];
+      if (data) {
+        memoryCache[table] = data;
+        return data as T[];
+      }
     } catch (e) {
       console.error(`Failed fetching initial data from Supabase for ${table}:`, e);
-      return null;
     }
   }
 
-  // Cloud fallback mechanism if Supabase is unconfigured
+  // Universal Master Shared Cloud Store Fallback (Guarantees same remote data for all devices)
   try {
-    const cloudBlobId = localStorage.getItem(getCloudBlobKey(table));
-    if (cloudBlobId) {
-      const res = await fetch(`https://jsonblob.com/api/jsonBlob/${cloudBlobId}`, {
-        headers: { 'Content-Type': 'application/json' },
-      });
+    const storeId = MASTER_SHARED_CLOUD_STORE_MAP[table];
+    if (storeId) {
+      const res = await fetch(`https://api.restful-api.dev/objects/${storeId}`);
       if (res.ok) {
-        const data = await res.json();
-        return Array.isArray(data) ? (data as T[]) : null;
+        const json = await res.json();
+        const items = json?.data?.items;
+        if (Array.isArray(items)) {
+          memoryCache[table] = items;
+          return items as T[];
+        }
       }
     }
   } catch (e) {
-    // Silent catch on offline/network errors
+    // Silent catch on network errors
   }
 
-  return null;
+  return memoryCache[table] || null;
 };
 
 // Listen on BroadcastChannel for live multi-window / multi-tab cross-device sync
@@ -110,7 +122,6 @@ if (isSupabaseConfigured()) {
 
           notifySubscribers(syncData);
 
-          // Also broadcast locally to keep all windows synchronized
           if (broadcastChannel) {
             broadcastChannel.postMessage(syncData);
           }
@@ -143,12 +154,12 @@ export const subscribeToSync = (table: string, callback: SyncCallback) => {
 };
 
 /**
- * Start a 3-second periodic polling interval to guarantee cross-device sync.
+ * Start a 2-second periodic polling interval to guarantee cross-device sync across all clients.
  */
 export const startAutoPolling = <T = any>(
   table: string,
   onRemoteData: (remoteItems: T[]) => void,
-  intervalMs = 3000
+  intervalMs = 2500
 ) => {
   let isPolling = false;
   const timer = setInterval(async () => {
@@ -170,6 +181,26 @@ export const startAutoPolling = <T = any>(
 };
 
 /**
+ * Update cloud backup array for fallback store
+ */
+const persistToSharedCloudStore = async (table: string, items: any[]) => {
+  const storeId = MASTER_SHARED_CLOUD_STORE_MAP[table];
+  if (!storeId) return;
+  try {
+    await fetch(`https://api.restful-api.dev/objects/${storeId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: `Atlas_OS_Shared_${table}_v1`,
+        data: { items },
+      }),
+    });
+  } catch (e) {
+    console.error(`Failed to persist shared cloud store for ${table}:`, e);
+  }
+};
+
+/**
  * Item-Level Insert Mutation
  */
 export const syncInsertItem = async <T extends { id: string }>(table: string, item: T): Promise<T> => {
@@ -181,18 +212,24 @@ export const syncInsertItem = async <T extends { id: string }>(table: string, it
     timestamp: Date.now(),
   };
 
-  // Broadcast to other open windows/tabs
+  // Broadcast to local windows/tabs
   if (broadcastChannel) {
     broadcastChannel.postMessage(syncPayload);
   }
 
-  // Persist to Supabase if configured
+  // Update memory cache
+  const existing = memoryCache[table] || [];
+  memoryCache[table] = [item, ...existing.filter((x) => x.id !== item.id)];
+
+  // Persist to Supabase or Shared Cloud Store
   if (isSupabaseConfigured()) {
     try {
       await supabase.from(table).insert([item]);
     } catch (e) {
       console.error(`Supabase insert failed for ${table}:`, e);
     }
+  } else {
+    await persistToSharedCloudStore(table, memoryCache[table]);
   }
 
   return item;
@@ -214,18 +251,22 @@ export const syncUpdateItem = async (
     timestamp: Date.now(),
   };
 
-  // Broadcast to other open windows/tabs
   if (broadcastChannel) {
     broadcastChannel.postMessage(syncPayload);
   }
 
-  // Persist to Supabase if configured
+  // Update memory cache
+  const existing = memoryCache[table] || [];
+  memoryCache[table] = existing.map((x) => (x.id === id ? { ...x, ...updates } : x));
+
   if (isSupabaseConfigured()) {
     try {
       await supabase.from(table).update(updates).eq('id', id);
     } catch (e) {
       console.error(`Supabase update failed for ${table}:`, e);
     }
+  } else {
+    await persistToSharedCloudStore(table, memoryCache[table]);
   }
 
   return true;
@@ -242,20 +283,25 @@ export const syncDeleteItem = async (table: string, id: string): Promise<boolean
     timestamp: Date.now(),
   };
 
-  // Broadcast to other open windows/tabs
   if (broadcastChannel) {
     broadcastChannel.postMessage(syncPayload);
   }
 
-  // Persist deletion to Supabase if configured
+  // Update memory cache
+  const existing = memoryCache[table] || [];
+  memoryCache[table] = existing.filter((x) => x.id !== id);
+
   if (isSupabaseConfigured()) {
     try {
       await supabase.from(table).delete().eq('id', id);
     } catch (e) {
       console.error(`Supabase delete failed for ${table}:`, e);
     }
+  } else {
+    await persistToSharedCloudStore(table, memoryCache[table]);
   }
 
   return true;
 };
+
 

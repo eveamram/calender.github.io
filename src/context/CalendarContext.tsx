@@ -232,15 +232,7 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [showTodosOnCalendar]);
 
   const [events, setEvents] = useState<CalendarEvent[]>(() => {
-    let initialList: CalendarEvent[] = INITIAL_SEED_EVENTS;
-    try {
-      const stored = localStorage.getItem('calender_unified_events');
-      if (stored) initialList = JSON.parse(stored);
-    } catch (e) {
-      console.error('Failed to parse local events:', e);
-    }
-
-    // Automatically seed/merge/update monthly anniversary events
+    const initialList: CalendarEvent[] = INITIAL_SEED_EVENTS;
     const anniversaries = generateAnniversaryEvents();
     const anniversaryMap = new Map(anniversaries.map((a) => [a.id, a]));
 
@@ -272,15 +264,7 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     personFilter: 'all',
   });
 
-  useEffect(() => {
-    try {
-      localStorage.setItem('calender_unified_events', JSON.stringify(events));
-    } catch (e) {
-      // Ignore write errors
-    }
-  }, [events]);
-
-  // Merge incoming remote events while preserving client state and anniversary milestones
+  // Merge incoming remote events while preserving anniversary milestones
   const mergeRemoteEvents = (remoteEvents: CalendarEvent[]) => {
     if (!remoteEvents || remoteEvents.length === 0) return;
     const anniversaries = generateAnniversaryEvents();
@@ -298,19 +282,19 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setEvents([...updatedList, ...missingAnniversaries]);
   };
 
-  // Subscribe to item-level Realtime changes & register 3-second background polling
+  // Subscribe to Realtime changes & register background polling
   useEffect(() => {
-    // Initial fetch from cloud/Supabase
     fetchInitialData<CalendarEvent>('events').then((remoteEvents) => {
-      if (remoteEvents) {
+      if (remoteEvents && remoteEvents.length > 0) {
         mergeRemoteEvents(remoteEvents);
       }
     });
 
-    // Register 3-second periodic polling interval for background cross-device sync
     const stopPolling = startAutoPolling<CalendarEvent>('events', (remoteEvents) => {
-      mergeRemoteEvents(remoteEvents);
-    }, 3000);
+      if (remoteEvents && remoteEvents.length > 0) {
+        mergeRemoteEvents(remoteEvents);
+      }
+    }, 2500);
 
     const unsubscribe = subscribeToSync('events', (event) => {
       if (event.type === 'INSERT' && event.payload) {
@@ -325,25 +309,9 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     });
 
-    const handleStorageChange = () => {
-      try {
-        const storedEvents = localStorage.getItem('calender_unified_events');
-        if (storedEvents) {
-          const parsed: CalendarEvent[] = JSON.parse(storedEvents);
-          mergeRemoteEvents(parsed);
-        }
-      } catch (e) {
-        console.error('Storage sync error:', e);
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('focus', handleStorageChange);
     return () => {
       stopPolling();
       unsubscribe();
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('focus', handleStorageChange);
     };
   }, []);
 
@@ -446,10 +414,6 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const resetAllData = () => {
     // Preserve anniversary events when resetting normal user events
     const anniversaryList = events.filter((e) => e.is_anniversary || e.id.startsWith('anniversary-'));
-    localStorage.setItem('calender_unified_events', JSON.stringify(anniversaryList));
-    localStorage.removeItem('calender_daily_habits_v2');
-    localStorage.removeItem('calender_weekly_meals');
-    localStorage.removeItem('calender_habits_last_week');
     setEvents(anniversaryList);
     addToast('Events, classes, tasks & habits reset! (Anniversaries preserved)', 'info');
     window.location.reload();
@@ -462,7 +426,6 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const freshAnniversaries = generateAnniversaryEvents();
       const updated = [...nonAnniversaries, ...freshAnniversaries];
       setEvents(updated);
-      localStorage.setItem('calender_unified_events', JSON.stringify(updated));
       addToast('Anniversary milestones reset successfully! 💕', 'success');
       return true;
     } else {

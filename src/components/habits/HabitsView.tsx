@@ -4,7 +4,7 @@ import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
 import { Plus, Flame, Check, Sparkles, Trash2, User, Calendar as CalendarIcon, Circle, Pencil } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useIsMobile } from '../../hooks/useIsMobile';
-import { subscribeToSync, syncInsertItem, syncUpdateItem, syncDeleteItem, fetchInitialData } from '../../lib/syncEngine';
+import { subscribeToSync, syncInsertItem, syncUpdateItem, syncDeleteItem, fetchInitialData, startAutoPolling } from '../../lib/syncEngine';
 
 export interface HabitItem {
   id: string;
@@ -78,15 +78,7 @@ export const HabitsView: React.FC = () => {
   const isMobile = useIsMobile();
   const { activePersonaFilter } = useCalendar();
 
-  const [habits, setHabits] = useState<HabitItem[]>(() => {
-    try {
-      const stored = localStorage.getItem('calender_daily_habits_v2');
-      if (stored) return JSON.parse(stored);
-    } catch {
-      // Fallback
-    }
-    return DEFAULT_HABITS;
-  });
+  const [habits, setHabits] = useState<HabitItem[]>(DEFAULT_HABITS);
 
   // Mode: Daily List vs Full Week Grid (Always daily list on mobile!)
   const [viewType, setViewType] = useState<'daily' | 'weekly'>(isMobile ? 'daily' : 'daily');
@@ -103,15 +95,17 @@ export const HabitsView: React.FC = () => {
   const [editingHabit, setEditingHabit] = useState<HabitItem | null>(null);
 
   useEffect(() => {
-    localStorage.setItem('calender_daily_habits_v2', JSON.stringify(habits));
-  }, [habits]);
-
-  useEffect(() => {
     fetchInitialData<HabitItem>('habits').then((remoteHabits) => {
       if (remoteHabits && remoteHabits.length > 0) {
         setHabits(remoteHabits);
       }
     });
+
+    const stopPolling = startAutoPolling<HabitItem>('habits', (remoteHabits) => {
+      if (remoteHabits && remoteHabits.length > 0) {
+        setHabits(remoteHabits);
+      }
+    }, 2500);
 
     const unsubscribe = subscribeToSync('habits', (event) => {
       if (event.type === 'INSERT' && event.payload) {
@@ -125,7 +119,10 @@ export const HabitsView: React.FC = () => {
         setHabits((prev) => prev.filter((h) => h.id !== event.id));
       }
     });
-    return () => unsubscribe();
+    return () => {
+      stopPolling();
+      unsubscribe();
+    };
   }, []);
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');

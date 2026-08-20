@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCalendar } from '../../context/CalendarContext';
 import { ShoppingBag, Plus, Check, Trash2, Tag, Search, Sparkles, X } from 'lucide-react';
-import { subscribeToSync, syncInsertItem, syncUpdateItem, syncDeleteItem, fetchInitialData } from '../../lib/syncEngine';
+import { subscribeToSync, syncInsertItem, syncUpdateItem, syncDeleteItem, fetchInitialData, startAutoPolling } from '../../lib/syncEngine';
 
 export interface GroceryItem {
   id: string;
@@ -32,17 +32,7 @@ const QUICK_SUGGESTIONS = [
 
 export const GroceryView: React.FC = () => {
   const { activePersonaFilter } = useCalendar();
-  const [items, setItems] = useState<GroceryItem[]>(() => {
-    const saved = localStorage.getItem('calender_grocery_items_v1');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error('Failed parsing grocery items', e);
-      }
-    }
-    return DEFAULT_GROCERY_ITEMS;
-  });
+  const [items, setItems] = useState<GroceryItem[]>(DEFAULT_GROCERY_ITEMS);
 
   const [newItemName, setNewItemName] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Produce');
@@ -50,16 +40,17 @@ export const GroceryView: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    localStorage.setItem('calender_grocery_items_v1', JSON.stringify(items));
-    window.dispatchEvent(new Event('storage'));
-  }, [items]);
-
-  useEffect(() => {
     fetchInitialData<GroceryItem>('grocery_items').then((remoteItems) => {
       if (remoteItems && remoteItems.length > 0) {
         setItems(remoteItems);
       }
     });
+
+    const stopPolling = startAutoPolling<GroceryItem>('grocery_items', (remoteItems) => {
+      if (remoteItems && remoteItems.length > 0) {
+        setItems(remoteItems);
+      }
+    }, 2500);
 
     const unsubscribe = subscribeToSync('grocery_items', (event) => {
       if (event.type === 'INSERT' && event.payload) {
@@ -73,7 +64,10 @@ export const GroceryView: React.FC = () => {
         setItems((prev) => prev.filter((g) => g.id !== event.id));
       }
     });
-    return () => unsubscribe();
+    return () => {
+      stopPolling();
+      unsubscribe();
+    };
   }, []);
 
   const handleAddItem = (e?: React.FormEvent, customName?: string, customCategory?: string) => {

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useCalendar } from '../../context/CalendarContext';
 import { Utensils, Edit2, Check, Sparkles, RefreshCw, Sun, Sunset, Coffee, Trash2, Plus, X } from 'lucide-react';
 import { format, startOfWeek } from 'date-fns';
-import { subscribeToSync, syncUpdateItem, fetchInitialData } from '../../lib/syncEngine';
+import { subscribeToSync, syncUpdateItem, fetchInitialData, startAutoPolling } from '../../lib/syncEngine';
 
 export interface MealSlot {
   breakfast?: string;
@@ -33,35 +33,17 @@ export const MealsView: React.FC = () => {
 
   const currentWeekStartStr = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
 
-  const [meals, setMeals] = useState<WeekMeals>(() => {
-    try {
-      const lastWeek = localStorage.getItem('calender_meals_last_week');
-      const saved = localStorage.getItem('calender_meal_plan_v2');
-      if (saved && lastWeek === currentWeekStartStr) {
-        return JSON.parse(saved);
-      }
-    } catch (e) {
-      console.error('Failed parsing meal plan', e);
-    }
-    return DEFAULT_MEALS;
-  });
+  const [meals, setMeals] = useState<WeekMeals>(DEFAULT_MEALS);
 
   const [editingSlot, setEditingSlot] = useState<{ day: string; slot: keyof MealSlot } | null>(null);
   const [editValue, setEditValue] = useState('');
 
-  const [slotLabels, setSlotLabels] = useState<Record<string, string>>(() => {
-    try {
-      const saved = localStorage.getItem('calender_meal_category_labels');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error('Failed loading meal slot labels', e);
-    }
-    return { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack / Drink' };
+  const [slotLabels, setSlotLabels] = useState<Record<string, string>>({
+    breakfast: 'Breakfast',
+    lunch: 'Lunch',
+    dinner: 'Dinner',
+    snack: 'Snack / Drink',
   });
-
-  useEffect(() => {
-    localStorage.setItem('calender_meal_category_labels', JSON.stringify(slotLabels));
-  }, [slotLabels]);
 
   const [categoryModalSlot, setCategoryModalSlot] = useState<keyof MealSlot | null>(null);
   const [categoryInputValue, setCategoryInputValue] = useState('');
@@ -97,43 +79,32 @@ export const MealsView: React.FC = () => {
     setCategoryModalSlot(null);
   };
 
-  // Weekly Refresh Check: Automatically refresh meal plan check/reset when a new week starts
-  useEffect(() => {
-    try {
-      const lastWeek = localStorage.getItem('calender_meals_last_week');
-      if (lastWeek !== currentWeekStartStr) {
-        localStorage.setItem('calender_meals_last_week', currentWeekStartStr);
-        localStorage.setItem('calender_meal_plan_v2', JSON.stringify(DEFAULT_MEALS));
-        setMeals(DEFAULT_MEALS);
+  const processRemoteMeals = (remoteData: any[]) => {
+    if (remoteData && remoteData.length > 0) {
+      if (remoteData[0]?.meals) {
+        setMeals(remoteData[0].meals);
+      } else {
+        const merged: WeekMeals = {};
+        remoteData.forEach((item) => {
+          if (item.id && (item.breakfast || item.lunch || item.dinner || item.snack)) {
+            merged[item.id] = item;
+          }
+        });
+        if (Object.keys(merged).length > 0) {
+          setMeals((prev) => ({ ...prev, ...merged }));
+        }
       }
-    } catch {
-      // LocalStorage catch
     }
-  }, [currentWeekStartStr]);
-
-  useEffect(() => {
-    localStorage.setItem('calender_meal_plan_v2', JSON.stringify(meals));
-    window.dispatchEvent(new Event('storage'));
-  }, [meals]);
+  };
 
   useEffect(() => {
     fetchInitialData<any>('meal_plans').then((remoteData) => {
-      if (remoteData && remoteData.length > 0) {
-        if (remoteData[0]?.meals) {
-          setMeals(remoteData[0].meals);
-        } else {
-          const merged: WeekMeals = {};
-          remoteData.forEach((item) => {
-            if (item.id && (item.breakfast || item.lunch || item.dinner || item.snack)) {
-              merged[item.id] = item;
-            }
-          });
-          if (Object.keys(merged).length > 0) {
-            setMeals((prev) => ({ ...prev, ...merged }));
-          }
-        }
-      }
+      if (remoteData) processRemoteMeals(remoteData);
     });
+
+    const stopPolling = startAutoPolling<any>('meal_plans', (remoteData) => {
+      if (remoteData) processRemoteMeals(remoteData);
+    }, 2500);
 
     const unsubscribe = subscribeToSync('meal_plans', (event) => {
       if (event.type === 'UPDATE' && event.id && event.payload) {
@@ -146,7 +117,10 @@ export const MealsView: React.FC = () => {
         }));
       }
     });
-    return () => unsubscribe();
+    return () => {
+      stopPolling();
+      unsubscribe();
+    };
   }, []);
 
   const startEdit = (day: string, slot: keyof MealSlot) => {

@@ -137,13 +137,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
           showOnSchedule: showHabitOnSchedule,
         };
 
-        const existingStr = localStorage.getItem('calender_daily_habits_v2');
-        const existing = existingStr ? JSON.parse(existingStr) : [];
-        const updated = [newHabit, ...existing];
-        localStorage.setItem('calender_daily_habits_v2', JSON.stringify(updated));
         await syncInsertItem('habits', newHabit);
-        window.dispatchEvent(new Event('storage'));
-
         confetti({ particleCount: 35, spread: 55, origin: { y: 0.7 } });
         onClose();
         return;
@@ -161,33 +155,14 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
           createdAt: new Date().toISOString(),
         };
 
-        const existingStr = localStorage.getItem('calender_grocery_items_v1');
-        const existing = existingStr ? JSON.parse(existingStr) : [];
-        const updated = [newItem, ...existing];
-        localStorage.setItem('calender_grocery_items_v1', JSON.stringify(updated));
         await syncInsertItem('grocery_items', newItem);
-        window.dispatchEvent(new Event('storage'));
-
         confetti({ particleCount: 35, spread: 55, origin: { y: 0.7 } });
         onClose();
         return;
       }
 
       if (formMode === 'meal') {
-        const existingStr = localStorage.getItem('calender_meal_plan_v2');
-        const existing = existingStr ? JSON.parse(existingStr) : {};
-        const dayMeals = existing[mealDay] || { breakfast: '', lunch: '', dinner: '', snack: '' };
-        const updatedMeals = {
-          ...existing,
-          [mealDay]: {
-            ...dayMeals,
-            [mealSlotType]: title.trim(),
-          },
-        };
-        localStorage.setItem('calender_meal_plan_v2', JSON.stringify(updatedMeals));
         await syncUpdateItem('meal_plans', mealDay, { [mealSlotType]: title.trim() });
-        window.dispatchEvent(new Event('storage'));
-
         confetti({ particleCount: 35, spread: 55, origin: { y: 0.7 } });
         onClose();
         return;

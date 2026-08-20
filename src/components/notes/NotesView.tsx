@@ -3,7 +3,7 @@ import { useCalendar } from '../../context/CalendarContext';
 import { BottomSheet } from '../ui/BottomSheet';
 import { FileText, Plus, Trash2, Edit3, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
-import { subscribeToSync, syncInsertItem, syncUpdateItem, syncDeleteItem, fetchInitialData } from '../../lib/syncEngine';
+import { subscribeToSync, syncInsertItem, syncUpdateItem, syncDeleteItem, fetchInitialData, startAutoPolling } from '../../lib/syncEngine';
 
 export interface NoteItem {
   id: string;
@@ -32,17 +32,7 @@ const DEFAULT_NOTES: NoteItem[] = [
 
 export const NotesView: React.FC = () => {
   const { activePersonaFilter } = useCalendar();
-  const [notes, setNotes] = useState<NoteItem[]>(() => {
-    const saved = localStorage.getItem('calender_notes_list_v1');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error('Failed parsing notes', e);
-      }
-    }
-    return DEFAULT_NOTES;
-  });
+  const [notes, setNotes] = useState<NoteItem[]>(DEFAULT_NOTES);
 
   const [activeNote, setActiveNote] = useState<NoteItem | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -50,16 +40,17 @@ export const NotesView: React.FC = () => {
   const [editContent, setEditContent] = useState('');
 
   useEffect(() => {
-    localStorage.setItem('calender_notes_list_v1', JSON.stringify(notes));
-    window.dispatchEvent(new Event('storage'));
-  }, [notes]);
-
-  useEffect(() => {
     fetchInitialData<NoteItem>('notes').then((remoteNotes) => {
       if (remoteNotes && remoteNotes.length > 0) {
         setNotes(remoteNotes);
       }
     });
+
+    const stopPolling = startAutoPolling<NoteItem>('notes', (remoteNotes) => {
+      if (remoteNotes && remoteNotes.length > 0) {
+        setNotes(remoteNotes);
+      }
+    }, 2500);
 
     const unsubscribe = subscribeToSync('notes', (event) => {
       if (event.type === 'INSERT' && event.payload) {
@@ -74,7 +65,10 @@ export const NotesView: React.FC = () => {
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      stopPolling();
+      unsubscribe();
+    };
   }, []);
 
   const handleOpenNote = (note: NoteItem) => {
