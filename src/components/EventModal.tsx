@@ -181,7 +181,7 @@ export const EventModal: React.FC<EventModalProps> = ({
           {/* Category */}
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5"><Tag className="w-3.5 h-3.5 text-slate-400" /> Category</label>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
               {(Object.keys(CATEGORY_COLORS) as EventCategory[]).map((cat) => (
                 <button key={cat} type="button" onClick={() => setCategory(cat)}
                   className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${

@@ -1,380 +1,257 @@
 import React, { useState } from 'react';
-import { useCalendar } from '../../context/CalendarContext';
-import { CalendarEvent } from '../../types';
-import { GraduationCap, Plus, Clock, MapPin, User, Calendar as CalendarIcon } from 'lucide-react';
-
+import { CalendarEvent } from '../../types/event';
+import { GraduationCap, Plus, Clock, MapPin, User, Calendar as CalendarIcon, FileText, AlertCircle } from 'lucide-react';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { useEvents } from '../../hooks/useEvents';
 
 interface WeeklyClassScheduleViewProps {
+  events?: CalendarEvent[];
   onSelectEvent?: (event: CalendarEvent) => void;
   onOpenAddEvent?: () => void;
 }
 
 export const WeeklyClassScheduleView: React.FC<WeeklyClassScheduleViewProps> = ({
+  events: propEvents,
   onSelectEvent,
   onOpenAddEvent,
 }) => {
   const isMobile = useIsMobile();
-  const { filteredEvents, members, activePersonaFilter } = useCalendar();
+  const hookEvents = useEvents();
+  const allEvents = propEvents || hookEvents.events || [];
   const [selectedMobileDayIdx, setSelectedMobileDayIdx] = useState<number>(0); // 0 = Mon, 1 = Tue...
 
-  // Filter strictly for class events ONLY (exclude birthdays, tasks, exams, appointments, etc.)
-  const classEvents = filteredEvents.filter(
-    (e) => e.event_type === 'class' || e.event_type === 'School'
+  // Filter strictly for class events
+  const classEvents = allEvents.filter(
+    (e) => e.event_type === 'class' || e.event_type === 'School' || e.category === 'Work'
   );
+
+  // Filter exam events and sort chronologically by date and start time (time order)
+  const examEvents = allEvents.filter(
+    (e) => e.category === 'Exam' || e.event_type === 'exam' || e.event_type === 'Exam'
+  );
+
+  examEvents.sort((a, b) => {
+    const dateA = a.start || a.event_date || a.due_date || '';
+    const dateB = b.start || b.event_date || b.due_date || '';
+    if (dateA !== dateB) return dateA.localeCompare(dateB);
+    const timeA = a.start_time || (a.start ? a.start.slice(11, 16) : '00:00');
+    const timeB = b.start_time || (b.start ? b.start.slice(11, 16) : '00:00');
+    return timeA.localeCompare(timeB);
+  });
 
   const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
   const shortDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 
-  const getOwnerName = (evt: CalendarEvent) => {
-    if (evt.owner_user_id) {
-      const owner = members.find((m) => m.user_id === evt.owner_user_id || m.id === evt.owner_user_id);
-      if (owner) return owner.display_name;
-    }
-    if (evt.created_by) {
-      const creator = members.find((m) => m.user_id === evt.created_by || m.id === evt.created_by);
-      if (creator) return creator.display_name;
-    }
-    return 'Eve';
-  };
-
-  const formatRecurringDays = (days?: number[]) => {
-    if (!days || days.length === 0) return '';
-    const dayMap: Record<number, string> = { 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat', 7: 'Sun' };
-    return days.map((d) => dayMap[d] || '').filter(Boolean).join(' + ');
-  };
-
-  if (isMobile) {
-    const selectedDayNumber = selectedMobileDayIdx + 1; // 1-indexed
-    const dayClasses = classEvents.filter((c) => {
-      if (c.recurrence_days && c.recurrence_days.length > 0) {
-        return c.recurrence_days.includes(selectedDayNumber);
+  const formatDateDisplay = (dateStr: string) => {
+    if (!dateStr) return 'TBD';
+    const clean = dateStr.slice(0, 10);
+    try {
+      const parts = clean.split('-');
+      if (parts.length === 3) {
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       }
-      return true;
-    });
-    dayClasses.sort((a, b) => (a.start_time || '00:00').localeCompare(b.start_time || '00:00'));
+    } catch {
+      /* ignore */
+    }
+    return clean;
+  };
 
-    return (
-      <div style={{ paddingBottom: '4.5rem', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-        {/* Header Bar */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-          <div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-              Class Schedule
-            </h2>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '2px 0 0 0' }}>
-              Select day to view timeline
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={onOpenAddEvent}
-            style={{
-              padding: '0.45rem 0.85rem',
-              borderRadius: '10px',
-              backgroundColor: '#2563EB',
-              color: '#FFFFFF',
-              border: 'none',
-              fontWeight: 800,
-              fontSize: '0.8rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-            }}
-          >
-            <Plus size={15} /> Add Class
-          </button>
-        </div>
-
-        {/* Horizontal Day Picker Tabs */}
-        <div style={{
-          display: 'flex',
-          gap: '0.35rem',
-          overflowX: 'auto',
-          backgroundColor: 'var(--bg-secondary)',
-          padding: '6px',
-          borderRadius: '999px',
-          border: '1px solid var(--border-color)',
-          marginBottom: '1.25rem',
-        }}>
-          {shortDays.map((d, idx) => {
-            const isSelected = selectedMobileDayIdx === idx;
-            return (
-              <button
-                key={d}
-                type="button"
-                onClick={() => setSelectedMobileDayIdx(idx)}
-                style={{
-                  flex: 1,
-                  minWidth: '40px',
-                  padding: '0.45rem 0',
-                  borderRadius: '999px',
-                  border: 'none',
-                  backgroundColor: isSelected ? '#2563EB' : 'transparent',
-                  color: isSelected ? '#FFFFFF' : 'var(--text-secondary)',
-                  fontWeight: 800,
-                  fontSize: '0.8rem',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                {d}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Selected Day Class Timeline Cards */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {dayClasses.length === 0 ? (
-            <div style={{
-              textAlign: 'center',
-              padding: '2.5rem 1rem',
-              backgroundColor: 'var(--bg-secondary)',
-              borderRadius: '16px',
-              border: '1px solid var(--border-subtle)',
-              color: 'var(--text-muted)',
-              fontSize: '0.875rem',
-            }}>
-              No classes scheduled for {shortDays[selectedMobileDayIdx]}.
-            </div>
-          ) : (
-            dayClasses.map((cls) => {
-              const ownerName = getOwnerName(cls);
-              const ownerStyle = ownerName === 'Eve' ? { bg: '#EFF6FF', color: '#1E40AF' } : { bg: '#FDF2F8', color: '#9D174D' };
-
-              return (
-                <div
-                  key={cls.id}
-                  onClick={() => onSelectEvent && onSelectEvent(cls)}
-                  style={{
-                    backgroundColor: 'var(--bg-secondary)',
-                    borderRadius: '16px',
-                    border: '1px solid var(--border-color)',
-                    borderLeft: `4px solid ${cls.color || '#3B82F6'}`,
-                    padding: '1rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.4rem',
-                    cursor: 'pointer',
-                    boxShadow: 'var(--shadow-subtle)',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                      {cls.title}
-                    </span>
-
-                    {activePersonaFilter === 'all' && (
-                      <span style={{
-                        fontSize: '0.65rem',
-                        fontWeight: 800,
-                        padding: '2px 6px',
-                        borderRadius: '999px',
-                        backgroundColor: ownerStyle.bg,
-                        color: ownerStyle.color,
-                      }}>
-                        {ownerName}
-                      </span>
-                    )}
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 600 }}>
-                    <Clock size={13} color="var(--accent-primary)" /> {cls.start_time || '10:00'} – {cls.end_time || '11:00'}
-                  </div>
-
-                  {cls.location && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.775rem' }}>
-                      <MapPin size={13} /> {cls.location}
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
-    );
-  }
+  const formatTimeDisplay = (evt: CalendarEvent) => {
+    if (evt.start_time) {
+      return `${evt.start_time}${evt.end_time ? ` – ${evt.end_time}` : ''}`;
+    }
+    if (evt.start && evt.start.length >= 16) {
+      return `${evt.start.slice(11, 16)}${evt.end && evt.end.length >= 16 ? ` – ${evt.end.slice(11, 16)}` : ''}`;
+    }
+    return 'All Day';
+  };
 
   return (
-    <div style={{
-      backgroundColor: 'var(--bg-secondary)',
-      border: '1px solid var(--border-color)',
-      borderRadius: 'var(--radius-lg)',
-      padding: '1.75rem',
-      width: '100%',
-      boxShadow: 'var(--shadow-subtle)',
-      fontFamily: "'Plus Jakarta Sans', sans-serif",
-    }}>
-      {/* Header */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '1rem',
-        marginBottom: '1.5rem',
-        paddingBottom: '1rem',
-        borderBottom: '1px solid var(--border-color)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{
-            width: '38px',
-            height: '38px',
-            borderRadius: '10px',
-            backgroundColor: 'var(--accent-light)',
-            color: 'var(--accent-primary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            <GraduationCap size={20} strokeWidth={2.2} />
+    <div className="space-y-6 font-sans">
+      {/* ========================================================================= */}
+      {/* CLASS SCHEDULE SECTION                                                   */}
+      {/* ========================================================================= */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 sm:p-6">
+        <div className="flex items-center justify-between flex-wrap gap-4 pb-4 mb-5 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
+              <GraduationCap className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-extrabold text-slate-900 tracking-tight">Class Schedule</h2>
+              <p className="text-xs text-slate-500 font-medium">Weekly class timetable & recurring courses</p>
+            </div>
           </div>
-          <div>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-              Class Schedule
-            </h2>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-              Weekly class timetable & recurring courses
-            </p>
-          </div>
-        </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <button
             type="button"
-            className="btn btn-primary"
             onClick={onOpenAddEvent}
-            style={{ padding: '0.45rem 0.95rem', fontSize: '0.825rem' }}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs transition-all"
           >
-            <Plus size={15} /> Add Class
+            <Plus className="w-4 h-4" /> Add Class
           </button>
         </div>
+
+        {/* Responsive Grid / Mobile Tabs */}
+        {isMobile ? (
+          <div>
+            <div className="flex gap-1 overflow-x-auto bg-slate-100 p-1 rounded-xl mb-4">
+              {shortDays.map((d, idx) => (
+                <button
+                  key={d}
+                  onClick={() => setSelectedMobileDayIdx(idx)}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                    selectedMobileDayIdx === idx ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-200/60'
+                  }`}
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
+
+            <div className="space-y-3">
+              {classEvents.filter((c) => (c.recurrence_days || [1, 2, 3, 4, 5]).includes(selectedMobileDayIdx + 1)).length === 0 ? (
+                <div className="text-center py-8 bg-slate-50 rounded-xl border border-slate-200/60 text-xs text-slate-400 font-medium">
+                  No classes scheduled for {shortDays[selectedMobileDayIdx]}.
+                </div>
+              ) : (
+                classEvents
+                  .filter((c) => (c.recurrence_days || [1, 2, 3, 4, 5]).includes(selectedMobileDayIdx + 1))
+                  .map((cls) => (
+                    <div
+                      key={cls.id}
+                      onClick={() => onSelectEvent && onSelectEvent(cls)}
+                      className="p-3.5 bg-slate-50 hover:bg-blue-50/50 rounded-xl border border-slate-200/80 border-l-4 border-l-blue-600 cursor-pointer transition-all space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-extrabold text-slate-800">{cls.title}</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                          {cls.createdBy || 'Class'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+                        <Clock className="w-3.5 h-3.5 text-blue-600" /> {formatTimeDisplay(cls)}
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-5 gap-3.5">
+            {daysOfWeek.map((dayName, idx) => {
+              const dayNumber = idx + 1;
+              const dayClasses = classEvents.filter((c) => (c.recurrence_days || [1, 2, 3, 4, 5]).includes(dayNumber));
+
+              return (
+                <div key={dayName} className="bg-slate-50/80 border border-slate-200/80 rounded-xl p-3 flex flex-col min-h-[220px]">
+                  <div className="text-center pb-2 border-b border-slate-200/60 mb-2.5">
+                    <span className="text-xs font-extrabold text-slate-800">{dayName}</span>
+                  </div>
+
+                  <div className="space-y-2 flex-1">
+                    {dayClasses.length === 0 ? (
+                      <div className="text-[11px] text-slate-400 font-medium italic text-center mt-4">No classes</div>
+                    ) : (
+                      dayClasses.map((cls) => (
+                        <div
+                          key={cls.id}
+                          onClick={() => onSelectEvent && onSelectEvent(cls)}
+                          className="p-2.5 bg-white hover:bg-blue-50/40 rounded-lg border border-slate-200 border-l-3 border-l-blue-600 cursor-pointer transition-all space-y-1 shadow-2xs"
+                        >
+                          <div className="text-xs font-extrabold text-slate-800 leading-tight">{cls.title}</div>
+                          <div className="text-[10px] font-semibold text-slate-500 flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-blue-600" /> {formatTimeDisplay(cls)}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* Weekly Grid (5 Columns Mon - Fri, Fluid Responsive Grid) */}
-      <div style={{ width: '100%' }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-          gap: '0.85rem',
-          width: '100%',
-        }}>
-        {daysOfWeek.map((dayName, idx) => {
-          const dayNumber = idx + 1; // 1 = Mon, 2 = Tue, 3 = Wed, 4 = Thu, 5 = Fri, 6 = Sat, 7 = Sun
-
-          // Filter classes for this day
-          const dayClasses = classEvents.filter((c) => {
-            if (c.recurrence_days && c.recurrence_days.length > 0) {
-              return c.recurrence_days.includes(dayNumber);
-            }
-            // If no recurrence days specified, fall back to checking event_date weekday
-            return true;
-          });
-
-          // Sort chronologically by start_time
-          dayClasses.sort((a, b) => (a.start_time || '00:00').localeCompare(b.start_time || '00:00'));
-
-          return (
-            <div
-              key={dayName}
-              style={{
-                backgroundColor: 'var(--bg-primary)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-md)',
-                padding: '1rem',
-                display: 'flex',
-                flexDirection: 'column',
-                minHeight: '340px',
-              }}
-            >
-              <div style={{
-                textAlign: 'center',
-                paddingBottom: '0.65rem',
-                borderBottom: '1px solid var(--border-color)',
-                marginBottom: '0.75rem',
-              }}>
-                <span style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                  {dayName}
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', flex: 1 }}>
-                {dayClasses.length === 0 ? (
-                  <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)', fontStyle: 'italic', textAlign: 'center', marginTop: '1.5rem' }}>
-                    No classes
-                  </div>
-                ) : (
-                  dayClasses.map((cls) => {
-                    const ownerName = getOwnerName(cls);
-                    const ownerStyle = ownerName === 'Eve' ? { bg: '#EFF6FF', color: '#1E40AF' } : { bg: '#FDF2F8', color: '#9D174D' };
-                    const recurringSummary = formatRecurringDays(cls.recurrence_days);
-
-                    return (
-                      <div
-                        key={cls.id}
-                        onClick={() => onSelectEvent && onSelectEvent(cls)}
-                        style={{
-                          padding: '0.75rem',
-                          borderRadius: '8px',
-                          backgroundColor: `${cls.color || '#3B82F6'}10`,
-                          borderLeft: `3.5px solid ${cls.color || '#3B82F6'}`,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '4px',
-                          transition: 'all 0.15s ease',
-                        }}
-                      >
-                        <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.25 }}>
-                          {cls.title}
-                        </div>
-
-                        <div style={{ fontSize: '0.725rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-                          <Clock size={11} /> {cls.start_time || '10:00'} – {cls.end_time || '11:00'}
-                        </div>
-
-                        {cls.location && (
-                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <MapPin size={11} /> {cls.location}
-                          </div>
-                        )}
-
-                        {recurringSummary && (
-                          <div style={{ fontSize: '0.675rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <CalendarIcon size={10} /> {recurringSummary}
-                          </div>
-                        )}
-
-                        {/* Owner Badge (ONLY when persona filter is "Both") */}
-                        {activePersonaFilter === 'all' && (
-                          <div style={{ marginTop: '4px' }}>
-                            <span style={{
-                              fontSize: '0.625rem',
-                              fontWeight: 800,
-                              padding: '0.1rem 0.4rem',
-                              borderRadius: '999px',
-                              backgroundColor: ownerStyle.bg,
-                              color: ownerStyle.color,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '2px',
-                            }}>
-                              <User size={9} /> {ownerName}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })
-                )}
-              </div>
+      {/* ========================================================================= */}
+      {/* EXAM DATES SECTION (Chronologically ordered by time)                    */}
+      {/* ========================================================================= */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 sm:p-6">
+        <div className="flex items-center justify-between flex-wrap gap-4 pb-4 mb-5 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center font-bold">
+              <FileText className="w-5 h-5" />
             </div>
-          );
-        })}
+            <div>
+              <h2 className="text-lg font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+                Exam Dates
+                <span className="text-[10px] font-bold bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full">
+                  {examEvents.length} Scheduled
+                </span>
+              </h2>
+              <p className="text-xs text-slate-500 font-medium">Sorted chronologically by date and start time</p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onOpenAddEvent}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition-all"
+          >
+            <Plus className="w-4 h-4" /> Add Exam
+          </button>
         </div>
+
+        {examEvents.length === 0 ? (
+          <div className="text-center py-10 bg-slate-50 rounded-2xl border border-dashed border-slate-200 p-6 space-y-2">
+            <AlertCircle className="w-8 h-8 text-rose-400 mx-auto" />
+            <p className="text-xs font-bold text-slate-700">No upcoming exams scheduled</p>
+            <p className="text-[11px] text-slate-400 font-medium">Click "+ Add Exam" to create an exam date entry.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {examEvents.map((exam) => (
+              <div
+                key={exam.id}
+                onClick={() => onSelectEvent && onSelectEvent(exam)}
+                className="p-4 bg-slate-50/80 hover:bg-rose-50/40 rounded-xl border border-slate-200/80 border-l-4 border-l-rose-500 cursor-pointer transition-all space-y-2 shadow-2xs group"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-extrabold text-slate-900 group-hover:text-rose-700 transition-colors">
+                    {exam.title}
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">
+                    Exam
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3 text-xs font-semibold text-slate-600">
+                  <div className="flex items-center gap-1">
+                    <CalendarIcon className="w-3.5 h-3.5 text-rose-500" />
+                    <span>{formatDateDisplay(exam.start || exam.event_date || exam.due_date || '')}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5 text-rose-500" />
+                    <span>{formatTimeDisplay(exam)}</span>
+                  </div>
+                </div>
+
+                {exam.description && (
+                  <p className="text-xs text-slate-500 line-clamp-2 italic">{exam.description}</p>
+                )}
+
+                <div className="flex items-center justify-between pt-2 border-t border-slate-200/50 text-[10px] text-slate-400 font-medium">
+                  <span className="flex items-center gap-1">
+                    <User className="w-3 h-3 text-slate-400" /> {exam.createdBy || 'Eve'}
+                  </span>
+                  <span className="text-slate-400">Click to edit</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { useEvents } from './hooks/useEvents';
 import { Header } from './components/Header';
 import { CategoryFilter } from './components/CategoryFilter';
 import { CalendarView } from './components/CalendarView';
+import { WeeklyClassScheduleView } from './components/schedule/WeeklyClassScheduleView';
 import { EmptyState } from './components/EmptyState';
 import { EventModal } from './components/EventModal';
 import { CalendarEvent } from './types/event';
@@ -14,6 +15,7 @@ export default function App() {
   const auth = useAuth();
   const evts = useEvents();
 
+  const [activeTab, setActiveTab] = useState<'calendar' | 'schedule'>('calendar');
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [initStart, setInitStart] = useState<string | undefined>();
@@ -27,7 +29,7 @@ export default function App() {
   };
 
   const categoryCounts = useMemo(() => {
-    const c: Record<string, number> = { All: evts.events.length, Work: 0, Personal: 0, Meeting: 0, Other: 0 };
+    const c: Record<string, number> = { All: evts.events.length, Work: 0, Personal: 0, Meeting: 0, Exam: 0, Other: 0 };
     evts.events.forEach((e) => {
       if (c[e.category] !== undefined) c[e.category]++;
     });
@@ -82,6 +84,8 @@ export default function App() {
       <Header
         displayName={auth.displayName}
         isAnonymous={auth.isAnonymous}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
         onOpenNewEvent={openCreate}
         onSeedData={handleSeed}
         isSeeding={seeding}
@@ -105,18 +109,26 @@ export default function App() {
           </div>
         )}
 
-        <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-          <CategoryFilter selected={evts.selectedCategory} onSelect={evts.setSelectedCategory} counts={categoryCounts} />
-          <span className="text-xs font-semibold text-slate-500 hidden md:block">
-            {evts.filteredEvents.length} of {evts.events.length} events
-          </span>
-        </div>
+        {activeTab === 'calendar' && (
+          <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+            <CategoryFilter selected={evts.selectedCategory} onSelect={evts.setSelectedCategory} counts={categoryCounts} />
+            <span className="text-xs font-semibold text-slate-500 hidden md:block">
+              {evts.filteredEvents.length} of {evts.events.length} events
+            </span>
+          </div>
+        )}
 
         {evts.loading ? (
           <div className="bg-white rounded-2xl border border-slate-200 p-16 text-center">
             <div className="w-8 h-8 border-[3px] border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
             <p className="text-xs font-bold text-slate-500 mt-3">Connecting to Google Sheet…</p>
           </div>
+        ) : activeTab === 'schedule' ? (
+          <WeeklyClassScheduleView
+            events={evts.events}
+            onSelectEvent={openEdit}
+            onOpenAddEvent={openCreate}
+          />
         ) : evts.filteredEvents.length === 0 ? (
           <EmptyState category={evts.selectedCategory} onOpenCreate={openCreate} onSeedData={handleSeed} />
         ) : (
