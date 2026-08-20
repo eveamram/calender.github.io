@@ -138,38 +138,7 @@ export const WeeklyClassScheduleView: React.FC<WeeklyClassScheduleViewProps> = (
           </button>
         </div>
 
-        {/* Category Filter Selector Bar */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-3 mb-5 border-b border-slate-100 no-scrollbar">
-          <span className="text-xs font-bold text-slate-400 mr-1 shrink-0">Category Filter:</span>
-          {[
-            { id: 'All', label: 'All Categories', color: 'bg-slate-100 text-slate-800' },
-            { id: 'Classes', label: 'Classes', color: 'bg-blue-100 text-blue-800' },
-            { id: 'Exams', label: 'Exams', color: 'bg-rose-100 text-rose-800' },
-            { id: 'Personal', label: 'Personal', color: 'bg-emerald-100 text-emerald-800' },
-            { id: 'Meeting', label: 'Meeting', color: 'bg-purple-100 text-purple-800' },
-            { id: 'Other', label: 'Other', color: 'bg-amber-100 text-amber-800' },
-          ].map((cat) => (
-            <button
-              key={cat.id}
-              type="button"
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
-                selectedCategory === cat.id
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
-              }`}
-            >
-              <span>{cat.label}</span>
-              <span
-                className={`px-1.5 py-0.2 text-[10px] rounded-md font-extrabold ${
-                  selectedCategory === cat.id ? 'bg-slate-800 text-white' : cat.color
-                }`}
-              >
-                {categoryCounts[cat.id as keyof typeof categoryCounts] || 0}
-              </span>
-            </button>
-          ))}
-        </div>
+
 
         {/* Responsive Grid / Mobile Tabs */}
         {isMobile ? (
