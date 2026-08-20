@@ -19,6 +19,7 @@ export const WeeklyClassScheduleView: React.FC<WeeklyClassScheduleViewProps> = (
   const hookEvents = useEvents();
   const allEvents = propEvents || hookEvents.events || [];
   const [selectedMobileDayIdx, setSelectedMobileDayIdx] = useState<number>(0); // 0 = Mon, 1 = Tue...
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
   // Filter strictly for class events
   const classEvents = allEvents.filter(
@@ -33,6 +34,30 @@ export const WeeklyClassScheduleView: React.FC<WeeklyClassScheduleViewProps> = (
       e.event_type === 'Exam' ||
       /exam|quiz|test|midterm|final/i.test(e.title || '')
   );
+
+  // Category counts
+  const categoryCounts = {
+    All: allEvents.length,
+    Classes: classEvents.length,
+    Exams: examEvents.length,
+    Personal: allEvents.filter((e) => e.category === 'Personal').length,
+    Meeting: allEvents.filter((e) => e.category === 'Meeting').length,
+    Other: allEvents.filter((e) => e.category === 'Other').length,
+  };
+
+  // Filtered classes according to selected category
+  const filteredClassEvents = classEvents.filter((e) => {
+    if (selectedCategory === 'All' || selectedCategory === 'Classes') return true;
+    if (selectedCategory === 'Exams') return false;
+    return e.category === selectedCategory;
+  });
+
+  // Filtered exams according to selected category
+  const filteredExamEvents = examEvents.filter((e) => {
+    if (selectedCategory === 'All' || selectedCategory === 'Exams') return true;
+    if (selectedCategory === 'Classes') return false;
+    return e.category === selectedCategory;
+  });
 
   examEvents.sort((a, b) => {
     const dateA = a.start || a.event_date || a.due_date || '';
@@ -71,13 +96,29 @@ export const WeeklyClassScheduleView: React.FC<WeeklyClassScheduleViewProps> = (
     return 'All Day';
   };
 
+  const getCategoryBadgeClass = (category?: string) => {
+    switch (category) {
+      case 'Exam':
+        return 'bg-rose-100 text-rose-700 border-rose-200';
+      case 'Personal':
+        return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+      case 'Meeting':
+        return 'bg-purple-100 text-purple-700 border-purple-200';
+      case 'Other':
+        return 'bg-amber-100 text-amber-700 border-amber-200';
+      case 'Work':
+      default:
+        return 'bg-blue-100 text-blue-700 border-blue-200';
+    }
+  };
+
   return (
     <div className="space-y-6 font-sans">
       {/* ========================================================================= */}
       {/* CLASS SCHEDULE SECTION                                                   */}
       {/* ========================================================================= */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 sm:p-6">
-        <div className="flex items-center justify-between flex-wrap gap-4 pb-4 mb-5 border-b border-slate-100">
+        <div className="flex items-center justify-between flex-wrap gap-4 pb-4 mb-4 border-b border-slate-100">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
               <GraduationCap className="w-5 h-5" />
@@ -95,6 +136,39 @@ export const WeeklyClassScheduleView: React.FC<WeeklyClassScheduleViewProps> = (
           >
             <Plus className="w-4 h-4" /> Add Class
           </button>
+        </div>
+
+        {/* Category Filter Selector Bar */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-3 mb-5 border-b border-slate-100 no-scrollbar">
+          <span className="text-xs font-bold text-slate-400 mr-1 shrink-0">Category Filter:</span>
+          {[
+            { id: 'All', label: 'All Categories', color: 'bg-slate-100 text-slate-800' },
+            { id: 'Classes', label: 'Classes', color: 'bg-blue-100 text-blue-800' },
+            { id: 'Exams', label: 'Exams', color: 'bg-rose-100 text-rose-800' },
+            { id: 'Personal', label: 'Personal', color: 'bg-emerald-100 text-emerald-800' },
+            { id: 'Meeting', label: 'Meeting', color: 'bg-purple-100 text-purple-800' },
+            { id: 'Other', label: 'Other', color: 'bg-amber-100 text-amber-800' },
+          ].map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+                selectedCategory === cat.id
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+              }`}
+            >
+              <span>{cat.label}</span>
+              <span
+                className={`px-1.5 py-0.2 text-[10px] rounded-md font-extrabold ${
+                  selectedCategory === cat.id ? 'bg-slate-800 text-white' : cat.color
+                }`}
+              >
+                {categoryCounts[cat.id as keyof typeof categoryCounts] || 0}
+              </span>
+            </button>
+          ))}
         </div>
 
         {/* Responsive Grid / Mobile Tabs */}
@@ -115,16 +189,16 @@ export const WeeklyClassScheduleView: React.FC<WeeklyClassScheduleViewProps> = (
             </div>
 
             <div className="space-y-3">
-              {classEvents.filter((c) => (c.recurrence_days || [1, 2, 3, 4, 5]).includes(selectedMobileDayIdx + 1)).length === 0 ? (
+              {filteredClassEvents.filter((c) => (c.recurrence_days || [1, 2, 3, 4, 5]).includes(selectedMobileDayIdx + 1)).length === 0 ? (
                 <div className="text-center py-8 bg-slate-50 rounded-xl border border-slate-200/60 text-xs text-slate-400 font-medium">
                   No classes scheduled for {shortDays[selectedMobileDayIdx]}.
                 </div>
               ) : (
-                classEvents
+                filteredClassEvents
                   .filter((c) => (c.recurrence_days || [1, 2, 3, 4, 5]).includes(selectedMobileDayIdx + 1))
                   .map((cls) => {
                     // Match exams for this class
-                    const matchingExams = examEvents.filter((ex) => {
+                    const matchingExams = filteredExamEvents.filter((ex) => {
                       const exTitle = (ex.title || '').toLowerCase();
                       const clsTitle = (cls.title || '').toLowerCase();
                       const clsKeywords = clsTitle.split(' ').filter((w) => w.length > 2);
@@ -139,8 +213,8 @@ export const WeeklyClassScheduleView: React.FC<WeeklyClassScheduleViewProps> = (
                       >
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-extrabold text-slate-800">{cls.title}</span>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
-                            {cls.createdBy || 'Class'}
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getCategoryBadgeClass(cls.category)}`}>
+                            {cls.category || 'Class'}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
@@ -179,10 +253,10 @@ export const WeeklyClassScheduleView: React.FC<WeeklyClassScheduleViewProps> = (
           <div className="grid grid-cols-1 sm:grid-cols-5 gap-3.5">
             {daysOfWeek.map((dayName, idx) => {
               const dayNumber = idx + 1;
-              const dayClasses = classEvents.filter((c) => (c.recurrence_days || [1, 2, 3, 4, 5]).includes(dayNumber));
+              const dayClasses = filteredClassEvents.filter((c) => (c.recurrence_days || [1, 2, 3, 4, 5]).includes(dayNumber));
 
               // Find exams falling on this specific day of week
-              const dayExams = examEvents.filter((ex) => {
+              const dayExams = filteredExamEvents.filter((ex) => {
                 const dateStr = ex.start || ex.event_date || ex.due_date || '';
                 if (!dateStr) return false;
                 const clean = dateStr.slice(0, 10);
@@ -206,7 +280,7 @@ export const WeeklyClassScheduleView: React.FC<WeeklyClassScheduleViewProps> = (
                       <div className="text-[11px] text-slate-400 font-medium italic text-center mt-3">No classes</div>
                     ) : (
                       dayClasses.map((cls) => {
-                        const matchingExams = examEvents.filter((ex) => {
+                        const matchingExams = filteredExamEvents.filter((ex) => {
                           const exTitle = (ex.title || '').toLowerCase();
                           const clsTitle = (cls.title || '').toLowerCase();
                           const clsKeywords = clsTitle.split(' ').filter((w) => w.length > 2);
@@ -219,7 +293,12 @@ export const WeeklyClassScheduleView: React.FC<WeeklyClassScheduleViewProps> = (
                             onClick={() => onSelectEvent && onSelectEvent(cls)}
                             className="p-2.5 bg-white hover:bg-blue-50/40 rounded-lg border border-slate-200 border-l-3 border-l-blue-600 cursor-pointer transition-all space-y-1.5 shadow-2xs"
                           >
-                            <div className="text-xs font-extrabold text-slate-800 leading-tight">{cls.title}</div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-extrabold text-slate-800 leading-tight truncate mr-1">{cls.title}</span>
+                              <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded border ${getCategoryBadgeClass(cls.category)} shrink-0`}>
+                                {cls.category || 'Class'}
+                              </span>
+                            </div>
                             <div className="text-[10px] font-semibold text-slate-500 flex items-center gap-1">
                               <Clock className="w-3 h-3 text-blue-600" /> {formatTimeDisplay(cls)}
                             </div>
