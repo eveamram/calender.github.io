@@ -10,7 +10,7 @@ import {
 import { format, addDays } from 'date-fns';
 import confetti from 'canvas-confetti';
 import { generateAnniversaryEvents, ANNIVERSARY_PASSWORD } from '../utils/anniversary';
-import { subscribeToSync, syncInsertItem, syncUpdateItem, syncDeleteItem, fetchInitialData } from '../lib/syncEngine';
+import { subscribeToSync, syncInsertItem, syncUpdateItem, syncDeleteItem, fetchInitialData, startAutoPolling } from '../lib/syncEngine';
 
 export interface ToastMessage {
   id: string;
@@ -154,7 +154,25 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const { userProfile } = useAuth();
   const activePersonaName = (userProfile?.display_name as 'Eve' | 'Abbie') || 'Eve';
 
-  const [activePersonaFilter, setActivePersonaFilter] = useState<'Eve' | 'Abbie' | 'all'>(activePersonaName);
+  // Device-Isolated Preferences
+  const [activePersonaFilter, setActivePersonaFilterState] = useState<'Eve' | 'Abbie' | 'all'>(() => {
+    try {
+      const saved = localStorage.getItem('calender_pref_persona');
+      return saved ? (saved as 'Eve' | 'Abbie' | 'all') : activePersonaName;
+    } catch {
+      return activePersonaName;
+    }
+  });
+
+  const setActivePersonaFilter = (persona: 'Eve' | 'Abbie' | 'all') => {
+    setActivePersonaFilterState(persona);
+    try {
+      localStorage.setItem('calender_pref_persona', persona);
+    } catch (e) {
+      // Ignore write errors
+    }
+  };
+
   const [themeColor, setThemeColorState] = useState<string>(() => {
     try {
       return localStorage.getItem('calender_theme_color') || '#3B82F6';
@@ -165,7 +183,11 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const setThemeColor = (color: string) => {
     setThemeColorState(color);
-    localStorage.setItem('calender_theme_color', color);
+    try {
+      localStorage.setItem('calender_theme_color', color);
+    } catch (e) {
+      // Ignore write errors
+    }
   };
 
   useEffect(() => {
@@ -183,16 +205,30 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   });
 
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
-  const [viewMode, setViewMode] = useState<ViewMode>('month');
-
-  useEffect(() => {
-    if (activePersonaName === 'Eve' || activePersonaName === 'Abbie') {
-      setActivePersonaFilter(activePersonaName);
+  const [viewMode, setViewModeState] = useState<ViewMode>(() => {
+    try {
+      const saved = localStorage.getItem('calender_pref_view');
+      return (saved as ViewMode) || 'month';
+    } catch {
+      return 'month';
     }
-  }, [activePersonaName]);
+  });
+
+  const setViewMode = (mode: ViewMode) => {
+    setViewModeState(mode);
+    try {
+      localStorage.setItem('calender_pref_view', mode);
+    } catch (e) {
+      // Ignore write errors
+    }
+  };
 
   useEffect(() => {
-    localStorage.setItem('calender_show_todos', JSON.stringify(showTodosOnCalendar));
+    try {
+      localStorage.setItem('calender_show_todos', JSON.stringify(showTodosOnCalendar));
+    } catch (e) {
+      // Ignore write errors
+    }
   }, [showTodosOnCalendar]);
 
   const [events, setEvents] = useState<CalendarEvent[]>(() => {
@@ -237,28 +273,44 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   });
 
   useEffect(() => {
-    localStorage.setItem('calender_unified_events', JSON.stringify(events));
+    try {
+      localStorage.setItem('calender_unified_events', JSON.stringify(events));
+    } catch (e) {
+      // Ignore write errors
+    }
   }, [events]);
 
-  // Subscribe to item-level Realtime changes & fetch remote initial state
+  // Merge incoming remote events while preserving client state and anniversary milestones
+  const mergeRemoteEvents = (remoteEvents: CalendarEvent[]) => {
+    if (!remoteEvents || remoteEvents.length === 0) return;
+    const anniversaries = generateAnniversaryEvents();
+    const anniversaryMap = new Map(anniversaries.map((a) => [a.id, a]));
+    const updatedList = remoteEvents.map((evt) => {
+      if (evt.is_anniversary || evt.id.startsWith('anniversary-')) {
+        const fresh = anniversaryMap.get(evt.id);
+        if (fresh) return { ...evt, title: fresh.title };
+      }
+      return evt;
+    });
+    const existingIds = new Set(updatedList.map((e) => e.id));
+    const missingAnniversaries = anniversaries.filter((a: CalendarEvent) => !existingIds.has(a.id));
+
+    setEvents([...updatedList, ...missingAnniversaries]);
+  };
+
+  // Subscribe to item-level Realtime changes & register 3-second background polling
   useEffect(() => {
-    // Fetch initial remote events if Supabase is configured
+    // Initial fetch from cloud/Supabase
     fetchInitialData<CalendarEvent>('events').then((remoteEvents) => {
-      if (remoteEvents && remoteEvents.length > 0) {
-        const anniversaries = generateAnniversaryEvents();
-        const anniversaryMap = new Map(anniversaries.map((a) => [a.id, a]));
-        const updatedList = remoteEvents.map((evt) => {
-          if (evt.is_anniversary || evt.id.startsWith('anniversary-')) {
-            const fresh = anniversaryMap.get(evt.id);
-            if (fresh) return { ...evt, title: fresh.title };
-          }
-          return evt;
-        });
-        const existingIds = new Set(updatedList.map((e) => e.id));
-        const missingAnniversaries = anniversaries.filter((a: CalendarEvent) => !existingIds.has(a.id));
-        setEvents([...updatedList, ...missingAnniversaries]);
+      if (remoteEvents) {
+        mergeRemoteEvents(remoteEvents);
       }
     });
+
+    // Register 3-second periodic polling interval for background cross-device sync
+    const stopPolling = startAutoPolling<CalendarEvent>('events', (remoteEvents) => {
+      mergeRemoteEvents(remoteEvents);
+    }, 3000);
 
     const unsubscribe = subscribeToSync('events', (event) => {
       if (event.type === 'INSERT' && event.payload) {
@@ -278,18 +330,7 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const storedEvents = localStorage.getItem('calender_unified_events');
         if (storedEvents) {
           const parsed: CalendarEvent[] = JSON.parse(storedEvents);
-          const anniversaries = generateAnniversaryEvents();
-          const anniversaryMap = new Map(anniversaries.map((a) => [a.id, a]));
-          const updatedParsed = parsed.map((evt) => {
-            if (evt.is_anniversary || evt.id.startsWith('anniversary-')) {
-              const fresh = anniversaryMap.get(evt.id);
-              if (fresh) return { ...evt, title: fresh.title };
-            }
-            return evt;
-          });
-          const existingIds = new Set(updatedParsed.map((e) => e.id));
-          const missingAnniversaries = anniversaries.filter((a: CalendarEvent) => !existingIds.has(a.id));
-          setEvents([...updatedParsed, ...missingAnniversaries]);
+          mergeRemoteEvents(parsed);
         }
       } catch (e) {
         console.error('Storage sync error:', e);
@@ -299,6 +340,7 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('focus', handleStorageChange);
     return () => {
+      stopPolling();
       unsubscribe();
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('focus', handleStorageChange);

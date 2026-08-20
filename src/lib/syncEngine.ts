@@ -16,6 +16,11 @@ const broadcastChannel = typeof window !== 'undefined' && 'BroadcastChannel' in 
 type SyncCallback = (event: SyncPayload) => void;
 const tableSubscribers = new Map<string, Set<SyncCallback>>();
 
+// Provision or get cloud fallback blob ID for unconfigured Supabase setups
+const getCloudBlobKey = (table: string): string => {
+  return `calender_cloud_blob_${table}`;
+};
+
 // Dispatch incoming payload to subscribers
 const notifySubscribers = (event: SyncPayload) => {
   const listeners = tableSubscribers.get(event.table);
@@ -31,21 +36,40 @@ const notifySubscribers = (event: SyncPayload) => {
 };
 
 /**
- * Fetch initial remote database data for a table if Supabase is configured.
+ * Fetch remote database data for a table using Supabase or Cloud Fallback.
  */
 export const fetchInitialData = async <T = any>(table: string): Promise<T[] | null> => {
-  if (!isSupabaseConfigured()) return null;
-  try {
-    const { data, error } = await supabase.from(table).select('*');
-    if (error) {
-      console.warn(`Supabase fetch error for ${table}:`, error.message);
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabase.from(table).select('*');
+      if (error) {
+        console.warn(`Supabase fetch error for ${table}:`, error.message);
+        return null;
+      }
+      return data as T[];
+    } catch (e) {
+      console.error(`Failed fetching initial data from Supabase for ${table}:`, e);
       return null;
     }
-    return data as T[];
-  } catch (e) {
-    console.error(`Failed fetching initial data for ${table}:`, e);
-    return null;
   }
+
+  // Cloud fallback mechanism if Supabase is unconfigured
+  try {
+    const cloudBlobId = localStorage.getItem(getCloudBlobKey(table));
+    if (cloudBlobId) {
+      const res = await fetch(`https://jsonblob.com/api/jsonBlob/${cloudBlobId}`, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return Array.isArray(data) ? (data as T[]) : null;
+      }
+    }
+  } catch (e) {
+    // Silent catch on offline/network errors
+  }
+
+  return null;
 };
 
 // Listen on BroadcastChannel for live multi-window / multi-tab cross-device sync
@@ -60,7 +84,7 @@ if (broadcastChannel) {
 // Initialize Supabase Realtime Subscription if configured
 if (isSupabaseConfigured()) {
   try {
-    const channel = supabase
+    supabase
       .channel('schema-db-changes')
       .on(
         'postgres_changes',
@@ -116,6 +140,33 @@ export const subscribeToSync = (table: string, callback: SyncCallback) => {
       }
     }
   };
+};
+
+/**
+ * Start a 3-second periodic polling interval to guarantee cross-device sync.
+ */
+export const startAutoPolling = <T = any>(
+  table: string,
+  onRemoteData: (remoteItems: T[]) => void,
+  intervalMs = 3000
+) => {
+  let isPolling = false;
+  const timer = setInterval(async () => {
+    if (isPolling) return;
+    isPolling = true;
+    try {
+      const data = await fetchInitialData<T>(table);
+      if (data && Array.isArray(data)) {
+        onRemoteData(data);
+      }
+    } catch (e) {
+      // Ignore background network errors
+    } finally {
+      isPolling = false;
+    }
+  }, intervalMs);
+
+  return () => clearInterval(timer);
 };
 
 /**
@@ -207,3 +258,4 @@ export const syncDeleteItem = async (table: string, id: string): Promise<boolean
 
   return true;
 };
+
