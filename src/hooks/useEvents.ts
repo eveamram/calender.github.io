@@ -1,79 +1,29 @@
 /**
- * useEvents – Real-time Firestore sync with version-based conflict resolution.
+ * useEvents – Real-time Google Sheets sync with 5-second polling interval.
  *
  * KEY DESIGN:
- * • onSnapshot listener keeps local state perfectly in sync with Firestore.
- * • Creates use addDoc (no conflict possible – new document).
- * • Updates use a Firestore TRANSACTION that:
- *     1. Reads the latest doc
- *     2. Compares `version` to what the user loaded in the edit form
- *     3. If match → writes update + increments version
- *     4. If mismatch → throws ConflictError (caller shows conflict UI)
- * • Deletes also use a transaction with version check.
- * • Zero localStorage. Firestore is the only source of truth.
+ * • Periodically polls Google Sheets API every 5 seconds to get latest events.
+ * • Optimistically updates local React state immediately on create/update/delete for smooth UX.
+ * • Caches state in localStorage so app works even offline or before URL is set.
  */
-import { useState, useEffect, useCallback } from 'react';
-import {
-  collection,
-  onSnapshot,
-  addDoc,
-  doc,
-  query,
-  orderBy,
-  serverTimestamp,
-  Timestamp,
-  runTransaction,
-} from 'firebase/firestore';
-import { db, isFirebaseConfigured } from '../lib/firebase';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   CalendarEvent,
   CreateEventPayload,
   EventCategory,
   CATEGORY_COLORS,
 } from '../types/event';
+import {
+  fetchSheetEvents,
+  createSheetEvent,
+  updateSheetEvent,
+  deleteSheetEvent,
+  isGoogleSheetsConfigured,
+} from '../lib/googleSheets';
 
-// ---------------------------------------------------------------------------
-// Custom error for version conflicts
-// ---------------------------------------------------------------------------
-export class ConflictError extends Error {
-  constructor(public latestEvent: CalendarEvent) {
-    super('This event was modified by someone else while you were editing.');
-    this.name = 'ConflictError';
-  }
-}
+const LOCAL_STORAGE_KEY = 'calender_sheet_events_cache';
 
-// ---------------------------------------------------------------------------
-// Firestore Timestamp → ISO string helper
-// ---------------------------------------------------------------------------
-function toISO(val: unknown): string {
-  if (!val) return new Date().toISOString();
-  if (val instanceof Timestamp) return val.toDate().toISOString();
-  if (typeof (val as any)?.toDate === 'function') return (val as any).toDate().toISOString();
-  if (typeof val === 'string') return val;
-  return new Date(val as number).toISOString();
-}
-
-/** Convert a Firestore doc snapshot to our CalendarEvent type */
-function docToEvent(id: string, data: Record<string, any>): CalendarEvent {
-  return {
-    id,
-    title: data.title || 'Untitled',
-    start: toISO(data.start),
-    end: toISO(data.end || data.start),
-    description: data.description || '',
-    color: data.color || CATEGORY_COLORS[(data.category as EventCategory) || 'Other']?.hex || '#3B82F6',
-    category: (data.category as EventCategory) || 'Other',
-    createdBy: data.createdBy || 'Anonymous',
-    lastEditedBy: data.lastEditedBy || data.createdBy || 'Anonymous',
-    createdAt: toISO(data.createdAt),
-    updatedAt: toISO(data.updatedAt),
-    version: typeof data.version === 'number' ? data.version : 1,
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Sample events for the seed button
-// ---------------------------------------------------------------------------
+// Sample events for initial seed if sheet is empty
 function makeSamples(): CreateEventPayload[] {
   const now = Date.now();
   const day = 86_400_000;
@@ -118,9 +68,6 @@ function makeSamples(): CreateEventPayload[] {
   ];
 }
 
-// ---------------------------------------------------------------------------
-// Hook
-// ---------------------------------------------------------------------------
 export interface UseEventsReturn {
   events: CalendarEvent[];
   filteredEvents: CalendarEvent[];
@@ -129,143 +76,132 @@ export interface UseEventsReturn {
   loading: boolean;
   error: string | null;
   createEvent: (payload: CreateEventPayload) => Promise<void>;
-  /** Throws ConflictError if the version has changed since the user loaded the form */
   updateEvent: (id: string, expectedVersion: number, updates: Partial<CalendarEvent>, editedBy: string) => Promise<void>;
-  /** Throws ConflictError if the version has changed since the user loaded the form */
   deleteEvent: (id: string, expectedVersion: number) => Promise<void>;
   seedSampleEvents: (createdBy: string) => Promise<void>;
 }
 
 export function useEvents(): UseEventsReturn {
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [events, setEvents] = useState<CalendarEvent[]>(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isFetchingRef = useRef(false);
 
-  // -------------------------------------------------------------------
-  // Real-time listener
-  // -------------------------------------------------------------------
+  // Cache to localStorage whenever events change
   useEffect(() => {
-    if (!isFirebaseConfigured) {
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(events));
+    } catch (e) {
+      console.error('Failed to cache events:', e);
+    }
+  }, [events]);
+
+  // Main sync function
+  const syncWithSheet = useCallback(async () => {
+    if (!isGoogleSheetsConfigured()) {
       setLoading(false);
-      setError('Firebase is not configured. Add your credentials to .env and restart.');
       return;
     }
 
-    const q = query(collection(db, 'events'), orderBy('start', 'asc'));
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
 
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        const evts = snap.docs.map((d) => docToEvent(d.id, d.data()));
-        setEvents(evts);
-        setLoading(false);
-        setError(null);
-      },
-      (err) => {
-        console.error('[useEvents] onSnapshot error:', err);
-        setLoading(false);
-        setError(`Firestore error: ${err.message}`);
-      }
-    );
-
-    return () => unsub();
+    try {
+      const remoteEvents = await fetchSheetEvents();
+      setEvents(remoteEvents);
+      setError(null);
+    } catch (err: any) {
+      console.error('[useEvents] Polling sync error:', err);
+      // Keep existing local cached events on error
+    } finally {
+      setLoading(false);
+      isFetchingRef.current = false;
+    }
   }, []);
 
-  // -------------------------------------------------------------------
-  // CREATE — no conflict possible (new document)
-  // -------------------------------------------------------------------
-  const createEvent = useCallback(async (payload: CreateEventPayload) => {
-    if (!isFirebaseConfigured) throw new Error('Firebase not configured');
-    await addDoc(collection(db, 'events'), {
-      title: payload.title,
-      start: payload.start,
-      end: payload.end,
-      description: payload.description || '',
-      color: payload.color,
-      category: payload.category,
-      createdBy: payload.createdBy,
-      lastEditedBy: payload.createdBy,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      version: 1,
-    });
-  }, []);
+  // Initial load + 5-second polling interval
+  useEffect(() => {
+    syncWithSheet();
 
-  // -------------------------------------------------------------------
-  // UPDATE — transactional with version check
-  // -------------------------------------------------------------------
-  const updateEvent = useCallback(
-    async (id: string, expectedVersion: number, updates: Partial<CalendarEvent>, editedBy: string) => {
-      if (!isFirebaseConfigured) throw new Error('Firebase not configured');
+    if (!isGoogleSheetsConfigured()) {
+      return;
+    }
 
-      const ref = doc(db, 'events', id);
+    const intervalId = setInterval(() => {
+      syncWithSheet();
+    }, 5000); // Poll every 5 seconds
 
-      await runTransaction(db, async (tx) => {
-        const snap = await tx.get(ref);
-        if (!snap.exists()) throw new Error('Event no longer exists.');
+    return () => clearInterval(intervalId);
+  }, [syncWithSheet]);
 
-        const data = snap.data();
-        const currentVersion = typeof data.version === 'number' ? data.version : 1;
+  // Create
+  const createEvent = useCallback(
+    async (payload: CreateEventPayload) => {
+      // Optimistic local update
+      const tempEvt = await createSheetEvent(payload);
+      setEvents((prev) => [tempEvt, ...prev.filter((e) => e.id !== tempEvt.id)]);
 
-        if (currentVersion !== expectedVersion) {
-          // Someone else changed this event since the user opened the edit form
-          throw new ConflictError(docToEvent(snap.id, data));
-        }
-
-        // Version matches → safe to write
-        const { id: _id, createdAt: _ca, version: _v, ...safeUpdates } = updates as any;
-        tx.update(ref, {
-          ...safeUpdates,
-          lastEditedBy: editedBy,
-          updatedAt: serverTimestamp(),
-          version: currentVersion + 1,
-        });
-      });
+      // Background sync to ensure remote server has it
+      setTimeout(syncWithSheet, 1000);
     },
-    []
+    [syncWithSheet]
   );
 
-  // -------------------------------------------------------------------
-  // DELETE — transactional with version check
-  // -------------------------------------------------------------------
-  const deleteEvent = useCallback(async (id: string, expectedVersion: number) => {
-    if (!isFirebaseConfigured) throw new Error('Firebase not configured');
+  // Update
+  const updateEvent = useCallback(
+    async (id: string, _expectedVersion: number, updates: Partial<CalendarEvent>, editedBy: string) => {
+      // Optimistic local update
+      setEvents((prev) =>
+        prev.map((e) =>
+          e.id === id
+            ? { ...e, ...updates, lastEditedBy: editedBy, updatedAt: new Date().toISOString() }
+            : e
+        )
+      );
 
-    const ref = doc(db, 'events', id);
+      await updateSheetEvent(id, updates, editedBy);
+      setTimeout(syncWithSheet, 1000);
+    },
+    [syncWithSheet]
+  );
 
-    await runTransaction(db, async (tx) => {
-      const snap = await tx.get(ref);
-      if (!snap.exists()) return; // already deleted — fine
+  // Delete
+  const deleteEvent = useCallback(
+    async (id: string, _expectedVersion: number) => {
+      // Optimistic local delete
+      setEvents((prev) => prev.filter((e) => e.id !== id));
 
-      const data = snap.data();
-      const currentVersion = typeof data.version === 'number' ? data.version : 1;
+      await deleteSheetEvent(id);
+      setTimeout(syncWithSheet, 1000);
+    },
+    [syncWithSheet]
+  );
 
-      if (currentVersion !== expectedVersion) {
-        throw new ConflictError(docToEvent(snap.id, data));
-      }
-
-      tx.delete(ref);
-    });
-  }, []);
-
-  // -------------------------------------------------------------------
-  // SEED
-  // -------------------------------------------------------------------
+  // Seed sample data
   const seedSampleEvents = useCallback(
     async (createdBy: string) => {
-      for (const s of makeSamples()) {
+      const samples = makeSamples();
+      for (const s of samples) {
         await createEvent({ ...s, createdBy });
       }
     },
     [createEvent]
   );
 
-  // -------------------------------------------------------------------
-  // Filtering
-  // -------------------------------------------------------------------
+  // Category filtering
   const filteredEvents =
-    selectedCategory === 'All' ? events : events.filter((e) => e.category === selectedCategory);
+    selectedCategory === 'All'
+      ? events
+      : events.filter((e) => e.category === selectedCategory);
 
   return {
     events,

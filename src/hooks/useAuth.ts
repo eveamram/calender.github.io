@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
-import { User, onAuthStateChanged } from 'firebase/auth';
-import { auth, signInAnon, signInGoogle, signOutUser, isFirebaseConfigured } from '../lib/firebase';
 
 export interface AuthState {
-  user: User | null;
+  user: { uid: string } | null;
   displayName: string;
   isAnonymous: boolean;
   loading: boolean;
@@ -13,52 +11,29 @@ export interface AuthState {
 }
 
 export function useAuth(): AuthState {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [customName, setCustomNameState] = useState(() =>
-    localStorage.getItem('shared_cal_display_name') || ''
-  );
+  const [displayName, setDisplayName] = useState<string>(() => {
+    return localStorage.getItem('shared_cal_display_name') || 'Eve';
+  });
 
   useEffect(() => {
-    if (!isFirebaseConfigured) {
-      setLoading(false);
-      return;
-    }
-
-    const unsub = onAuthStateChanged(auth, (u) => {
-      if (u) {
-        setUser(u);
-        setLoading(false);
-      } else {
-        // Auto-sign-in anonymously
-        signInAnon().then((anon) => {
-          setUser(anon);
-          setLoading(false);
-        });
-      }
-    });
-    return () => unsub();
-  }, []);
-
-  const displayName =
-    customName ||
-    user?.displayName ||
-    (user?.isAnonymous ? `Guest-${user.uid.slice(0, 5)}` : 'Anonymous');
+    localStorage.setItem('shared_cal_display_name', displayName);
+  }, [displayName]);
 
   return {
-    user,
+    user: { uid: `user-${displayName.toLowerCase()}` },
     displayName,
-    isAnonymous: user?.isAnonymous ?? true,
-    loading,
+    isAnonymous: false,
+    loading: false,
     signInWithGoogle: async () => {
-      await signInGoogle();
+      // Not needed for Google Sheet shared calendar
     },
     signOut: async () => {
-      await signOutUser();
+      // Toggle persona for testing/demonstration
+      const nextName = displayName === 'Eve' ? 'Abbie' : 'Eve';
+      setDisplayName(nextName);
     },
     setCustomName: (name: string) => {
-      setCustomNameState(name);
-      localStorage.setItem('shared_cal_display_name', name);
+      setDisplayName(name);
     },
   };
 }

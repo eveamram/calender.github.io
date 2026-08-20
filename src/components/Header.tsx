@@ -23,7 +23,7 @@ export const Header: React.FC<HeaderProps> = ({ displayName, isAnonymous, onOpen
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live
             </span>
           </h1>
-          <p className="text-[11px] text-slate-500 font-medium hidden sm:block">Real-time Firestore sync · All users see the same data</p>
+          <p className="text-[11px] text-slate-500 font-medium hidden sm:block">Google Sheets Sync · Shared across all devices</p>
         </div>
       </div>
 
