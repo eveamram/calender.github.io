@@ -25,9 +25,13 @@ export const WeeklyClassScheduleView: React.FC<WeeklyClassScheduleViewProps> = (
     (e) => e.event_type === 'class' || e.event_type === 'School' || e.category === 'Work'
   );
 
-  // Filter exam events and sort chronologically by date and start time (time order)
+  // Filter exam events (by category, event_type, or title keyword like Exam, Quiz, Test, Midterm, Final)
   const examEvents = allEvents.filter(
-    (e) => e.category === 'Exam' || e.event_type === 'exam' || e.event_type === 'Exam'
+    (e) =>
+      e.category === 'Exam' ||
+      e.event_type === 'exam' ||
+      e.event_type === 'Exam' ||
+      /exam|quiz|test|midterm|final/i.test(e.title || '')
   );
 
   examEvents.sort((a, b) => {
