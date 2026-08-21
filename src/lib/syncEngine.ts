@@ -155,9 +155,6 @@ export const syncEngine = {
   fetchAll: async (): Promise<Record<string, any[]>> => {
     const tables = ['events', 'classes', 'tasks', 'habits', 'habitCompletions', 'groceryItems', 'mealItems', 'bookItems', 'profileColors', 'dateColors'];
 
-    // First load all tables from local storage for fast hydration & offline reliability
-    tables.forEach((table) => loadFromLocalStorage(table));
-
     if (isSupabaseConfigured()) {
       await Promise.all(
         tables.map(async (table) => {
@@ -171,12 +168,17 @@ export const syncEngine = {
                 if (item && item.id) tableMap.set(item.id, item);
               });
               saveToLocalStorage(table);
+            } else {
+              loadFromLocalStorage(table);
             }
           } catch (e) {
             console.warn(`Supabase fetch failed for ${table}:`, e);
+            loadFromLocalStorage(table);
           }
         })
       );
+    } else {
+      tables.forEach((table) => loadFromLocalStorage(table));
     }
 
     notifyGlobalListeners();
