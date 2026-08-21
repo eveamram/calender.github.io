@@ -148,7 +148,10 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
               <Flame className="w-3.5 h-3.5 fill-amber-300" /> {totalPagesRead} Pages Logged
             </span>
             <span className="bg-emerald-400/30 text-emerald-100 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5">
-              <CheckCircle className="w-3.5 h-3.5" /> {completedCount} Books Completed
+              <CheckCircle className="w-3.5 h-3.5" /> {completedCount} Finished
+            </span>
+            <span className="bg-blue-400/30 text-blue-100 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5">
+              🎯 2026 Goal: {completedCount} / 12 Books
             </span>
           </div>
           <h1 className="text-3xl font-black tracking-tight">Your Reading Shelf</h1>

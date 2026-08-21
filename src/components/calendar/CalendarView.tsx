@@ -137,35 +137,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-4 md:px-8 py-6">
-      {/* Reset Actions Banner */}
-      <div className="bg-blue-50/70 border border-blue-200/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-blue-900 font-medium">
-        <div className="flex items-center gap-2">
-          <Plus className="w-4 h-4 text-blue-600 shrink-0" />
-          <span>
-            <strong>Desktop Shortcut:</strong> Double-click any calendar day cell to instantly open the <strong>Create Event</strong> form pre-filled with that date!
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={handleResetCalendarEvents}
-            className="flex items-center gap-1 bg-white hover:bg-slate-100 text-slate-700 font-bold px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs transition-all cursor-pointer"
-            title="Clear all events except anniversaries"
-          >
-            <RotateCcw className="w-3.5 h-3.5 text-blue-600" />
-            <span>Reset Calendar (Keep Anniversaries)</span>
-          </button>
-
-          <button
-            onClick={handleResetAnniversariesOnly}
-            className="flex items-center gap-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold px-3 py-1.5 rounded-xl border border-rose-200 transition-all cursor-pointer"
-            title="Reset anniversaries & birthdays only"
-          >
-            <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
-            <span>Reset Anniversaries Only</span>
-          </button>
-        </div>
-      </div>
 
       {/* MOBILE LAYOUT (Single Tap Navigation) */}
       <div className="lg:hidden space-y-6">

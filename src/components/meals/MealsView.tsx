@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { MealItem, MealType } from '../../types';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Copy, ShoppingBag } from 'lucide-react';
 
 interface MealsViewProps {
   onOpenAddMealModal: (dayOfWeek?: number, mealType?: MealType) => void;
@@ -25,8 +25,30 @@ const MEAL_TYPES: { type: MealType; label: string; emoji: string }[] = [
 ];
 
 export const MealsView: React.FC<MealsViewProps> = ({ onOpenAddMealModal }) => {
-  const { mealItems, deleteMealItem, filterByProfile, activeProfile, profileColors } = useStore();
+  const { mealItems, addMealItem, deleteMealItem, addGroceryItem, filterByProfile, activeProfile, profileColors } = useStore();
   const [selectedMobileDay, setSelectedMobileDay] = useState<number>(1); // 1 = Mon
+
+  const handleDuplicateToNextDay = async (meal: MealItem) => {
+    const nextDay = meal.day_of_week === 7 ? 1 : meal.day_of_week + 1;
+    await addMealItem({
+      title: meal.title,
+      meal_type: meal.meal_type,
+      day_of_week: nextDay,
+      notes: meal.notes,
+      profile: meal.profile,
+    });
+    alert(`Duplicated "${meal.title}" to ${DAYS.find((d) => d.num === nextDay)?.name}!`);
+  };
+
+  const handleSendToGrocery = async (meal: MealItem) => {
+    await addGroceryItem({
+      name: meal.title,
+      category: 'Pantry',
+      is_completed: false,
+      profile: meal.profile,
+    });
+    alert(`Added "${meal.title}" to your Grocery List!`);
+  };
 
   const filteredMeals = useMemo(() => {
     return filterByProfile(mealItems);
@@ -183,7 +205,7 @@ export const MealsView: React.FC<MealsViewProps> = ({ onOpenAddMealModal }) => {
                         const badgeColor = profileColors[ownerName] || '#2563eb';
 
                         return (
-                          <div key={item.id} className="p-2 rounded-lg bg-slate-50 border border-slate-100 text-xs font-semibold text-slate-800 flex justify-between items-start">
+                          <div key={item.id} className="p-2 rounded-lg bg-slate-50 border border-slate-100 text-xs font-semibold text-slate-800 flex justify-between items-start group">
                             <div>
                               <span>{item.title}</span>
                               {activeProfile === 'Both' && (
@@ -195,12 +217,29 @@ export const MealsView: React.FC<MealsViewProps> = ({ onOpenAddMealModal }) => {
                                 </span>
                               )}
                             </div>
-                            <button
-                              onClick={() => deleteMealItem(item.id)}
-                              className="text-slate-300 hover:text-red-500 ml-1"
-                            >
-                              ×
-                            </button>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => handleSendToGrocery(item)}
+                                className="text-slate-400 hover:text-emerald-600"
+                                title="Add to Grocery List"
+                              >
+                                <ShoppingBag className="w-3 h-3" />
+                              </button>
+                              <button
+                                onClick={() => handleDuplicateToNextDay(item)}
+                                className="text-slate-400 hover:text-blue-600"
+                                title="Duplicate to next day"
+                              >
+                                <Copy className="w-3 h-3" />
+                              </button>
+                              <button
+                                onClick={() => deleteMealItem(item.id)}
+                                className="text-slate-300 hover:text-red-500"
+                                title="Delete meal"
+                              >
+                                ×
+                              </button>
+                            </div>
                           </div>
                         );
                       })}

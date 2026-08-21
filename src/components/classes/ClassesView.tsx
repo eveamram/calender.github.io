@@ -276,15 +276,32 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal })
               const ownerName = exam.profile || 'Eve';
               const badgeColor = profileColors[ownerName] || '#2563eb';
 
+              // Calculate Days Remaining
+              const todayObj = new Date();
+              todayObj.setHours(0, 0, 0, 0);
+              const examDateObj = new Date(exam.event_date + 'T00:00:00');
+              const diffTime = examDateObj.getTime() - todayObj.getTime();
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+              let countdownLabel = `In ${diffDays} days`;
+              if (diffDays === 0) countdownLabel = 'Today!';
+              else if (diffDays === 1) countdownLabel = 'Tomorrow';
+
               return (
                 <div
                   key={exam.id}
                   className="p-4 rounded-xl border border-red-100 bg-red-50/30 hover:bg-red-50/60 transition-all space-y-2 relative group"
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <span className="text-xs font-extrabold text-red-600 bg-red-100 px-2.5 py-0.5 rounded-md">
-                      {exam.event_date}
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-xs font-extrabold text-red-600 bg-red-100 px-2.5 py-0.5 rounded-md">
+                        {exam.event_date}
+                      </span>
+                      <span className="text-[10px] font-black text-white bg-red-500 px-2 py-0.5 rounded-md shadow-xs animate-pulse">
+                        {countdownLabel}
+                      </span>
+                    </div>
+
                     <div className="flex items-center gap-2">
                       {activeProfile === 'Both' && (
                         <span

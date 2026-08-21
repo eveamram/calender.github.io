@@ -48,12 +48,47 @@ export const GroceryView: React.FC = () => {
     setQuantity('');
   };
 
+  const handleCopyList = () => {
+    const activeItems = filteredItems.filter((i) => !i.is_completed);
+    if (activeItems.length === 0) return;
+    const text = activeItems.map((i) => `• ${i.name}${i.quantity ? ` (${i.quantity})` : ''}`).join('\n');
+    navigator.clipboard.writeText(`🛒 Shared Grocery List:\n${text}`);
+    alert('Grocery list copied to clipboard!');
+  };
+
+  const handleClearChecked = async () => {
+    const checked = filteredItems.filter((i) => i.is_completed);
+    if (checked.length === 0) return;
+    if (window.confirm('Clear all checked items from the grocery list?')) {
+      for (const item of checked) {
+        await deleteGroceryItem(item.id);
+      }
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto px-4 md:px-8 py-6">
-      <div className="flex items-center justify-between border-b border-slate-200/80 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200/80 pb-4 gap-3">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">Grocery List</h1>
           <p className="text-xs text-slate-500 font-medium">Shared store checklist synced across all devices</p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleCopyList}
+            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl border border-slate-200/60 transition-all"
+            title="Copy uncompleted list to clipboard"
+          >
+            📋 Copy List
+          </button>
+          <button
+            onClick={handleClearChecked}
+            className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border border-rose-200 transition-all"
+            title="Clear checked items"
+          >
+            🗑️ Clear Checked
+          </button>
         </div>
       </div>
 

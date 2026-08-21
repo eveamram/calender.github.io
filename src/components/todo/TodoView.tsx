@@ -206,13 +206,30 @@ export const TodoView: React.FC<TodoViewProps> = ({ onOpenAddModal }) => {
 
         {completedTasks.length > 0 && (
           <div className="pt-4 border-t border-slate-200/60 space-y-3">
-            <button
-              onClick={() => setShowCompleted((prev) => !prev)}
-              className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors"
-            >
-              {showCompleted ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-              <span>Completed ({completedTasks.length})</span>
-            </button>
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => setShowCompleted((prev) => !prev)}
+                className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors"
+              >
+                {showCompleted ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                <span>Completed ({completedTasks.length})</span>
+              </button>
+
+              {showCompleted && (
+                <button
+                  onClick={async () => {
+                    if (window.confirm('Clear all completed tasks?')) {
+                      for (const t of completedTasks) {
+                        await deleteTask(t.id);
+                      }
+                    }
+                  }}
+                  className="text-xs font-bold text-red-600 hover:underline"
+                >
+                  Clear Completed
+                </button>
+              )}
+            </div>
 
             {showCompleted && <div className="space-y-2">{completedTasks.map(renderTaskRow)}</div>}
           </div>
