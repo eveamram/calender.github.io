@@ -30,6 +30,13 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
   const defaultProfile: ProfilePersona = activeProfile === 'Both' ? 'Eve' : activeProfile;
 
+  // Sync initialDate prop into state when passed
+  React.useEffect(() => {
+    if (initialDate) {
+      setEvtDate(initialDate);
+    }
+  }, [initialDate]);
+
   // Event Form State
   const [evtTitle, setEvtTitle] = useState('');
   const [evtType, setEvtType] = useState<EventType>('personal');
