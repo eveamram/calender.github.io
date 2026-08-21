@@ -509,6 +509,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                           e.stopPropagation();
                           setColorModalTargetDate(dayObj.dateStr);
                         }}
+                        onDoubleClick={(e) => e.stopPropagation()}
                         className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-blue-600 transition-opacity p-0.5"
                         title="Pick day color"
                       >
