@@ -94,15 +94,6 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={handleResetThisWeek}
-            className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-3 py-2 rounded-xl text-xs transition-all cursor-pointer border border-slate-200/60"
-            title="Reset checkmarks for active week"
-          >
-            <RotateCcw className="w-3.5 h-3.5 text-blue-600" />
-            <span>Reset This Week</span>
-          </button>
-
-          <button
             onClick={onOpenAddModal}
             className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-3.5 py-2 rounded-xl text-xs shadow-xs transition-all cursor-pointer"
           >

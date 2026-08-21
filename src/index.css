@@ -27,26 +27,41 @@
   }
 }
 
-/* Custom Scrollbars */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 9999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+/* Glassmorphism & Fun Card Utilities */
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
 }
 
-/* Touch Target Minimums */
-.touch-target {
-  min-height: 44px;
-  min-width: 44px;
+.glass-nav {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Fun Gradient Accents */
+.gradient-text {
+  background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #3b82f6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gradient-candy {
+  background: linear-gradient(135deg, #fbcfe8 0%, #e0e7ff 50%, #bae6fd 100%);
+}
+
+.gradient-sunset {
+  background: linear-gradient(135deg, #ffedd5 0%, #ffe4e6 50%, #fed7aa 100%);
+}
+
+.gradient-aurora {
+  background: linear-gradient(135deg, #ddd6fe 0%, #c7d2fe 50%, #bae6fd 100%);
+}
+
+.gradient-emerald {
+  background: linear-gradient(135deg, #d1fae5 0%, #ccfbf1 50%, #e0f2fe 100%);
 }
 
 /* Custom Animations */
@@ -70,6 +85,24 @@
   }
 }
 
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 22px rgba(236, 72, 153, 0.6);
+  }
+}
+
+@keyframes bounceSubtle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
 .animate-slide-up {
   animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
@@ -78,9 +111,39 @@
   animation: fadeIn 0.15s ease-out forwards;
 }
 
+.animate-pulse-glow {
+  animation: pulseGlow 2.5s infinite ease-in-out;
+}
+
+.animate-bounce-subtle {
+  animation: bounceSubtle 1.8s infinite ease-in-out;
+}
+
+/* Scrollbar Tweaks */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Touch Target Minimums */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
 /* Safe Area Paddings for Mobile */
 .pb-safe-bottom {
-  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -90,3 +153,4 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+

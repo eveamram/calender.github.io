@@ -61,23 +61,23 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
   const profiles: ProfilePersona[] = ['Eve', 'Abbie', 'Both'];
 
   return (
-    <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 md:px-8 py-3">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-        {/* Left: White Logo Badge & Desktop Navigation */}
-        <div className="flex items-center gap-6">
+    <header className="sticky top-0 z-30 glass-nav border-b border-slate-200/80 px-3 md:px-8 py-2.5 transition-all">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 md:gap-4">
+        {/* Left: Brand Logo */}
+        <div className="flex items-center gap-4">
           <button
             onClick={() => setActiveTab('calendar')}
-            className="flex items-center gap-2.5 text-left group focus:outline-none"
+            className="flex items-center gap-2 text-left group focus:outline-none shrink-0"
           >
-            <div className="w-9 h-9 rounded-xl bg-white border border-slate-200/90 flex items-center justify-center text-blue-600 shadow-sm group-hover:border-blue-300 transition-colors">
-              <Calendar className="w-5 h-5 stroke-[2.2]" />
+            <div className="w-8 h-8 md:w-9 md:h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-purple-600 to-pink-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
+              <Calendar className="w-4 h-4 md:w-5 md:h-5 stroke-[2.5]" />
             </div>
-            <span className="text-xl font-black tracking-tight text-slate-900">
-              calender<span className="text-blue-600">.</span>
+            <span className="text-lg md:text-xl font-black tracking-tight text-slate-900">
+              calender<span className="text-pink-500">.</span>
             </span>
           </button>
 
-          {/* Desktop Nav Items */}
+          {/* Desktop Nav Tabs */}
           <nav className="hidden lg:flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl border border-slate-200/50">
             {navItems.map((item) => {
               const isActive = activeTab === item.tab;
@@ -99,21 +99,21 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
           </nav>
         </div>
 
-        {/* Center: Prominent Add Button (Positioned in Middle) */}
-        <div className="flex-1 flex justify-center max-w-xs">
+        {/* Center: Desktop Add Button */}
+        <div className="hidden lg:flex flex-1 justify-center max-w-xs">
           <button
             onClick={onOpenAddModal}
-            className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold px-5 py-2 rounded-xl text-sm shadow-md shadow-blue-500/25 transition-all w-full sm:w-auto cursor-pointer"
+            className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-95 text-white font-bold px-5 py-2 rounded-xl text-sm shadow-md shadow-blue-500/20 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
             <span>Add Item</span>
           </button>
         </div>
 
-        {/* Right: Persona Switcher & Settings Button */}
-        <div className="flex items-center gap-2">
-          {/* Persona Picker */}
-          <div className="flex items-center bg-slate-100/90 p-1 rounded-xl border border-slate-200/60">
+        {/* Right: Persona Picker & Settings */}
+        <div className="flex items-center gap-1.5 md:gap-2">
+          {/* Segmented Persona Switcher */}
+          <div className="flex items-center bg-slate-100/90 p-0.5 md:p-1 rounded-xl border border-slate-200/60">
             {profiles.map((p) => {
               const isSelected = activeProfile === p;
               const currentColor = profileColors[p] || (p === 'Eve' ? '#2563eb' : p === 'Abbie' ? '#ec4899' : '#059669');
@@ -122,21 +122,21 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
                 <div key={p} className="flex items-center">
                   <button
                     onClick={() => setActiveProfile(p)}
-                    className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      isSelected ? 'text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                    className={`flex items-center gap-1 px-2 md:px-3 py-1 rounded-lg text-[11px] md:text-xs font-bold transition-all cursor-pointer ${
+                      isSelected ? 'text-white shadow-xs scale-[1.02]' : 'text-slate-600 hover:text-slate-900'
                     }`}
                     style={isSelected ? { backgroundColor: currentColor } : undefined}
                   >
-                    {p === 'Both' ? <Users className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
+                    {p === 'Both' ? <Users className="w-3 h-3 md:w-3.5 md:h-3.5" /> : <User className="w-3 h-3 md:w-3.5 md:h-3.5" />}
                     <span>{p}</span>
                   </button>
                   <button
                     onClick={() => setColorPickerTarget(p)}
-                    className="p-1 text-slate-400 hover:text-slate-700 transition-colors"
+                    className="p-0.5 md:p-1 text-slate-400 hover:text-slate-700 transition-colors"
                     title={`Change color for ${p}`}
                   >
                     <span
-                      className="w-2.5 h-2.5 rounded-full inline-block border border-black/10"
+                      className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-full inline-block border border-black/10"
                       style={{ backgroundColor: currentColor }}
                     />
                   </button>
@@ -144,6 +144,15 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
               );
             })}
           </div>
+
+          {/* Quick Add Button on Mobile */}
+          <button
+            onClick={onOpenAddModal}
+            className="lg:hidden p-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm active:scale-95 transition-transform"
+            title="Add Item"
+          >
+            <Plus className="w-4 h-4 stroke-[2.5]" />
+          </button>
 
           {/* Settings Button */}
           <button
@@ -187,7 +196,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
                     await setProfileColor(colorPickerTarget, c.hex);
                     setColorPickerTarget(null);
                   }}
-                  className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-slate-200 hover:border-slate-400 transition-all gap-1.5 text-xs font-semibold"
+                  className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-slate-200 hover:border-slate-400 transition-all gap-1.5 text-xs font-semibold cursor-pointer"
                 >
                   <div
                     className="w-6 h-6 rounded-full border border-slate-300/50 shadow-xs"
@@ -203,4 +212,5 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
     </header>
   );
 };
+
 

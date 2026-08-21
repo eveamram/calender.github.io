@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useStore, getTodayDateString } from '../../context/StoreContext';
 import { BottomSheet } from '../ui/BottomSheet';
-import { EventType, ProfilePersona, MealType, BookStatus, CalendarEvent } from '../../types';
+import { EventType, ProfilePersona, MealType, BookStatus, CalendarEvent, CATEGORY_METAS } from '../../types';
 import { ChevronDown, ChevronUp, Palette } from 'lucide-react';
 
 interface CreationModalContainerProps {
@@ -292,11 +292,37 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             </div>
           </div>
 
+          {/* Category Quick Chips with Emojis */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Category & Type</label>
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+              {(Object.keys(CATEGORY_METAS) as EventType[]).map((catKey) => {
+                const meta = CATEGORY_METAS[catKey];
+                const isSelected = evtType === catKey;
+                return (
+                  <button
+                    type="button"
+                    key={catKey}
+                    onClick={() => setEvtType(catKey)}
+                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                      isSelected
+                        ? 'bg-slate-900 text-white shadow-xs scale-105'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                  >
+                    <span>{meta.emoji}</span>
+                    <span>{meta.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* 3. Event Color Palette Swatches */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1">
               <Palette className="w-3.5 h-3.5 text-blue-600" />
-              <span>Event Color</span>
+              <span>Custom Color (Optional)</span>
             </label>
             <div className="flex items-center gap-2 overflow-x-auto py-1">
               {EVENT_COLOR_OPTIONS.map((c) => {

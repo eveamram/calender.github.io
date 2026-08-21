@@ -133,16 +133,64 @@ export interface BookItem {
   updated_at?: string;
 }
 
-export const CATEGORY_METAS: Record<EventType, { label: string; color: string }> = {
-  class: { label: 'Class', color: '#2563eb' },       // blue
-  exam: { label: 'Exam', color: '#dc2626' },         // red
-  assignment: { label: 'Assignment', color: '#ea580c' }, // orange
-  appointment: { label: 'Appointment', color: '#7c3aed' }, // purple
-  birthday: { label: 'Birthday', color: '#db2777' }, // pink
-  trip: { label: 'Trip', color: '#059669' },         // emerald
-  personal: { label: 'Personal', color: '#475569' }, // slate
-  meeting: { label: 'Meeting', color: '#0284c7' },   // sky
-  work: { label: 'Work', color: '#4f46e5' },         // indigo
-  study: { label: 'Study', color: '#d97706' },       // amber
-  task: { label: 'Task', color: '#2563eb' },         // blue
+export interface ThemePreset {
+  id: string;
+  name: string;
+  emoji: string;
+  gradient: string;
+  accent: string;
+  activeBorder: string;
+}
+
+export const THEME_PRESETS: ThemePreset[] = [
+  {
+    id: 'candy',
+    name: 'Candy Pastel',
+    emoji: '🍬',
+    gradient: 'from-pink-100/70 via-purple-100/50 to-blue-100/70',
+    accent: '#ec4899',
+    activeBorder: 'border-pink-300',
+  },
+  {
+    id: 'sunset',
+    name: 'Sunset Glow',
+    emoji: '🌅',
+    gradient: 'from-amber-100/70 via-rose-100/50 to-orange-100/70',
+    accent: '#f97316',
+    activeBorder: 'border-orange-300',
+  },
+  {
+    id: 'aurora',
+    name: 'Lavender Aurora',
+    emoji: '🌌',
+    gradient: 'from-indigo-100/70 via-purple-100/50 to-sky-100/70',
+    accent: '#8b5cf6',
+    activeBorder: 'border-indigo-300',
+  },
+  {
+    id: 'emerald',
+    name: 'Emerald Mint',
+    emoji: '🌿',
+    gradient: 'from-emerald-100/70 via-teal-100/50 to-cyan-100/70',
+    accent: '#10b981',
+    activeBorder: 'border-emerald-300',
+  },
+];
+
+export const CATEGORY_METAS: Record<
+  EventType,
+  { label: string; color: string; emoji: string; bg: string }
+> = {
+  class: { label: 'Class', color: '#2563eb', emoji: '📚', bg: '#eff6ff' },
+  exam: { label: 'Exam', color: '#ef4444', emoji: '✍️', bg: '#fef2f2' },
+  assignment: { label: 'Assignment', color: '#f97316', emoji: '📝', bg: '#fff7ed' },
+  appointment: { label: 'Coffee & Appt', color: '#8b5cf6', emoji: '☕', bg: '#f5f3ff' },
+  birthday: { label: 'Birthday & Event', color: '#ec4899', emoji: '🎂', bg: '#fdf2f8' },
+  trip: { label: 'Trip & Travel', color: '#10b981', emoji: '✈️', bg: '#ecfdf5' },
+  personal: { label: 'Personal', color: '#6366f1', emoji: '🎯', bg: '#eef2ff' },
+  meeting: { label: 'Meeting', color: '#06b6d4', emoji: '👥', bg: '#ecfeff' },
+  work: { label: 'Work', color: '#4f46e5', emoji: '💼', bg: '#eef2ff' },
+  study: { label: 'Study Session', color: '#d97706', emoji: '🧠', bg: '#fef3c7' },
+  task: { label: 'Task', color: '#3b82f6', emoji: '✅', bg: '#eff6ff' },
 };
+
