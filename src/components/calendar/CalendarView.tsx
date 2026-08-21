@@ -487,7 +487,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                     {dayEvts.length > 0 && (
                       <span
                         className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-md ${
-                          isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                          isSelected ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-600'
                         }`}
                       >
                         {dayEvts.length}
@@ -511,27 +511,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                             evt.stopPropagation();
                             onOpenAddModal(e.event_date, e);
                           }}
-                          className={`text-[11px] font-bold px-2 py-1 rounded-xl truncate flex items-center gap-1 transition-all cursor-pointer ${
-                            isSelected
-                              ? 'bg-white/15 text-white hover:bg-white/25'
-                              : 'text-slate-900 hover:scale-[1.02]'
-                          }`}
-                          style={
-                            !isSelected
-                              ? { backgroundColor: `${evtColor}20`, borderLeft: `3px solid ${evtColor}` }
-                              : undefined
-                          }
+                          className="text-[11px] font-bold px-2 py-1 rounded-xl truncate flex items-center gap-1 transition-all cursor-pointer text-slate-900 hover:scale-[1.02] shadow-2xs"
+                          style={{ backgroundColor: `${evtColor}25`, borderLeft: `3.5px solid ${evtColor}` }}
                         >
                           <span className="truncate">{e.title}</span>
                         </div>
                       );
                     })}
                     {dayEvts.length > 2 && (
-                      <div
-                        className={`text-[10px] font-extrabold pl-1 ${
-                          isSelected ? 'text-slate-300' : 'text-slate-400'
-                        }`}
-                      >
+                      <div className="text-[10px] font-extrabold pl-1 text-blue-700">
                         +{dayEvts.length - 2} more
                       </div>
                     )}
