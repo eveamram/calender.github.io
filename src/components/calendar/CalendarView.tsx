@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useStore, getTodayDateString } from '../../context/StoreContext';
 import { CalendarEvent, CATEGORY_METAS, EventType } from '../../types';
 import { getAnniversaryEvent, getCommonHolidayEvent } from '../../utils/holidays';
+import { BottomSheet } from '../ui/BottomSheet';
 import {
   ChevronLeft,
   ChevronRight,
@@ -33,6 +34,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
   } = useStore();
 
   const [currentMonthDate, setCurrentMonthDate] = useState(() => new Date());
+  const [showDayScheduleSheet, setShowDayScheduleSheet] = useState(false);
 
   const year = currentMonthDate.getFullYear();
   const month = currentMonthDate.getMonth();
@@ -449,7 +451,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
               return (
                 <div
                   key={dayObj.dateStr}
-                  onClick={() => setSelectedDate(dayObj.dateStr)}
+                  onClick={() => {
+                    setSelectedDate(dayObj.dateStr);
+                    setShowDayScheduleSheet(true);
+                  }}
                   onDoubleClick={(e) => {
                     e.stopPropagation();
                     handleDesktopDayDoubleClick(dayObj.dateStr);
@@ -645,6 +650,107 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
           )}
         </div>
       </div>
+
+      {/* Interactive Day Schedule Popup (Appears when clicking any date on calendar) */}
+      <BottomSheet
+        isOpen={showDayScheduleSheet}
+        onClose={() => setShowDayScheduleSheet(false)}
+        title={`Schedule for ${formattedSelectedDateHeader}`}
+      >
+        <div className="space-y-4 pt-1">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold text-slate-500">
+              {selectedDayEvents.length} {selectedDayEvents.length === 1 ? 'event' : 'events'} planned
+            </p>
+            <button
+              onClick={() => {
+                setShowDayScheduleSheet(false);
+                onOpenAddModal(selectedDate);
+              }}
+              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold px-3.5 py-1.5 rounded-xl text-xs shadow-xs transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Event</span>
+            </button>
+          </div>
+
+          {selectedDayEvents.length === 0 ? (
+            <div className="py-10 text-center space-y-3 bg-slate-50 rounded-2xl border border-slate-200/60">
+              <CalendarIcon className="w-10 h-10 mx-auto text-slate-300 stroke-[1.5]" />
+              <p className="text-xs font-bold text-slate-600">No events scheduled for this date.</p>
+              <button
+                onClick={() => {
+                  setShowDayScheduleSheet(false);
+                  onOpenAddModal(selectedDate);
+                }}
+                className="text-xs font-black text-blue-600 hover:underline cursor-pointer"
+              >
+                + Schedule an event
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2.5 max-h-[50vh] overflow-y-auto pr-1">
+              {selectedDayEvents.map((evt) => {
+                const meta = CATEGORY_METAS[evt.event_type as EventType] || CATEGORY_METAS.personal;
+                const evtColor = evt.color || meta.color || '#3b82f6';
+                const ownerName = evt.profile || 'Eve';
+                const badgeColor = profileColors[ownerName] || '#2563eb';
+
+                return (
+                  <div
+                    key={evt.id}
+                    className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 hover:bg-slate-100/80 transition-all"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className="w-3 h-3 rounded-full shrink-0 shadow-2xs"
+                        style={{ backgroundColor: evtColor }}
+                      />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-xs font-extrabold text-slate-900 truncate">{evt.title}</h4>
+                          {activeProfile === 'Both' && (
+                            <span
+                              className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md text-white shrink-0"
+                              style={{ backgroundColor: badgeColor }}
+                            >
+                              {ownerName}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] font-semibold text-slate-500 mt-0.5">
+                          {evt.start_time || 'All Day'} {evt.end_time ? `– ${evt.end_time}` : ''}
+                          {evt.location ? ` • ${evt.location}` : ''}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0 ml-2">
+                      <button
+                        onClick={() => {
+                          setShowDayScheduleSheet(false);
+                          onOpenAddModal(evt.event_date, evt);
+                        }}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-white transition-all cursor-pointer"
+                        title="Edit Event"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => deleteEvent(evt.id)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-white transition-all cursor-pointer"
+                        title="Delete Event"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </BottomSheet>
     </div>
   );
 };
