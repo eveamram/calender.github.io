@@ -126,6 +126,8 @@ export interface BookItem {
   status: BookStatus;
   current_page?: number;
   total_pages?: number;
+  eve_page?: number;
+  abbie_page?: number;
   rating?: number; // 1-5
   genre?: string;
   profile?: ProfilePersona;

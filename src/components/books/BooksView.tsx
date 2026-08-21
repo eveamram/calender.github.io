@@ -30,8 +30,27 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
   const { bookItems, updateBookItem, deleteBookItem, filterByProfile, activeProfile, profileColors } = useStore();
   const [activeStatusTab, setActiveStatusTab] = useState<BookStatus | 'all'>('reading');
   const [searchQuery, setSearchQuery] = useState('');
+  const [editingPersonPage, setEditingPersonPage] = useState<{ bookId: string; person: 'Eve' | 'Abbie' } | null>(null);
   const [editingPageBookId, setEditingPageBookId] = useState<string | null>(null);
   const [customPageInput, setCustomPageInput] = useState<string>('');
+
+  const handleIncrementPersonPage = async (book: BookItem, person: 'Eve' | 'Abbie', pgs = 15) => {
+    const currentP = person === 'Eve' ? (book.eve_page ?? book.current_page ?? 0) : (book.abbie_page ?? book.current_page ?? 0);
+    const nextPg = Math.min(book.total_pages || 9999, currentP + pgs);
+    const updates: Partial<BookItem> = person === 'Eve' ? { eve_page: nextPg } : { abbie_page: nextPg };
+    await updateBookItem(book.id, updates);
+  };
+
+  const handleSaveCustomPersonPage = async (book: BookItem, person: 'Eve' | 'Abbie') => {
+    const parsed = parseInt(customPageInput, 10);
+    if (!isNaN(parsed) && parsed >= 0) {
+      const nextPg = book.total_pages ? Math.min(book.total_pages, parsed) : parsed;
+      const updates: Partial<BookItem> = person === 'Eve' ? { eve_page: nextPg } : { abbie_page: nextPg };
+      await updateBookItem(book.id, updates);
+    }
+    setEditingPersonPage(null);
+    setCustomPageInput('');
+  };
 
   const filteredByPersona = useMemo(() => {
     return filterByProfile(bookItems);
@@ -336,85 +355,192 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
                 {/* Progress Bar & Page Controls */}
                 {book.status === 'reading' && (
                   <div className="space-y-2 pt-1 border-t border-slate-100">
-                    <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                      <span>Reading Progress</span>
-                      <div className="flex items-center gap-1">
-                        <span>
-                          {book.current_page || 0} / {book.total_pages || '?'} pgs ({progressPercent}%)
-                        </span>
-                        <button
-                          onClick={() => {
-                            setEditingPageBookId(book.id);
-                            setCustomPageInput(String(book.current_page || 0));
-                          }}
-                          className="text-slate-400 hover:text-blue-600 p-0.5"
-                          title="Set current page"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
+                    {book.profile === 'Both' ? (
+                      <div className="space-y-2.5 bg-slate-50/80 p-3 rounded-2xl border border-slate-200/70">
+                        <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                          Shared Book Progression 📚
+                        </h5>
+                        
+                        {(['Eve', 'Abbie'] as const).map((person) => {
+                          const personColor = profileColors[person] || (person === 'Eve' ? '#2563eb' : '#ec4899');
+                          const personPage = person === 'Eve' ? (book.eve_page ?? book.current_page ?? 0) : (book.abbie_page ?? book.current_page ?? 0);
+                          const totalP = book.total_pages || 1;
+                          const pPercent = Math.min(100, Math.round((personPage / totalP) * 100));
+                          const isEditing = editingPersonPage?.bookId === book.id && editingPersonPage?.person === person;
 
-                    {isEditingThisPage ? (
-                      <div className="flex items-center gap-1.5 pt-1">
-                        <input
-                          type="number"
-                          value={customPageInput}
-                          onChange={(e) => setCustomPageInput(e.target.value)}
-                          placeholder="Current Page"
-                          className="w-full px-2.5 py-1 rounded-xl bg-slate-100 border border-blue-400 text-xs font-bold focus:outline-none"
-                        />
-                        <button
-                          onClick={() => handleSaveCustomPage(book)}
-                          className="p-1.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700"
-                        >
-                          <Check className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => setEditingPageBookId(null)}
-                          className="p-1.5 rounded-xl bg-slate-200 text-slate-600 hover:bg-slate-300"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
+                          return (
+                            <div key={person} className="space-y-1.5 bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-2xs">
+                              <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+                                <span className="flex items-center gap-1.5">
+                                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: personColor }} />
+                                  <span>{person}'s Progress</span>
+                                </span>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[11px] font-extrabold text-slate-600">
+                                    {personPage} / {book.total_pages || '?'} pgs ({pPercent}%)
+                                  </span>
+                                  <button
+                                    onClick={() => {
+                                      setEditingPersonPage({ bookId: book.id, person });
+                                      setCustomPageInput(String(personPage));
+                                    }}
+                                    className="text-slate-400 hover:text-blue-600 p-0.5 cursor-pointer"
+                                    title={`Set ${person}'s current page`}
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+
+                              {isEditing ? (
+                                <div className="flex items-center gap-1.5 pt-1">
+                                  <input
+                                    type="number"
+                                    value={customPageInput}
+                                    onChange={(e) => setCustomPageInput(e.target.value)}
+                                    placeholder="Page #"
+                                    className="w-full px-2.5 py-1 rounded-xl bg-slate-100 border border-blue-400 text-xs font-bold focus:outline-none"
+                                  />
+                                  <button
+                                    onClick={() => handleSaveCustomPersonPage(book, person)}
+                                    className="p-1.5 rounded-xl text-white hover:opacity-90 cursor-pointer"
+                                    style={{ backgroundColor: personColor }}
+                                  >
+                                    <Check className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingPersonPage(null)}
+                                    className="p-1.5 rounded-xl bg-slate-200 text-slate-600 hover:bg-slate-300 cursor-pointer"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <>
+                                  <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden p-0.5">
+                                    <div
+                                      className="h-full rounded-full transition-all duration-300"
+                                      style={{ width: `${pPercent}%`, backgroundColor: personColor }}
+                                    />
+                                  </div>
+                                  <div className="grid grid-cols-3 gap-1 pt-0.5">
+                                    <button
+                                      onClick={() => {
+                                        handleIncrementPersonPage(book, person, 5);
+                                        confetti({ particleCount: 15, spread: 40, origin: { y: 0.8 } });
+                                      }}
+                                      className="py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold text-[10px] transition-all cursor-pointer"
+                                    >
+                                      +5 pgs 📖
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        handleIncrementPersonPage(book, person, 15);
+                                        confetti({ particleCount: 25, spread: 60, origin: { y: 0.8 } });
+                                      }}
+                                      className="py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-extrabold text-[10px] transition-all cursor-pointer"
+                                    >
+                                      +15 pgs ⚡
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        handleIncrementPersonPage(book, person, 30);
+                                        confetti({ particleCount: 35, spread: 70, origin: { y: 0.8 } });
+                                      }}
+                                      className="py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 font-extrabold text-[10px] transition-all cursor-pointer"
+                                    >
+                                      +30 pgs 🚀
+                                    </button>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     ) : (
                       <>
-                        <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden p-0.5">
-                          <div
-                            className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all duration-300"
-                            style={{ width: `${progressPercent}%` }}
-                          />
+                        <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                          <span>Reading Progress</span>
+                          <div className="flex items-center gap-1">
+                            <span>
+                              {book.current_page || 0} / {book.total_pages || '?'} pgs ({progressPercent}%)
+                            </span>
+                            <button
+                              onClick={() => {
+                                setEditingPageBookId(book.id);
+                                setCustomPageInput(String(book.current_page || 0));
+                              }}
+                              className="text-slate-400 hover:text-blue-600 p-0.5"
+                              title="Set current page"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-1.5 pt-1">
-                          <button
-                            onClick={() => {
-                              handleIncrementPage(book, 5);
-                              confetti({ particleCount: 15, spread: 40, origin: { y: 0.8 } });
-                            }}
-                            className="py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold text-[11px] transition-all active:scale-95 cursor-pointer"
-                          >
-                            +5 pgs 📖
-                          </button>
-                          <button
-                            onClick={() => {
-                              handleIncrementPage(book, 15);
-                              confetti({ particleCount: 25, spread: 60, origin: { y: 0.8 } });
-                            }}
-                            className="py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-extrabold text-[11px] transition-all active:scale-95 cursor-pointer"
-                          >
-                            +15 pgs ⚡
-                          </button>
-                          <button
-                            onClick={() => {
-                              handleIncrementPage(book, 30);
-                              confetti({ particleCount: 40, spread: 80, origin: { y: 0.8 } });
-                            }}
-                            className="py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 font-extrabold text-[11px] transition-all active:scale-95 cursor-pointer"
-                          >
-                            +30 pgs 🚀
-                          </button>
-                        </div>
+                        {isEditingThisPage ? (
+                          <div className="flex items-center gap-1.5 pt-1">
+                            <input
+                              type="number"
+                              value={customPageInput}
+                              onChange={(e) => setCustomPageInput(e.target.value)}
+                              placeholder="Current Page"
+                              className="w-full px-2.5 py-1 rounded-xl bg-slate-100 border border-blue-400 text-xs font-bold focus:outline-none"
+                            />
+                            <button
+                              onClick={() => handleSaveCustomPage(book)}
+                              className="p-1.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setEditingPageBookId(null)}
+                              className="p-1.5 rounded-xl bg-slate-200 text-slate-600 hover:bg-slate-300"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden p-0.5">
+                              <div
+                                className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all duration-300"
+                                style={{ width: `${progressPercent}%` }}
+                              />
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-1.5 pt-1">
+                              <button
+                                onClick={() => {
+                                  handleIncrementPage(book, 5);
+                                  confetti({ particleCount: 15, spread: 40, origin: { y: 0.8 } });
+                                }}
+                                className="py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold text-[11px] transition-all active:scale-95 cursor-pointer"
+                              >
+                                +5 pgs 📖
+                              </button>
+                              <button
+                                onClick={() => {
+                                  handleIncrementPage(book, 15);
+                                  confetti({ particleCount: 25, spread: 60, origin: { y: 0.8 } });
+                                }}
+                                className="py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-extrabold text-[11px] transition-all active:scale-95 cursor-pointer"
+                              >
+                                +15 pgs ⚡
+                              </button>
+                              <button
+                                onClick={() => {
+                                  handleIncrementPage(book, 30);
+                                  confetti({ particleCount: 40, spread: 80, origin: { y: 0.8 } });
+                                }}
+                                className="py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 font-extrabold text-[11px] transition-all active:scale-95 cursor-pointer"
+                              >
+                                +30 pgs 🚀
+                              </button>
+                            </div>
+                          </>
+                        )}
                       </>
                     )}
                   </div>
