@@ -57,24 +57,29 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   const [evtProfile, setEvtProfile] = useState<ProfilePersona>(defaultProfile);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
 
-  // Sync initial values / eventToEdit into state
+  // Sync initial values / eventToEdit into state whenever modal is opened
   useEffect(() => {
-    if (eventToEdit) {
-      setEvtTitle(eventToEdit.title);
-      setEvtType(eventToEdit.event_type as EventType);
-      setEvtDate(eventToEdit.event_date);
-      setEvtStartTime(eventToEdit.start_time || '09:00');
-      setEvtEndTime(eventToEdit.end_time || '10:00');
-      setEvtLocation(eventToEdit.location || '');
-      setEvtColor(eventToEdit.color || '');
-      setEvtProfile(eventToEdit.profile || defaultProfile);
-    } else if (initialDate) {
-      setEvtDate(initialDate);
-      setEvtTitle('');
-      setEvtLocation('');
-      setEvtColor('');
+    if (modalType === 'event') {
+      if (eventToEdit) {
+        setEvtTitle(eventToEdit.title);
+        setEvtType(eventToEdit.event_type as EventType);
+        setEvtDate(eventToEdit.event_date);
+        setEvtStartTime(eventToEdit.start_time || '09:00');
+        setEvtEndTime(eventToEdit.end_time || '10:00');
+        setEvtLocation(eventToEdit.location || '');
+        setEvtColor(eventToEdit.color || '');
+        setEvtProfile(eventToEdit.profile || defaultProfile);
+      } else {
+        setEvtDate(initialDate || getTodayDateString());
+        setEvtTitle('');
+        setEvtLocation('');
+        setEvtColor('');
+        setEvtStartTime('09:00');
+        setEvtEndTime('10:00');
+        setEvtProfile(defaultProfile);
+      }
     }
-  }, [initialDate, eventToEdit, defaultProfile]);
+  }, [modalType, initialDate, eventToEdit, defaultProfile]);
 
   // Class Form State
   const [clsName, setClsName] = useState('');
