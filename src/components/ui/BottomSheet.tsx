@@ -23,14 +23,14 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end sm:justify-center sm:items-center bg-slate-900/40 animate-fade-in p-0 sm:p-4">
+    <div className="fixed inset-0 z-50 flex flex-col justify-end sm:justify-center sm:items-center bg-slate-900/40 backdrop-blur-xs animate-fade-in p-0 sm:p-4">
       {/* Backdrop overlay */}
       <div className="fixed inset-0" onClick={onClose} />
       
-      {/* Modal Dialog Content - Centered on Desktop */}
-      <div className="relative bg-white rounded-t-3xl sm:rounded-3xl max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200/80 animate-slide-up w-full max-w-lg mx-auto p-5 sm:p-6 pb-safe-bottom z-10">
+      {/* Modal Dialog Content - Positioned comfortably lower on mobile */}
+      <div className="relative bg-white rounded-t-3xl sm:rounded-3xl max-h-[85vh] overflow-y-auto shadow-2xl border border-slate-200/80 animate-slide-up w-full max-w-lg mx-auto p-5 sm:p-6 pb-20 sm:pb-6 z-10 my-auto sm:my-0">
         {/* Mobile Handle Indicator */}
-        <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-4 sm:hidden" />
+        <div className="w-12 h-1.5 bg-slate-300/80 rounded-full mx-auto mb-4 sm:hidden cursor-pointer" onClick={onClose} />
 
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">

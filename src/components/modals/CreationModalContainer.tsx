@@ -300,12 +300,12 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             <select
               value={evtType}
               onChange={(e) => setEvtType(e.target.value as EventType)}
-              className="w-full bg-slate-50/80 border border-slate-200/80 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all cursor-pointer"
+              className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl px-4 py-3.5 text-base sm:text-sm font-bold text-slate-900 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all cursor-pointer shadow-xs"
             >
               {(Object.keys(CATEGORY_METAS) as EventType[]).map((catKey) => {
                 const meta = CATEGORY_METAS[catKey];
                 return (
-                  <option key={catKey} value={catKey}>
+                  <option key={catKey} value={catKey} className="py-2 text-sm font-bold text-slate-900">
                     {meta.emoji} {meta.label}
                   </option>
                 );
