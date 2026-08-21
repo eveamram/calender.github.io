@@ -20,6 +20,10 @@ interface StoreContextType {
   activeTab: AppTab;
   setActiveTab: (tab: AppTab) => void;
 
+  // Settings Modal State
+  isSettingsOpen: boolean;
+  setIsSettingsOpen: (open: boolean) => void;
+
   // Selected Date for Calendar
   selectedDate: string; // YYYY-MM-DD
   setSelectedDate: (date: string) => void;
@@ -45,35 +49,46 @@ interface StoreContextType {
   // Helper filter by profile
   filterByProfile: <T extends { profile?: ProfilePersona }>(items: T[]) => T[];
 
-  // CRUD Operations
+  // CRUD & Reset Operations
   addEvent: (evt: Omit<CalendarEvent, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
   updateEvent: (id: string, updates: Partial<CalendarEvent>) => Promise<void>;
   deleteEvent: (id: string) => Promise<void>;
   clearCalendarEventsExceptAnniversaries: () => Promise<void>;
   clearAnniversariesOnly: () => Promise<void>;
+  clearAllEvents: () => Promise<void>;
 
   addClass: (cls: Omit<ClassItem, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
   updateClass: (id: string, updates: Partial<ClassItem>) => Promise<void>;
   deleteClass: (id: string) => Promise<void>;
+  clearClasses: () => Promise<void>;
 
   addTask: (tsk: Omit<TaskItem, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
   toggleTaskComplete: (id: string) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
+  clearTasks: (onlyCompleted?: boolean) => Promise<void>;
 
   addHabit: (hbt: Omit<HabitItem, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
   toggleHabitCompletion: (habitId: string, date: string, quantity?: number) => Promise<void>;
   deleteHabit: (id: string) => Promise<void>;
+  clearWeeklyHabitProgress: (dateStrs?: string[]) => Promise<void>;
+  clearAllHabitCompletions: () => Promise<void>;
+  clearAllHabits: () => Promise<void>;
 
   addGroceryItem: (item: Omit<GroceryItem, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
   toggleGroceryComplete: (id: string) => Promise<void>;
   deleteGroceryItem: (id: string) => Promise<void>;
+  clearGroceryItems: (onlyCompleted?: boolean) => Promise<void>;
 
   addMealItem: (meal: Omit<MealItem, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
   deleteMealItem: (id: string) => Promise<void>;
+  clearMealItems: () => Promise<void>;
 
   addBookItem: (book: Omit<BookItem, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
   updateBookItem: (id: string, updates: Partial<BookItem>) => Promise<void>;
   deleteBookItem: (id: string) => Promise<void>;
+  clearBookItems: () => Promise<void>;
+
+  factoryResetAllData: () => Promise<void>;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -101,6 +116,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return (localStorage.getItem('calender_tab') as AppTab) || 'calendar';
   });
 
+  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [selectedDate, setSelectedDate] = useState<string>(getTodayDateString());
 
   // Persona Colors Configuration
@@ -157,9 +173,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await syncEngine.upsertItem('dateColors', { id: dateStr, color });
   };
 
-  // Seed Initial Demo Data if empty
+  // Seed Initial Demo Data if empty and no localStorage sync exists
   const seedInitialDataIfEmpty = () => {
     const today = getTodayDateString();
+
+    const hasStoredData = localStorage.getItem('calender_sync_events') !== null;
+    if (hasStoredData) return;
 
     if (events.length === 0) {
       const initialEvents: CalendarEvent[] = [
@@ -385,7 +404,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return items.filter((item) => !item.profile || item.profile === activeProfile || item.profile === 'Both');
   };
 
-  // CRUD Implementations
+  // CRUD & Reset Implementations
   const addEvent = async (evt: Omit<CalendarEvent, 'id' | 'created_at' | 'updated_at'>) => {
     const newEvt: CalendarEvent = {
       ...evt,
@@ -420,6 +439,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  const clearAllEvents = async () => {
+    await syncEngine.clearTable('events');
+  };
+
   const addClass = async (cls: Omit<ClassItem, 'id' | 'created_at' | 'updated_at'>) => {
     const newClass: ClassItem = {
       ...cls,
@@ -438,6 +461,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const deleteClass = async (id: string) => {
     await syncEngine.deleteItem('classes', id);
+  };
+
+  const clearClasses = async () => {
+    await syncEngine.clearTable('classes');
   };
 
   const addTask = async (tsk: Omit<TaskItem, 'id' | 'created_at' | 'updated_at'>) => {
@@ -472,6 +499,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const relatedEvt = events.find((e) => e.task_id === id);
     if (relatedEvt) {
       await syncEngine.deleteItem('events', relatedEvt.id);
+    }
+  };
+
+  const clearTasks = async (onlyCompleted = false) => {
+    const toDelete = onlyCompleted ? tasks.filter((t) => t.is_completed) : tasks;
+    for (const t of toDelete) {
+      await deleteTask(t.id);
     }
   };
 
@@ -510,6 +544,29 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const deleteHabit = async (id: string) => {
     await syncEngine.deleteItem('habits', id);
+    const completionsToDelete = habitCompletions.filter((hc) => hc.habit_id === id);
+    for (const hc of completionsToDelete) {
+      await syncEngine.deleteItem('habitCompletions', hc.id);
+    }
+  };
+
+  const clearWeeklyHabitProgress = async (dateStrs?: string[]) => {
+    let toDelete = habitCompletions;
+    if (dateStrs && dateStrs.length > 0) {
+      toDelete = habitCompletions.filter((hc) => dateStrs.includes(hc.date));
+    }
+    for (const hc of toDelete) {
+      await syncEngine.deleteItem('habitCompletions', hc.id);
+    }
+  };
+
+  const clearAllHabitCompletions = async () => {
+    await syncEngine.clearTable('habitCompletions');
+  };
+
+  const clearAllHabits = async () => {
+    await syncEngine.clearTable('habits');
+    await syncEngine.clearTable('habitCompletions');
   };
 
   const addGroceryItem = async (item: Omit<GroceryItem, 'id' | 'created_at' | 'updated_at'>) => {
@@ -531,6 +588,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await syncEngine.deleteItem('groceryItems', id);
   };
 
+  const clearGroceryItems = async (onlyCompleted = false) => {
+    if (!onlyCompleted) {
+      await syncEngine.clearTable('groceryItems');
+    } else {
+      const completed = groceryItems.filter((g) => g.is_completed);
+      for (const g of completed) {
+        await syncEngine.deleteItem('groceryItems', g.id);
+      }
+    }
+  };
+
   const addMealItem = async (meal: Omit<MealItem, 'id' | 'created_at' | 'updated_at'>) => {
     const newMeal: MealItem = {
       ...meal,
@@ -542,6 +610,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const deleteMealItem = async (id: string) => {
     await syncEngine.deleteItem('mealItems', id);
+  };
+
+  const clearMealItems = async () => {
+    await syncEngine.clearTable('mealItems');
   };
 
   const addBookItem = async (book: Omit<BookItem, 'id' | 'created_at' | 'updated_at'>) => {
@@ -563,6 +635,22 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await syncEngine.deleteItem('bookItems', id);
   };
 
+  const clearBookItems = async () => {
+    await syncEngine.clearTable('bookItems');
+  };
+
+  const factoryResetAllData = async () => {
+    const tables = ['events', 'classes', 'tasks', 'habits', 'habitCompletions', 'groceryItems', 'mealItems', 'bookItems'];
+    for (const table of tables) {
+      await syncEngine.clearTable(table);
+      localStorage.removeItem(`calender_sync_${table}`);
+    }
+    localStorage.removeItem('calender_profile');
+    localStorage.removeItem('calender_tab');
+    localStorage.removeItem('calender_profile_colors');
+    localStorage.removeItem('calender_date_colors');
+  };
+
   return (
     <StoreContext.Provider
       value={{
@@ -570,6 +658,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setActiveProfile,
         activeTab,
         setActiveTab,
+        isSettingsOpen,
+        setIsSettingsOpen,
         selectedDate,
         setSelectedDate,
         profileColors,
@@ -590,23 +680,33 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         deleteEvent,
         clearCalendarEventsExceptAnniversaries,
         clearAnniversariesOnly,
+        clearAllEvents,
         addClass,
         updateClass,
         deleteClass,
+        clearClasses,
         addTask,
         toggleTaskComplete,
         deleteTask,
+        clearTasks,
         addHabit,
         toggleHabitCompletion,
         deleteHabit,
+        clearWeeklyHabitProgress,
+        clearAllHabitCompletions,
+        clearAllHabits,
         addGroceryItem,
         toggleGroceryComplete,
         deleteGroceryItem,
+        clearGroceryItems,
         addMealItem,
         deleteMealItem,
+        clearMealItems,
         addBookItem,
         updateBookItem,
         deleteBookItem,
+        clearBookItems,
+        factoryResetAllData,
       }}
     >
       {children}
@@ -621,3 +721,4 @@ export const useStore = () => {
   }
   return context;
 };
+

@@ -43,12 +43,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
     setActiveTab,
     profileColors,
     setProfileColor,
-    clearCalendarEventsExceptAnniversaries,
-    clearAnniversariesOnly,
+    setIsSettingsOpen,
   } = useStore();
 
   const [colorPickerTarget, setColorPickerTarget] = useState<ProfilePersona | null>(null);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const navItems: { tab: AppTab; label: string; icon: React.ReactNode }[] = [
     { tab: 'calendar', label: 'Calendar', icon: <Calendar className="w-4 h-4" /> },
@@ -61,20 +59,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
   ];
 
   const profiles: ProfilePersona[] = ['Eve', 'Abbie', 'Both'];
-
-  const handleResetCalendarKeepAnniversaries = async () => {
-    if (window.confirm('Reset all calendar events? (Your anniversaries & birthdays will NOT be deleted)')) {
-      await clearCalendarEventsExceptAnniversaries();
-      setIsSettingsOpen(false);
-    }
-  };
-
-  const handleResetAnniversariesOnly = async () => {
-    if (window.confirm('Are you sure you want to reset ONLY your anniversaries and birthdays?')) {
-      await clearAnniversariesOnly();
-      setIsSettingsOpen(false);
-    }
-  };
 
   return (
     <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 md:px-8 py-3">
@@ -165,7 +149,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
           <button
             onClick={() => setIsSettingsOpen(true)}
             className="p-2 rounded-xl bg-slate-100/90 hover:bg-slate-200 text-slate-700 border border-slate-200/60 transition-all cursor-pointer"
-            title="Calendar Settings & Reset"
+            title="App Settings & Resets"
           >
             <Settings className="w-4 h-4" />
           </button>
@@ -216,95 +200,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
           </div>
         </div>
       )}
-
-      {/* FULL SETTINGS & RESET MODAL */}
-      {isSettingsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-2xl max-w-md w-full space-y-6 animate-slide-up">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <Settings className="w-5 h-5 text-blue-600" />
-                <h3 className="text-lg font-bold text-slate-900">App Settings & Reset</h3>
-              </div>
-              <button
-                onClick={() => setIsSettingsOpen(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Persona Colors Section */}
-            <div className="space-y-3">
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                Persona Colors (Eve & Abbie)
-              </h4>
-
-              <div className="space-y-2">
-                {profiles.map((p) => {
-                  const currentColor = profileColors[p] || (p === 'Eve' ? '#2563eb' : p === 'Abbie' ? '#ec4899' : '#059669');
-
-                  return (
-                    <div
-                      key={p}
-                      className="flex items-center justify-between p-3 rounded-2xl border border-slate-200/80 bg-slate-50"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <div
-                          className="w-4 h-4 rounded-full border border-black/10"
-                          style={{ backgroundColor: currentColor }}
-                        />
-                        <span className="text-sm font-bold text-slate-900">{p} Profile Color</span>
-                      </div>
-
-                      <button
-                        onClick={() => {
-                          setIsSettingsOpen(false);
-                          setColorPickerTarget(p);
-                        }}
-                        className="text-xs font-bold text-blue-600 hover:underline"
-                      >
-                        Change Color
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Reset Controls Section */}
-            <div className="space-y-3 border-t border-slate-100 pt-4">
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                Reset Options
-              </h4>
-
-              <div className="space-y-2.5">
-                <button
-                  onClick={handleResetCalendarKeepAnniversaries}
-                  className="w-full flex items-center justify-between p-3.5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs transition-all"
-                >
-                  <div className="flex items-center gap-2">
-                    <RotateCcw className="w-4 h-4 text-blue-600" />
-                    <span>Reset Calendar (Keep Anniversaries)</span>
-                  </div>
-                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                </button>
-
-                <button
-                  onClick={handleResetAnniversariesOnly}
-                  className="w-full flex items-center justify-between p-3.5 rounded-2xl border border-rose-200 bg-rose-50/50 hover:bg-rose-50 text-rose-700 font-bold text-xs transition-all"
-                >
-                  <div className="flex items-center gap-2">
-                    <Heart className="w-4 h-4 text-rose-500 fill-rose-500" />
-                    <span>Reset Anniversaries & Birthdays Only</span>
-                  </div>
-                  <X className="w-4 h-4 text-rose-400" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </header>
   );
 };
+

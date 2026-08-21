@@ -17,8 +17,41 @@ const broadcastChannel =
 type GlobalSyncListener = (store: Record<string, any[]>) => void;
 const globalSyncListeners = new Set<GlobalSyncListener>();
 
-// In-memory store per table
+// In-memory store per table with LocalStorage persistence backup
 const memoryStore = new Map<string, Map<string, any>>();
+
+function loadFromLocalStorage(table: string) {
+  try {
+    const raw = localStorage.getItem(`calender_sync_${table}`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        if (!memoryStore.has(table)) memoryStore.set(table, new Map());
+        const map = memoryStore.get(table)!;
+        map.clear();
+        parsed.forEach((item) => {
+          if (item && item.id) map.set(item.id, item);
+        });
+      }
+    }
+  } catch (err) {
+    console.warn(`LocalStorage load failed for ${table}:`, err);
+  }
+}
+
+function saveToLocalStorage(table: string) {
+  try {
+    const map = memoryStore.get(table);
+    if (map) {
+      const arr = Array.from(map.values());
+      localStorage.setItem(`calender_sync_${table}`, JSON.stringify(arr));
+    } else {
+      localStorage.removeItem(`calender_sync_${table}`);
+    }
+  } catch (err) {
+    console.warn(`LocalStorage save failed for ${table}:`, err);
+  }
+}
 
 function getStoreSnapshot(): Record<string, any[]> {
   const result: Record<string, any[]> = {};
@@ -53,7 +86,11 @@ function updateMemoryCache(event: SyncPayload) {
     if (event.id) {
       tableMap.delete(event.id);
     }
+  } else if (event.type === 'RESET') {
+    tableMap.clear();
   }
+
+  saveToLocalStorage(event.table);
 }
 
 // Multi-tab broadcast channel listener
@@ -116,7 +153,10 @@ export const syncEngine = {
   },
 
   fetchAll: async (): Promise<Record<string, any[]>> => {
-    const tables = ['events', 'classes', 'tasks', 'habits', 'habitCompletions', 'groceryItems', 'mealItems', 'bookItems'];
+    const tables = ['events', 'classes', 'tasks', 'habits', 'habitCompletions', 'groceryItems', 'mealItems', 'bookItems', 'profileColors', 'dateColors'];
+
+    // First load all tables from local storage for fast hydration & offline reliability
+    tables.forEach((table) => loadFromLocalStorage(table));
 
     if (isSupabaseConfigured()) {
       await Promise.all(
@@ -130,6 +170,7 @@ export const syncEngine = {
               data.forEach((item) => {
                 if (item && item.id) tableMap.set(item.id, item);
               });
+              saveToLocalStorage(table);
             }
           } catch (e) {
             console.warn(`Supabase fetch failed for ${table}:`, e);
@@ -196,4 +237,32 @@ export const syncEngine = {
 
     return true;
   },
+
+  clearTable: async (table: string): Promise<boolean> => {
+    const syncPayload: SyncPayload = {
+      type: 'RESET',
+      table,
+      timestamp: Date.now(),
+    };
+
+    updateMemoryCache(syncPayload);
+    notifyGlobalListeners();
+
+    if (broadcastChannel) {
+      broadcastChannel.postMessage(syncPayload);
+    }
+
+    if (isSupabaseConfigured()) {
+      try {
+        // Delete all records in table
+        const { error } = await supabase.from(table).delete().neq('id', '___impossible_id___');
+        if (error) console.error(`Supabase clear table error [${table}]:`, error.message);
+      } catch (err) {
+        console.error(`Supabase clear table exception [${table}]:`, err);
+      }
+    }
+
+    return true;
+  },
 };
+

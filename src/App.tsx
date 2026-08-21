@@ -12,6 +12,7 @@ import { GroceryView } from './components/grocery/GroceryView';
 import { MealsView } from './components/meals/MealsView';
 import { BooksView } from './components/books/BooksView';
 import { CreationModalContainer } from './components/modals/CreationModalContainer';
+import { SettingsModal } from './components/modals/SettingsModal';
 import { MealType, CalendarEvent } from './types';
 
 const MainAppContent: React.FC = () => {
@@ -101,6 +102,9 @@ const MainAppContent: React.FC = () => {
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav />
 
+      {/* Settings & Reset Modal */}
+      <SettingsModal />
+
       {/* Creation / Edit Modal Container */}
       <CreationModalContainer
         modalType={activeModal}
@@ -131,3 +135,4 @@ export const App: React.FC = () => {
 };
 
 export default App;
+

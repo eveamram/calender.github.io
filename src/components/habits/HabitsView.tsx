@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useStore, getTodayDateString } from '../../context/StoreContext';
 import { HabitItem } from '../../types';
-import { Plus, Check, Sparkles, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Check, Sparkles, Trash2, Calendar as CalendarIcon, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 interface HabitsViewProps {
@@ -19,8 +19,16 @@ const WEEK_DAYS = [
 ];
 
 export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
-  const { habits, habitCompletions, toggleHabitCompletion, deleteHabit, filterByProfile, activeProfile, profileColors } =
-    useStore();
+  const {
+    habits,
+    habitCompletions,
+    toggleHabitCompletion,
+    deleteHabit,
+    clearWeeklyHabitProgress,
+    filterByProfile,
+    activeProfile,
+    profileColors,
+  } = useStore();
   const todayStr = getTodayDateString();
 
   const [weekOffset, setWeekOffset] = useState<number>(0);
@@ -68,21 +76,40 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
     await toggleHabitCompletion(habit.id, dateStr);
   };
 
+  const handleResetThisWeek = async () => {
+    const activeDates = currentWeekDates.map((w) => w.dateStr);
+    if (window.confirm("Reset habit checkmarks for this week? (Habit templates will remain unchanged)")) {
+      await clearWeeklyHabitProgress(activeDates);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto px-4 md:px-8 py-6">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-200/80 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200/80 pb-4 gap-3">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">Daily & Weekly Habits</h1>
-          <p className="text-xs text-slate-500 font-medium">Track your custom habit schedule across the full 7-day week</p>
+          <p className="text-xs text-slate-500 font-medium">Track your habits consistently every week. Habits auto-reset checkmarks weekly.</p>
         </div>
-        <button
-          onClick={onOpenAddModal}
-          className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-3.5 py-2 rounded-xl text-xs shadow-xs transition-all cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add Habit</span>
-        </button>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleResetThisWeek}
+            className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-3 py-2 rounded-xl text-xs transition-all cursor-pointer border border-slate-200/60"
+            title="Reset checkmarks for active week"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-blue-600" />
+            <span>Reset This Week</span>
+          </button>
+
+          <button
+            onClick={onOpenAddModal}
+            className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-3.5 py-2 rounded-xl text-xs shadow-xs transition-all cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Habit</span>
+          </button>
+        </div>
       </div>
 
       {/* Week Navigation Row */}
@@ -254,3 +281,4 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
     </div>
   );
 };
+
