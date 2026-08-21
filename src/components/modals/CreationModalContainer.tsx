@@ -828,6 +828,29 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             </div>
           </div>
 
+          <div>
+            <label className="block text-xs font-extrabold text-slate-800 mb-1.5">Who is Reading?</label>
+            <div className="flex gap-2">
+              {(['Eve', 'Abbie', 'Both'] as ProfilePersona[]).map((p) => {
+                const pColor = profileColors[p] || (p === 'Eve' ? '#2563eb' : p === 'Abbie' ? '#ec4899' : '#059669');
+                const isSelected = bokProfile === p;
+                return (
+                  <button
+                    type="button"
+                    key={p}
+                    onClick={() => setBokProfile(p)}
+                    className={`flex-1 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                      isSelected ? 'text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                    style={isSelected ? { backgroundColor: pColor } : undefined}
+                  >
+                    {p === 'Both' ? 'Both (Eve & Abbie)' : p}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <button
             type="submit"
             className="w-full bg-slate-900 hover:bg-slate-800 text-white font-extrabold py-3.5 rounded-2xl text-sm shadow-md transition-all mt-4 cursor-pointer"

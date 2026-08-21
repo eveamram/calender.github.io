@@ -284,14 +284,12 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
                     </div>
 
                     <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                      {activeProfile === 'Both' && (
-                        <span
-                          className="text-[10px] font-extrabold text-white px-2 py-0.5 rounded-md shadow-2xs"
-                          style={{ backgroundColor: badgeColor }}
-                        >
-                          {ownerName}
-                        </span>
-                      )}
+                      <span
+                        className="text-[10px] font-extrabold text-white px-2 py-0.5 rounded-md shadow-2xs"
+                        style={{ backgroundColor: badgeColor }}
+                      >
+                        {ownerName === 'Both' ? 'Both (Eve & Abbie)' : ownerName}
+                      </span>
                     </div>
                   </div>
                 </div>
