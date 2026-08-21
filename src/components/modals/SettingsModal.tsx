@@ -46,12 +46,12 @@ export const SettingsModal: React.FC = () => {
   const profiles: ProfilePersona[] = ['Eve', 'Abbie', 'Both'];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-50 flex flex-col justify-end sm:justify-center sm:items-center p-0 sm:p-4 bg-slate-900/50 backdrop-blur-xs animate-fade-in">
       <div
         className="fixed inset-0"
         onClick={() => setIsSettingsOpen(false)}
       />
-      <div className="relative bg-white rounded-3xl p-6 border border-slate-200 shadow-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto space-y-6 animate-slide-up">
+      <div className="relative bg-white rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-2xl max-w-xl w-full max-h-[85vh] overflow-y-auto space-y-6 animate-slide-up pb-20 sm:pb-6 z-10">
         
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-4 sticky top-0 bg-white z-10">

@@ -27,8 +27,8 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
       {/* Backdrop overlay */}
       <div className="fixed inset-0" onClick={onClose} />
       
-      {/* Modal Dialog Content - Positioned comfortably lower on mobile */}
-      <div className="relative bg-white rounded-t-3xl sm:rounded-3xl max-h-[85vh] overflow-y-auto shadow-2xl border border-slate-200/80 animate-slide-up w-full max-w-lg mx-auto p-5 sm:p-6 pb-20 sm:pb-6 z-10 my-auto sm:my-0">
+      {/* Modal Dialog Content - Always docked at bottom of screen on phone */}
+      <div className="relative bg-white rounded-t-3xl sm:rounded-3xl max-h-[85vh] overflow-y-auto shadow-2xl border border-slate-200/80 animate-slide-up w-full max-w-lg mx-auto p-5 sm:p-6 pb-20 sm:pb-6 z-10">
         {/* Mobile Handle Indicator */}
         <div className="w-12 h-1.5 bg-slate-300/80 rounded-full mx-auto mb-4 sm:hidden cursor-pointer" onClick={onClose} />
 
