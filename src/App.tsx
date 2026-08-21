@@ -12,7 +12,7 @@ import { GroceryView } from './components/grocery/GroceryView';
 import { MealsView } from './components/meals/MealsView';
 import { BooksView } from './components/books/BooksView';
 import { CreationModalContainer } from './components/modals/CreationModalContainer';
-import { MealType } from './types';
+import { MealType, CalendarEvent } from './types';
 
 const MainAppContent: React.FC = () => {
   const { activeTab } = useStore();
@@ -22,10 +22,12 @@ const MainAppContent: React.FC = () => {
   >(null);
 
   const [initialModalDate, setInitialModalDate] = useState<string | undefined>(undefined);
+  const [eventToEdit, setEventToEdit] = useState<CalendarEvent | null>(null);
   const [initialMealDay, setInitialMealDay] = useState<number | undefined>(undefined);
   const [initialMealType, setInitialMealType] = useState<MealType | undefined>(undefined);
 
   const handleOpenAddForTab = () => {
+    setEventToEdit(null);
     switch (activeTab) {
       case 'calendar':
         setActiveModal('event');
@@ -55,15 +57,16 @@ const MainAppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans pb-safe-bottom">
-      {/* Header with Centered Top Add Button */}
+      {/* Header with Centered Top Add Button & Settings */}
       <Header onOpenAddModal={handleOpenAddForTab} />
 
       {/* Main Content Area */}
       <main className="flex-1">
         {activeTab === 'calendar' && (
           <CalendarView
-            onOpenAddModal={(date) => {
+            onOpenAddModal={(date, evtToEdit) => {
               setInitialModalDate(date);
+              setEventToEdit(evtToEdit || null);
               setActiveModal('event');
             }}
           />
@@ -98,16 +101,18 @@ const MainAppContent: React.FC = () => {
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav />
 
-      {/* Creation Modal Container */}
+      {/* Creation / Edit Modal Container */}
       <CreationModalContainer
         modalType={activeModal}
         onClose={() => {
           setActiveModal(null);
           setInitialModalDate(undefined);
+          setEventToEdit(null);
           setInitialMealDay(undefined);
           setInitialMealType(undefined);
         }}
         initialDate={initialModalDate}
+        eventToEdit={eventToEdit}
         initialMealDay={initialMealDay}
         initialMealType={initialMealType}
       />

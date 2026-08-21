@@ -14,10 +14,11 @@ import {
   X,
   RotateCcw,
   Heart,
+  Edit2,
 } from 'lucide-react';
 
 interface CalendarViewProps {
-  onOpenAddModal: (initialDate?: string) => void;
+  onOpenAddModal: (initialDate?: string, eventToEdit?: CalendarEvent) => void;
 }
 
 const COLOR_PALETTE = [
@@ -39,7 +40,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
     events,
     selectedDate,
     setSelectedDate,
-    updateEvent,
     toggleTaskComplete,
     tasks,
     filterByProfile,
@@ -55,9 +55,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
 
   // Modal State for Date Color Chooser
   const [colorModalTargetDate, setColorModalTargetDate] = useState<string | null>(null);
-
-  // Modal State for Event Color Chooser
-  const [colorModalTargetEvent, setColorModalTargetEvent] = useState<CalendarEvent | null>(null);
 
   const year = currentMonthDate.getFullYear();
   const month = currentMonthDate.getMonth();
@@ -134,7 +131,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
     setSelectedDate(todayStr);
   };
 
-  const handleDayDoubleClick = (dateStr: string) => {
+  // Double Click Handler specifically for Desktop
+  const handleDesktopDayDoubleClick = (dateStr: string) => {
     setSelectedDate(dateStr);
     onOpenAddModal(dateStr);
   };
@@ -165,7 +163,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
         <div className="flex items-center gap-2">
           <Plus className="w-4 h-4 text-blue-600 shrink-0" />
           <span>
-            <strong>Pro Tip:</strong> Double-click any calendar day cell to instantly add an event to that date!
+            <strong>Desktop Shortcut:</strong> Double-click any calendar day cell to instantly open the event form pre-filled with that date!
           </span>
         </div>
 
@@ -190,7 +188,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
         </div>
       </div>
 
-      {/* MOBILE LAYOUT */}
+      {/* MOBILE LAYOUT (Single Tap Navigation) */}
       <div className="lg:hidden space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -258,13 +256,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                 return (
                   <div
                     key={evt.id}
-                    onDoubleClick={() => onOpenAddModal(evt.event_date)}
+                    onClick={() => onOpenAddModal(evt.event_date, evt)}
                     className="flex items-start gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50/60 hover:bg-slate-100/80 transition-all cursor-pointer"
-                    title="Double-click to add event"
                   >
                     {task ? (
                       <button
-                        onClick={() => toggleTaskComplete(task.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleTaskComplete(task.id);
+                        }}
                         className="mt-0.5 text-slate-400 hover:text-blue-600"
                       >
                         {task.is_completed ? (
@@ -332,7 +332,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
           )}
         </div>
 
-        {/* Mobile Compact Month Grid */}
+        {/* Mobile Month Grid */}
         <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-900">{monthName}</h3>
@@ -374,10 +374,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                 <button
                   key={dayObj.dateStr}
                   onClick={() => setSelectedDate(dayObj.dateStr)}
-                  onDoubleClick={(e) => {
-                    e.stopPropagation();
-                    handleDayDoubleClick(dayObj.dateStr);
-                  }}
                   style={dayColor ? { backgroundColor: `${dayColor}22`, borderColor: dayColor } : undefined}
                   className={`flex flex-col items-center justify-center py-2 rounded-xl text-xs transition-all relative border border-transparent ${
                     !dayObj.isCurrentMonth
@@ -409,7 +405,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
         </div>
       </div>
 
-      {/* DESKTOP LAYOUT */}
+      {/* DESKTOP LAYOUT (Full Grid + Double Click to Add Event) */}
       <div className="hidden lg:grid grid-cols-12 gap-8 items-start">
         <div className="col-span-8 bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs space-y-4">
           <div className="flex items-center justify-between pb-4 border-b border-slate-100">
@@ -457,6 +453,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
             <span>Sun</span>
           </div>
 
+          {/* Desktop Grid with Interactive Hover & Double-Click */}
           <div className="grid grid-cols-7 gap-2">
             {calendarDays.map((dayObj) => {
               const isSelected = dayObj.dateStr === selectedDate;
@@ -470,23 +467,23 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                   onClick={() => setSelectedDate(dayObj.dateStr)}
                   onDoubleClick={(e) => {
                     e.stopPropagation();
-                    handleDayDoubleClick(dayObj.dateStr);
+                    handleDesktopDayDoubleClick(dayObj.dateStr);
                   }}
                   style={
                     dayColor
                       ? { backgroundColor: `${dayColor}18`, borderColor: dayColor }
                       : undefined
                   }
-                  className={`min-h-[105px] p-2 rounded-xl border text-left cursor-pointer transition-all flex flex-col justify-between group ${
+                  className={`min-h-[105px] p-2.5 rounded-xl border text-left cursor-pointer transition-all flex flex-col justify-between group ${
                     !dayObj.isCurrentMonth
                       ? 'bg-slate-50/40 border-slate-100 text-slate-300'
                       : isSelected
-                      ? 'bg-blue-50/50 border-blue-400 shadow-xs'
+                      ? 'bg-blue-50/60 border-blue-400 shadow-xs ring-1 ring-blue-300'
                       : isToday
-                      ? 'bg-white border-blue-300 ring-2 ring-blue-100'
-                      : 'bg-white border-slate-200/80 hover:border-slate-300'
+                      ? 'bg-white border-blue-300 ring-2 ring-blue-100 hover:border-blue-400'
+                      : 'bg-white border-slate-200/80 hover:border-blue-300 hover:shadow-xs hover:scale-[1.01]'
                   }`}
-                  title="Double-click to add event to this date"
+                  title="Single-click to view schedule • Double-click to add event"
                 >
                   <div className="flex items-center justify-between">
                     <span
@@ -534,12 +531,17 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                       return (
                         <div
                           key={e.id}
+                          onClick={(evt) => {
+                            evt.stopPropagation();
+                            setSelectedDate(e.event_date);
+                          }}
                           onDoubleClick={(evt) => {
                             evt.stopPropagation();
-                            onOpenAddModal(e.event_date);
+                            onOpenAddModal(e.event_date, e);
                           }}
-                          className="text-[11px] font-semibold px-2 py-0.5 rounded-md truncate text-slate-800 flex items-center justify-between hover:scale-[1.02] transition-transform"
+                          className="text-[11px] font-semibold px-2 py-0.5 rounded-md truncate text-slate-800 flex items-center justify-between hover:scale-[1.02] transition-transform cursor-pointer"
                           style={{ backgroundColor: `${e.color || meta.color}18` }}
+                          title="Double-click to edit event"
                         >
                           <span className="truncate">
                             <span
@@ -620,13 +622,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                 return (
                   <div
                     key={evt.id}
-                    onDoubleClick={() => onOpenAddModal(evt.event_date)}
+                    onDoubleClick={() => onOpenAddModal(evt.event_date, evt)}
                     className="flex items-start gap-3 p-3.5 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-slate-100/80 transition-all group cursor-pointer"
-                    title="Double-click to add event"
+                    title="Double-click to edit event"
                   >
                     {task ? (
                       <button
-                        onClick={() => toggleTaskComplete(task.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleTaskComplete(task.id);
+                        }}
                         className="mt-0.5 text-slate-400 hover:text-blue-600"
                       >
                         {task.is_completed ? (
@@ -661,11 +666,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                             </span>
                           )}
                           <button
-                            onClick={() => setColorModalTargetEvent(evt)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onOpenAddModal(evt.event_date, evt);
+                            }}
                             className="p-1 text-slate-400 hover:text-blue-600 transition-colors"
-                            title="Change color"
+                            title="Edit event"
                           >
-                            <Palette className="w-3 h-3" />
+                            <Edit2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </div>
@@ -724,54 +732,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                     setDateColor(colorModalTargetDate, p.hex);
                     setColorModalTargetDate(null);
                   }}
-                  className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-slate-200 hover:border-slate-400 transition-all gap-1.5 text-xs font-semibold"
+                  className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-slate-200 hover:border-slate-400 transition-all gap-1.5 text-xs font-semibold cursor-pointer"
                 >
                   <div
                     className="w-6 h-6 rounded-full border border-slate-300/50 shadow-xs"
                     style={{ backgroundColor: p.hex || '#ffffff' }}
-                  />
-                  <span className="text-[11px] text-slate-700">{p.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* EVENT COLOR PICKER MODAL */}
-      {colorModalTargetEvent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-2xl max-w-sm w-full space-y-4 animate-slide-up">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <Palette className="w-5 h-5 text-blue-600" />
-                <h3 className="text-base font-bold text-slate-900">
-                  Event Color: {colorModalTargetEvent.title}
-                </h3>
-              </div>
-              <button
-                onClick={() => setColorModalTargetEvent(null)}
-                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-500 font-medium">Choose a color for this calendar event:</p>
-
-            <div className="grid grid-cols-4 gap-2.5 pt-1">
-              {COLOR_PALETTE.slice(1).map((p) => (
-                <button
-                  key={p.label}
-                  onClick={async () => {
-                    await updateEvent(colorModalTargetEvent.id, { color: p.hex });
-                    setColorModalTargetEvent(null);
-                  }}
-                  className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-slate-200 hover:border-slate-400 transition-all gap-1.5 text-xs font-semibold"
-                >
-                  <div
-                    className="w-6 h-6 rounded-full border border-slate-300/50 shadow-xs"
-                    style={{ backgroundColor: p.hex }}
                   />
                   <span className="text-[11px] text-slate-700">{p.label}</span>
                 </button>

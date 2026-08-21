@@ -1,41 +1,50 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore, getTodayDateString } from '../../context/StoreContext';
 import { BottomSheet } from '../ui/BottomSheet';
-import { EventType, ProfilePersona, MealType, BookStatus } from '../../types';
+import { EventType, ProfilePersona, MealType, BookStatus, CalendarEvent } from '../../types';
+import { ChevronDown, ChevronUp, Palette } from 'lucide-react';
 
 interface CreationModalContainerProps {
   modalType: 'event' | 'class' | 'task' | 'habit' | 'meal' | 'book' | null;
   onClose: () => void;
   initialDate?: string;
+  eventToEdit?: CalendarEvent | null;
   initialMealDay?: number;
   initialMealType?: MealType;
 }
+
+const EVENT_COLOR_OPTIONS = [
+  { label: 'Default', hex: '' },
+  { label: 'Blue', hex: '#2563eb' },
+  { label: 'Purple', hex: '#7c3aed' },
+  { label: 'Emerald', hex: '#059669' },
+  { label: 'Red', hex: '#dc2626' },
+  { label: 'Amber', hex: '#d97706' },
+  { label: 'Pink', hex: '#db2777' },
+  { label: 'Sky', hex: '#0284c7' },
+];
 
 export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   modalType,
   onClose,
   initialDate,
+  eventToEdit,
   initialMealDay,
   initialMealType,
 }) => {
   const {
     addEvent,
+    updateEvent,
     addClass,
     addTask,
     addHabit,
     addMealItem,
     addBookItem,
     activeProfile,
+    profileColors,
   } = useStore();
 
   const defaultProfile: ProfilePersona = activeProfile === 'Both' ? 'Eve' : activeProfile;
-
-  // Sync initialDate prop into state when passed
-  React.useEffect(() => {
-    if (initialDate) {
-      setEvtDate(initialDate);
-    }
-  }, [initialDate]);
 
   // Event Form State
   const [evtTitle, setEvtTitle] = useState('');
@@ -44,7 +53,28 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   const [evtStartTime, setEvtStartTime] = useState('09:00');
   const [evtEndTime, setEvtEndTime] = useState('10:00');
   const [evtLocation, setEvtLocation] = useState('');
+  const [evtColor, setEvtColor] = useState('');
   const [evtProfile, setEvtProfile] = useState<ProfilePersona>(defaultProfile);
+  const [showMoreOptions, setShowMoreOptions] = useState(false);
+
+  // Sync initial values / eventToEdit into state
+  useEffect(() => {
+    if (eventToEdit) {
+      setEvtTitle(eventToEdit.title);
+      setEvtType(eventToEdit.event_type as EventType);
+      setEvtDate(eventToEdit.event_date);
+      setEvtStartTime(eventToEdit.start_time || '09:00');
+      setEvtEndTime(eventToEdit.end_time || '10:00');
+      setEvtLocation(eventToEdit.location || '');
+      setEvtColor(eventToEdit.color || '');
+      setEvtProfile(eventToEdit.profile || defaultProfile);
+    } else if (initialDate) {
+      setEvtDate(initialDate);
+      setEvtTitle('');
+      setEvtLocation('');
+      setEvtColor('');
+    }
+  }, [initialDate, eventToEdit, defaultProfile]);
 
   // Class Form State
   const [clsName, setClsName] = useState('');
@@ -86,18 +116,41 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
   if (!modalType) return null;
 
+  const formattedDateLabel = (() => {
+    if (!evtDate) return '';
+    const parts = evtDate.split('-');
+    if (parts.length !== 3) return evtDate;
+    const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    return d.toLocaleDateString('default', { month: 'long', day: 'numeric', year: 'numeric' });
+  })();
+
   const handleEvtSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!evtTitle.trim()) return;
-    await addEvent({
-      title: evtTitle.trim(),
-      event_type: evtType,
-      event_date: evtDate,
-      start_time: evtStartTime,
-      end_time: evtEndTime,
-      location: evtLocation.trim() || undefined,
-      profile: evtProfile,
-    });
+
+    if (eventToEdit) {
+      await updateEvent(eventToEdit.id, {
+        title: evtTitle.trim(),
+        event_type: evtType,
+        event_date: evtDate,
+        start_time: evtStartTime,
+        end_time: evtEndTime,
+        location: evtLocation.trim() || undefined,
+        color: evtColor || undefined,
+        profile: evtProfile,
+      });
+    } else {
+      await addEvent({
+        title: evtTitle.trim(),
+        event_type: evtType,
+        event_date: evtDate,
+        start_time: evtStartTime,
+        end_time: evtEndTime,
+        location: evtLocation.trim() || undefined,
+        color: evtColor || undefined,
+        profile: evtProfile,
+      });
+    }
     onClose();
   };
 
@@ -184,55 +237,35 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   };
 
   return (
-    <BottomSheet isOpen={Boolean(modalType)} onClose={onClose} title={`Create New ${modalType}`}>
-      {/* Event Form */}
+    <BottomSheet
+      isOpen={Boolean(modalType)}
+      onClose={onClose}
+      title={eventToEdit ? 'Edit Event' : `Create New ${modalType}`}
+    >
+      {/* Streamlined Event Form */}
       {modalType === 'event' && (
         <form onSubmit={handleEvtSubmit} className="space-y-4">
+          {/* Pre-filled Date Banner */}
+          <div className="bg-blue-50/80 border border-blue-200/60 rounded-xl p-3 flex items-center justify-between text-xs">
+            <span className="font-medium text-slate-500">Date:</span>
+            <span className="font-bold text-blue-700">{formattedDateLabel}</span>
+          </div>
+
+          {/* 1. Event Name */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Event Title</label>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Event Name</label>
             <input
               type="text"
               required
+              autoFocus
               value={evtTitle}
               onChange={(e) => setEvtTitle(e.target.value)}
-              placeholder="e.g. Study Group Session"
+              placeholder="e.g. Coffee with Sarah"
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Category</label>
-              <select
-                value={evtType}
-                onChange={(e) => setEvtType(e.target.value as EventType)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900"
-              >
-                <option value="personal">Personal</option>
-                <option value="class">Class</option>
-                <option value="exam">Exam</option>
-                <option value="assignment">Assignment</option>
-                <option value="appointment">Appointment</option>
-                <option value="birthday">Birthday</option>
-                <option value="trip">Trip</option>
-                <option value="meeting">Meeting</option>
-                <option value="work">Work</option>
-                <option value="study">Study</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Date</label>
-              <input
-                type="date"
-                required
-                value={evtDate}
-                onChange={(e) => setEvtDate(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900"
-              />
-            </div>
-          </div>
-
+          {/* 2. Start Time & End Time */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">Start Time</label>
@@ -254,42 +287,127 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             </div>
           </div>
 
+          {/* 3. Event Color Palette Swatches */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Location / Room (Optional)</label>
-            <input
-              type="text"
-              value={evtLocation}
-              onChange={(e) => setEvtLocation(e.target.value)}
-              placeholder="e.g. Science Library Room 102"
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-slate-900"
-            />
+            <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1">
+              <Palette className="w-3.5 h-3.5 text-blue-600" />
+              <span>Event Color</span>
+            </label>
+            <div className="flex items-center gap-2 overflow-x-auto py-1">
+              {EVENT_COLOR_OPTIONS.map((c) => {
+                const isSelected = evtColor === c.hex;
+                return (
+                  <button
+                    type="button"
+                    key={c.label}
+                    onClick={() => setEvtColor(c.hex)}
+                    className={`w-7 h-7 rounded-full border transition-all flex items-center justify-center shrink-0 cursor-pointer ${
+                      isSelected
+                        ? 'ring-2 ring-blue-500 ring-offset-2 scale-110'
+                        : 'border-slate-300 hover:scale-105'
+                    }`}
+                    style={{ backgroundColor: c.hex || '#ffffff' }}
+                    title={c.label}
+                  >
+                    {isSelected && (
+                      <div className={`w-2 h-2 rounded-full ${c.hex ? 'bg-white' : 'bg-blue-600'}`} />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
+          {/* 4. Profile Owner */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">Profile Owner</label>
             <div className="flex gap-2">
-              {(['Eve', 'Abbie', 'Both'] as ProfilePersona[]).map((p) => (
-                <button
-                  type="button"
-                  key={p}
-                  onClick={() => setEvtProfile(p)}
-                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
-                    evtProfile === p
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  {p}
-                </button>
-              ))}
+              {(['Eve', 'Abbie', 'Both'] as ProfilePersona[]).map((p) => {
+                const pColor = profileColors[p] || (p === 'Eve' ? '#2563eb' : p === 'Abbie' ? '#ec4899' : '#059669');
+                const isSelected = evtProfile === p;
+
+                return (
+                  <button
+                    type="button"
+                    key={p}
+                    onClick={() => setEvtProfile(p)}
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      isSelected
+                        ? 'text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                    style={isSelected ? { backgroundColor: pColor } : undefined}
+                  >
+                    {p}
+                  </button>
+                );
+              })}
             </div>
+          </div>
+
+          {/* 5. More Options Collapsible */}
+          <div className="border-t border-slate-100 pt-2">
+            <button
+              type="button"
+              onClick={() => setShowMoreOptions(!showMoreOptions)}
+              className="flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-blue-600 py-1"
+            >
+              <span>{showMoreOptions ? 'Hide More Options' : 'More Options'}</span>
+              {showMoreOptions ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+
+            {showMoreOptions && (
+              <div className="space-y-3 pt-2 animate-fade-in">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Category</label>
+                  <select
+                    value={evtType}
+                    onChange={(e) => setEvtType(e.target.value as EventType)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900"
+                  >
+                    <option value="personal">Personal</option>
+                    <option value="class">Class</option>
+                    <option value="exam">Exam</option>
+                    <option value="assignment">Assignment</option>
+                    <option value="appointment">Appointment</option>
+                    <option value="birthday">Birthday</option>
+                    <option value="trip">Trip</option>
+                    <option value="meeting">Meeting</option>
+                    <option value="work">Work</option>
+                    <option value="study">Study</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Location / Room</label>
+                  <input
+                    type="text"
+                    value={evtLocation}
+                    onChange={(e) => setEvtLocation(e.target.value)}
+                    placeholder="e.g. Starbucks, Main St."
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-slate-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={evtDate}
+                    onChange={(e) => setEvtDate(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm shadow-md shadow-blue-600/20 transition-all mt-4"
+            className="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-bold py-3 rounded-xl text-sm shadow-md shadow-blue-600/20 transition-all mt-4 cursor-pointer"
           >
-            Save Event
+            {eventToEdit ? 'Save Changes' : 'Create Event'}
           </button>
         </form>
       )}
