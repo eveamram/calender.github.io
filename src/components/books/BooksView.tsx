@@ -119,45 +119,46 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto px-4 md:px-8 py-6">
-      {/* Header Banner */}
-      <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative overflow-hidden">
+      {/* Colorful Header Banner */}
+      <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 rounded-3xl p-6 text-white shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative overflow-hidden">
+        <div className="absolute top-0 right-0 -mt-8 -mr-8 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
         <div className="space-y-2 z-10">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="bg-purple-50 text-purple-700 border border-purple-100 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-purple-600" /> Book Sanctuary 📚
+            <span className="bg-white/20 backdrop-blur-md text-white border border-white/30 px-3 py-1 rounded-full text-xs font-extrabold flex items-center gap-1.5 shadow-xs">
+              <Sparkles className="w-3.5 h-3.5 text-yellow-300 fill-yellow-300" /> Book Sanctuary 📚
             </span>
-            <span className="bg-amber-50 text-amber-700 border border-amber-100 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5">
-              <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-400" /> {totalPagesRead} Pages Read
+            <span className="bg-white/20 backdrop-blur-md text-white border border-white/30 px-3 py-1 rounded-full text-xs font-extrabold flex items-center gap-1.5 shadow-xs">
+              <Flame className="w-3.5 h-3.5 text-orange-300 fill-orange-300" /> {totalPagesRead} Pages Read
             </span>
-            <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5">
-              <CheckCircle className="w-3.5 h-3.5 text-emerald-600" /> {completedCount} Finished
+            <span className="bg-white/20 backdrop-blur-md text-white border border-white/30 px-3 py-1 rounded-full text-xs font-extrabold flex items-center gap-1.5 shadow-xs">
+              <CheckCircle className="w-3.5 h-3.5 text-emerald-300" /> {completedCount} Finished
             </span>
           </div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Your Reading Shelf</h1>
-          <p className="text-xs text-slate-500 font-medium">“A reader lives a thousand lives before he dies.” — George R.R. Martin</p>
+          <h1 className="text-3xl font-black tracking-tight drop-shadow-xs">Your Reading Shelf</h1>
+          <p className="text-xs text-purple-100 font-semibold opacity-95">“A reader lives a thousand lives before he dies.” — George R.R. Martin</p>
         </div>
 
         <button
           onClick={onOpenAddBookModal}
-          className="z-10 flex items-center gap-2 bg-slate-900 text-white hover:bg-slate-800 active:scale-95 font-bold px-5 py-2.5 rounded-2xl text-xs shadow-xs transition-all cursor-pointer"
+          className="z-10 flex items-center gap-2 bg-white text-purple-700 hover:bg-purple-50 active:scale-95 font-extrabold px-5 py-2.5 rounded-2xl text-xs shadow-md transition-all cursor-pointer"
         >
           <Plus className="w-4 h-4 stroke-[3]" />
           <span>Add New Book</span>
         </button>
       </div>
 
-      {/* Filter & Search Bar */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs space-y-3">
+      {/* Colorful Filter & Search Bar */}
+      <div className="bg-gradient-to-r from-purple-50/80 via-pink-50/80 to-blue-50/80 rounded-2xl p-4 border border-purple-100 shadow-xs space-y-3">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
           {/* Search Input */}
           <div className="relative w-full sm:w-72">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-purple-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Search title, author, or genre..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+              className="w-full pl-9 pr-3 py-2 rounded-xl bg-white border border-purple-200/80 text-xs font-medium focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all shadow-xs"
             />
             {searchQuery && (
               <button
@@ -171,7 +172,7 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
         </div>
 
         {/* Shelf Tabs */}
-        <div className="flex items-center gap-2 border-t border-slate-100 pt-3 overflow-x-auto">
+        <div className="flex items-center gap-2 border-t border-purple-100/60 pt-3 overflow-x-auto">
           {tabs.map((tab) => {
             const isActive = activeStatusTab === tab.status;
             return (
@@ -180,15 +181,15 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
                 onClick={() => setActiveStatusTab(tab.status)}
                 className={`flex items-center gap-2 py-2 px-3.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
                   isActive
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                    : 'bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200/60 hover:bg-slate-100'
+                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-500/20'
+                    : 'bg-white/90 text-purple-900 hover:bg-white border border-purple-100 shadow-2xs'
                 }`}
               >
                 <span>{tab.icon}</span>
                 <span>{tab.label}</span>
                 <span
                   className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                    isActive ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                    isActive ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-800'
                   }`}
                 >
                   {tab.count}
@@ -201,13 +202,13 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
 
       {/* Books Display Grid */}
       {filteredBooks.length === 0 ? (
-        <div className="bg-white rounded-3xl p-12 border border-slate-200/80 text-center space-y-3 shadow-xs">
-          <BookOpen className="w-12 h-12 mx-auto text-slate-300 stroke-[1.5]" />
-          <p className="text-base font-bold text-slate-700">No books found</p>
-          <p className="text-xs text-slate-400">Add a new book or change your search/filter parameters.</p>
+        <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-3xl p-12 border border-purple-100 text-center space-y-3 shadow-xs">
+          <BookOpen className="w-12 h-12 mx-auto text-purple-300 stroke-[1.5]" />
+          <p className="text-base font-bold text-purple-900">No books found</p>
+          <p className="text-xs text-purple-500 font-medium">Add a new book or change your search/filter parameters.</p>
           <button
             onClick={onOpenAddBookModal}
-            className="text-xs font-black text-blue-600 hover:underline pt-2 cursor-pointer"
+            className="text-xs font-black text-purple-700 hover:underline pt-2 cursor-pointer"
           >
             + Add a book to your shelf
           </button>
@@ -223,24 +224,24 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
             const badgeColor = profileColors[ownerName] || '#2563eb';
             const isEditingThisPage = editingPageBookId === book.id;
 
-            const BOOK_GRADIENTS = [
-              'from-rose-500 via-pink-500 to-rose-600 border-rose-300/50',
-              'from-blue-500 via-indigo-500 to-violet-600 border-blue-300/50',
-              'from-emerald-500 via-teal-500 to-cyan-600 border-emerald-300/50',
-              'from-purple-500 via-fuchsia-500 to-pink-600 border-purple-300/50',
-              'from-amber-500 via-orange-500 to-rose-500 border-amber-300/50',
-              'from-cyan-500 via-sky-500 to-blue-600 border-cyan-300/50',
+            const BOOK_PALETTES = [
+              { cover: 'from-rose-500 via-pink-500 to-rose-600 border-rose-300/50', card: 'bg-gradient-to-br from-rose-50/70 via-pink-50/40 to-white border-rose-200/80' },
+              { cover: 'from-blue-500 via-indigo-500 to-violet-600 border-blue-300/50', card: 'bg-gradient-to-br from-blue-50/70 via-indigo-50/40 to-white border-blue-200/80' },
+              { cover: 'from-emerald-500 via-teal-500 to-cyan-600 border-emerald-300/50', card: 'bg-gradient-to-br from-emerald-50/70 via-teal-50/40 to-white border-emerald-200/80' },
+              { cover: 'from-purple-500 via-fuchsia-500 to-pink-600 border-purple-300/50', card: 'bg-gradient-to-br from-purple-50/70 via-fuchsia-50/40 to-white border-purple-200/80' },
+              { cover: 'from-amber-500 via-orange-500 to-rose-500 border-amber-300/50', card: 'bg-gradient-to-br from-amber-50/70 via-orange-50/40 to-white border-amber-200/80' },
+              { cover: 'from-cyan-500 via-sky-500 to-blue-600 border-cyan-300/50', card: 'bg-gradient-to-br from-cyan-50/70 via-sky-50/40 to-white border-cyan-200/80' },
             ];
-            const coverGradient = BOOK_GRADIENTS[idx % BOOK_GRADIENTS.length];
+            const palette = BOOK_PALETTES[idx % BOOK_PALETTES.length];
 
             return (
               <div
                 key={book.id}
-                className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-4 group relative"
+                className={`${palette.card} rounded-3xl p-5 border shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-4 group relative`}
               >
                 {/* Book Header Card */}
                 <div className="flex items-start gap-4">
-                  <div className={`w-20 h-28 rounded-2xl bg-gradient-to-br ${coverGradient} flex flex-col items-center justify-between p-2.5 text-white shadow-md shrink-0 border-r-4 transform group-hover:scale-105 transition-transform duration-300 relative overflow-hidden`}>
+                  <div className={`w-20 h-28 rounded-2xl bg-gradient-to-br ${palette.cover} flex flex-col items-center justify-between p-2.5 text-white shadow-md shrink-0 border-r-4 transform group-hover:scale-105 transition-transform duration-300 relative overflow-hidden`}>
                     <div className="absolute top-0 left-0 w-1.5 h-full bg-white/20" />
                     <Bookmark className="w-5 h-5 text-yellow-200 fill-yellow-200/30" />
                     <span className="text-[10px] font-black tracking-widest uppercase text-white/90">BOOK</span>
