@@ -15,9 +15,6 @@ import {
   Palette,
   X,
   Settings,
-  RotateCcw,
-  Heart,
-  ShieldCheck,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -61,18 +58,18 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
   const profiles: ProfilePersona[] = ['Eve', 'Abbie', 'Both'];
 
   return (
-    <header className="sticky top-0 z-30 glass-nav border-b border-slate-200/80 px-3 md:px-8 py-2.5 transition-all">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 md:gap-4">
+    <header className="sticky top-0 z-30 bg-white/85 backdrop-blur-md border-b border-slate-200/60 px-2 sm:px-4 md:px-6 py-2 transition-all max-w-full overflow-x-hidden">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-1.5 sm:gap-2">
         {/* Left: Brand Logo */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <button
             onClick={() => setActiveTab('calendar')}
-            className="flex items-center gap-2 text-left group focus:outline-none shrink-0"
+            className="flex items-center gap-1.5 text-left group focus:outline-none shrink-0"
           >
-            <div className="w-8 h-8 md:w-9 md:h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-purple-600 to-pink-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
-              <Calendar className="w-4 h-4 md:w-5 md:h-5 stroke-[2.5]" />
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform">
+              <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white stroke-[2.5]" />
             </div>
-            <span className="text-lg md:text-xl font-black tracking-tight text-slate-900">
+            <span className="text-base sm:text-lg font-black tracking-tight text-slate-900">
               calender<span className="text-pink-500">.</span>
             </span>
           </button>
@@ -85,7 +82,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
                 <button
                   key={item.tab}
                   onClick={() => setActiveTab(item.tab)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                     isActive
                       ? 'bg-white text-slate-900 shadow-xs'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
@@ -103,64 +100,44 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
         <div className="hidden lg:flex flex-1 justify-center max-w-xs">
           <button
             onClick={onOpenAddModal}
-            className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-95 text-white font-bold px-5 py-2 rounded-xl text-sm shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+            className="flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-bold px-4 py-1.5 rounded-xl text-xs shadow-xs transition-all cursor-pointer"
           >
-            <Plus className="w-4 h-4 stroke-[3]" />
+            <Plus className="w-4 h-4 stroke-[2.5]" />
             <span>Add Item</span>
           </button>
         </div>
 
-        {/* Right: Persona Picker & Settings */}
-        <div className="flex items-center gap-1.5 md:gap-2">
+        {/* Right: Persona Switcher & Settings */}
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           {/* Segmented Persona Switcher */}
-          <div className="flex items-center bg-slate-100/90 p-0.5 md:p-1 rounded-xl border border-slate-200/60">
+          <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200/60">
             {profiles.map((p) => {
               const isSelected = activeProfile === p;
               const currentColor = profileColors[p] || (p === 'Eve' ? '#2563eb' : p === 'Abbie' ? '#ec4899' : '#059669');
 
               return (
-                <div key={p} className="flex items-center">
-                  <button
-                    onClick={() => setActiveProfile(p)}
-                    className={`flex items-center gap-1 px-2 md:px-3 py-1 rounded-lg text-[11px] md:text-xs font-bold transition-all cursor-pointer ${
-                      isSelected ? 'text-white shadow-xs scale-[1.02]' : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                    style={isSelected ? { backgroundColor: currentColor } : undefined}
-                  >
-                    {p === 'Both' ? <Users className="w-3 h-3 md:w-3.5 md:h-3.5" /> : <User className="w-3 h-3 md:w-3.5 md:h-3.5" />}
-                    <span>{p}</span>
-                  </button>
-                  <button
-                    onClick={() => setColorPickerTarget(p)}
-                    className="p-0.5 md:p-1 text-slate-400 hover:text-slate-700 transition-colors"
-                    title={`Change color for ${p}`}
-                  >
-                    <span
-                      className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-full inline-block border border-black/10"
-                      style={{ backgroundColor: currentColor }}
-                    />
-                  </button>
-                </div>
+                <button
+                  key={p}
+                  onClick={() => setActiveProfile(p)}
+                  className={`flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg text-[10px] sm:text-xs font-bold transition-all cursor-pointer ${
+                    isSelected ? 'text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  style={isSelected ? { backgroundColor: currentColor } : undefined}
+                >
+                  {p === 'Both' ? <Users className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> : <User className="w-2.5 h-2.5 sm:w-3 sm:h-3" />}
+                  <span>{p}</span>
+                </button>
               );
             })}
           </div>
 
-          {/* Quick Add Button on Mobile */}
-          <button
-            onClick={onOpenAddModal}
-            className="lg:hidden p-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm active:scale-95 transition-transform"
-            title="Add Item"
-          >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
-          </button>
-
           {/* Settings Button */}
           <button
             onClick={() => setIsSettingsOpen(true)}
-            className="p-2 rounded-xl bg-slate-100/90 hover:bg-slate-200 text-slate-700 border border-slate-200/60 transition-all cursor-pointer"
-            title="App Settings & Resets"
+            className="p-1 sm:p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200/60 transition-all cursor-pointer shrink-0"
+            title="App Settings"
           >
-            <Settings className="w-4 h-4" />
+            <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
         </div>
       </div>

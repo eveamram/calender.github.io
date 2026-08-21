@@ -24,20 +24,12 @@ interface BooksViewProps {
   onOpenAddBookModal: () => void;
 }
 
-const BOOK_SPINE_GRADIENTS = [
-  'from-blue-600 to-indigo-700',
-  'from-purple-600 to-pink-600',
-  'from-amber-500 to-rose-600',
-  'from-emerald-600 to-teal-700',
-  'from-cyan-600 to-blue-600',
-  'from-violet-600 to-purple-700',
-];
+
 
 export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
   const { bookItems, updateBookItem, deleteBookItem, filterByProfile, activeProfile, profileColors } = useStore();
   const [activeStatusTab, setActiveStatusTab] = useState<BookStatus | 'all'>('reading');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedGenre, setSelectedGenre] = useState<string>('all');
   const [editingPageBookId, setEditingPageBookId] = useState<string | null>(null);
   const [customPageInput, setCustomPageInput] = useState<string>('');
 
@@ -45,27 +37,17 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
     return filterByProfile(bookItems);
   }, [bookItems, filterByProfile]);
 
-  const allGenres = useMemo(() => {
-    const genres = new Set<string>();
-    filteredByPersona.forEach((b) => {
-      if (b.genre) genres.add(b.genre);
-    });
-    return Array.from(genres);
-  }, [filteredByPersona]);
-
   const filteredBooks = useMemo(() => {
     return filteredByPersona.filter((b) => {
       const matchesStatus = activeStatusTab === 'all' || b.status === activeStatusTab;
-      const matchesGenre = selectedGenre === 'all' || b.genre === selectedGenre;
       const matchesSearch =
         !searchQuery ||
         b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        b.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (b.genre && b.genre.toLowerCase().includes(searchQuery.toLowerCase()));
+        b.author.toLowerCase().includes(searchQuery.toLowerCase());
 
-      return matchesStatus && matchesGenre && matchesSearch;
+      return matchesStatus && matchesSearch;
     });
-  }, [filteredByPersona, activeStatusTab, selectedGenre, searchQuery]);
+  }, [filteredByPersona, activeStatusTab, searchQuery]);
 
   const totalPagesRead = useMemo(() => {
     return filteredByPersona.reduce((acc, b) => {
@@ -138,29 +120,26 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
   return (
     <div className="space-y-6 max-w-5xl mx-auto px-4 md:px-8 py-6">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-purple-700 via-indigo-700 to-blue-700 rounded-3xl p-6 text-white shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative overflow-hidden">
+      <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative overflow-hidden">
         <div className="space-y-2 z-10">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5" /> Book Oasis 📚
+            <span className="bg-purple-50 text-purple-700 border border-purple-100 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-purple-600" /> Book Sanctuary 📚
             </span>
-            <span className="bg-amber-400/30 text-amber-200 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5">
-              <Flame className="w-3.5 h-3.5 fill-amber-300" /> {totalPagesRead} Pages Logged
+            <span className="bg-amber-50 text-amber-700 border border-amber-100 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5">
+              <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-400" /> {totalPagesRead} Pages Read
             </span>
-            <span className="bg-emerald-400/30 text-emerald-100 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5">
-              <CheckCircle className="w-3.5 h-3.5" /> {completedCount} Finished
-            </span>
-            <span className="bg-blue-400/30 text-blue-100 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5">
-              🎯 2026 Goal: {completedCount} / 12 Books
+            <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5">
+              <CheckCircle className="w-3.5 h-3.5 text-emerald-600" /> {completedCount} Finished
             </span>
           </div>
-          <h1 className="text-3xl font-black tracking-tight">Your Reading Shelf</h1>
-          <p className="text-xs text-purple-100 font-medium">“A reader lives a thousand lives before he dies.” — George R.R. Martin</p>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Your Reading Shelf</h1>
+          <p className="text-xs text-slate-500 font-medium">“A reader lives a thousand lives before he dies.” — George R.R. Martin</p>
         </div>
 
         <button
           onClick={onOpenAddBookModal}
-          className="z-10 flex items-center gap-2 bg-white text-slate-900 hover:bg-slate-100 active:scale-95 font-black px-5 py-2.5 rounded-2xl text-xs shadow-lg transition-all cursor-pointer"
+          className="z-10 flex items-center gap-2 bg-slate-900 text-white hover:bg-slate-800 active:scale-95 font-bold px-5 py-2.5 rounded-2xl text-xs shadow-xs transition-all cursor-pointer"
         >
           <Plus className="w-4 h-4 stroke-[3]" />
           <span>Add New Book</span>
@@ -189,38 +168,6 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
               </button>
             )}
           </div>
-
-          {/* Genre Filter Pills */}
-          {allGenres.length > 0 && (
-            <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto py-1">
-              <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1 shrink-0">
-                <Filter className="w-3 h-3" /> Genre:
-              </span>
-              <button
-                onClick={() => setSelectedGenre('all')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 ${
-                  selectedGenre === 'all'
-                    ? 'bg-slate-900 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                All
-              </button>
-              {allGenres.map((g) => (
-                <button
-                  key={g}
-                  onClick={() => setSelectedGenre(g)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 ${
-                    selectedGenre === g
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  {g}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Shelf Tabs */}
@@ -272,10 +219,19 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
             const progressPercent = hasPages
               ? Math.min(100, Math.round(((book.current_page || 0) / (book.total_pages || 1)) * 100))
               : 0;
-            const gradient = BOOK_SPINE_GRADIENTS[idx % BOOK_SPINE_GRADIENTS.length];
             const ownerName = book.profile || 'Eve';
             const badgeColor = profileColors[ownerName] || '#2563eb';
             const isEditingThisPage = editingPageBookId === book.id;
+
+            const BOOK_GRADIENTS = [
+              'from-rose-500 via-pink-500 to-rose-600 border-rose-300/50',
+              'from-blue-500 via-indigo-500 to-violet-600 border-blue-300/50',
+              'from-emerald-500 via-teal-500 to-cyan-600 border-emerald-300/50',
+              'from-purple-500 via-fuchsia-500 to-pink-600 border-purple-300/50',
+              'from-amber-500 via-orange-500 to-rose-500 border-amber-300/50',
+              'from-cyan-500 via-sky-500 to-blue-600 border-cyan-300/50',
+            ];
+            const coverGradient = BOOK_GRADIENTS[idx % BOOK_GRADIENTS.length];
 
             return (
               <div
@@ -283,36 +239,53 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
                 className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-4 group relative"
               >
                 {/* Book Header Card */}
-                <div className="flex items-start gap-3.5">
-                  <div
-                    className={`w-12 h-16 rounded-xl bg-gradient-to-br ${gradient} flex flex-col items-center justify-between p-2 text-white shadow-md shrink-0`}
-                  >
-                    <Bookmark className="w-4 h-4" />
-                    <span className="text-[9px] font-black tracking-widest uppercase">READ</span>
+                <div className="flex items-start gap-4">
+                  <div className={`w-20 h-28 rounded-2xl bg-gradient-to-br ${coverGradient} flex flex-col items-center justify-between p-2.5 text-white shadow-md shrink-0 border-r-4 transform group-hover:scale-105 transition-transform duration-300 relative overflow-hidden`}>
+                    <div className="absolute top-0 left-0 w-1.5 h-full bg-white/20" />
+                    <Bookmark className="w-5 h-5 text-yellow-200 fill-yellow-200/30" />
+                    <span className="text-[10px] font-black tracking-widest uppercase text-white/90">BOOK</span>
                   </div>
 
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 pt-0.5">
                     <div className="flex items-start justify-between gap-1">
-                      <h3 className="text-base font-black text-slate-900 truncate leading-snug">{book.title}</h3>
+                      <h3 className="text-lg font-black text-slate-900 truncate leading-snug tracking-tight group-hover:text-indigo-600 transition-colors">
+                        {book.title}
+                      </h3>
                       <button
                         onClick={() => deleteBookItem(book.id)}
-                        className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-500 transition-opacity p-1"
+                        className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-500 transition-opacity p-1 cursor-pointer"
                         title="Delete book"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
-                    <p className="text-xs font-semibold text-slate-500 truncate">{book.author}</p>
+                    <p className="text-xs font-bold text-slate-500 truncate mt-0.5">by {book.author}</p>
+
+                    {/* Interactive Rating Stars */}
+                    <div className="flex items-center gap-1 mt-1.5">
+                      {[1, 2, 3, 4, 5].map((starNum) => {
+                        const isFilled = starNum <= (book.rating || 0);
+                        return (
+                          <button
+                            key={starNum}
+                            onClick={() => handleUpdateRating(book, starNum)}
+                            className="p-0.5 text-amber-400 hover:scale-125 transition-transform cursor-pointer"
+                            title={`Rate ${starNum} Stars`}
+                          >
+                            <Star
+                              className={`w-3.5 h-3.5 ${
+                                isFilled ? 'fill-amber-400 text-amber-400' : 'text-slate-300 fill-slate-100'
+                              }`}
+                            />
+                          </button>
+                        );
+                      })}
+                    </div>
 
                     <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                      {book.genre && (
-                        <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
-                          {book.genre}
-                        </span>
-                      )}
                       {activeProfile === 'Both' && (
                         <span
-                          className="text-[10px] font-bold text-white px-2 py-0.5 rounded-md"
+                          className="text-[10px] font-extrabold text-white px-2 py-0.5 rounded-md shadow-2xs"
                           style={{ backgroundColor: badgeColor }}
                         >
                           {ownerName}
@@ -414,18 +387,33 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
                           />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-1.5 pt-1">
+                        <div className="grid grid-cols-3 gap-1.5 pt-1">
                           <button
-                            onClick={() => handleIncrementPage(book, 10)}
-                            className="py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold text-[11px] transition-colors"
+                            onClick={() => {
+                              handleIncrementPage(book, 5);
+                              confetti({ particleCount: 15, spread: 40, origin: { y: 0.8 } });
+                            }}
+                            className="py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold text-[11px] transition-all active:scale-95 cursor-pointer"
                           >
-                            +10 Pages
+                            +5 pgs 📖
                           </button>
                           <button
-                            onClick={() => handleIncrementPage(book, 25)}
-                            className="py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-bold text-[11px] transition-colors"
+                            onClick={() => {
+                              handleIncrementPage(book, 15);
+                              confetti({ particleCount: 25, spread: 60, origin: { y: 0.8 } });
+                            }}
+                            className="py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-extrabold text-[11px] transition-all active:scale-95 cursor-pointer"
                           >
-                            +25 Pages
+                            +15 pgs ⚡
+                          </button>
+                          <button
+                            onClick={() => {
+                              handleIncrementPage(book, 30);
+                              confetti({ particleCount: 40, spread: 80, origin: { y: 0.8 } });
+                            }}
+                            className="py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 font-extrabold text-[11px] transition-all active:scale-95 cursor-pointer"
+                          >
+                            +30 pgs 🚀
                           </button>
                         </div>
                       </>

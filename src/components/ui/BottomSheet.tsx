@@ -23,7 +23,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end sm:justify-center sm:items-center bg-slate-900/40 backdrop-blur-md animate-fade-in p-0 sm:p-4">
+    <div className="fixed inset-0 z-50 flex flex-col justify-end sm:justify-center sm:items-center bg-slate-900/40 animate-fade-in p-0 sm:p-4">
       {/* Backdrop overlay */}
       <div className="fixed inset-0" onClick={onClose} />
       

@@ -14,14 +14,16 @@ interface CreationModalContainerProps {
 }
 
 const EVENT_COLOR_OPTIONS = [
-  { label: 'Default', hex: '' },
-  { label: 'Blue', hex: '#2563eb' },
-  { label: 'Purple', hex: '#7c3aed' },
-  { label: 'Emerald', hex: '#059669' },
-  { label: 'Red', hex: '#dc2626' },
-  { label: 'Amber', hex: '#d97706' },
-  { label: 'Pink', hex: '#db2777' },
-  { label: 'Sky', hex: '#0284c7' },
+  { label: 'Soft Blue', hex: '#3b82f6' },
+  { label: 'Cornflower', hex: '#6366f1' },
+  { label: 'Lavender', hex: '#a855f7' },
+  { label: 'Blush Pink', hex: '#f43f5e' },
+  { label: 'Terracotta', hex: '#c2410c' },
+  { label: 'Peach', hex: '#f97316' },
+  { label: 'Butter Yellow', hex: '#eab308' },
+  { label: 'Sage Green', hex: '#10b981' },
+  { label: 'Teal', hex: '#14b8a6' },
+  { label: 'Muted Gray', hex: '#64748b' },
 ];
 
 export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
@@ -251,14 +253,14 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
       {modalType === 'event' && (
         <form onSubmit={handleEvtSubmit} className="space-y-4">
           {/* Pre-filled Date Banner */}
-          <div className="bg-blue-50/80 border border-blue-200/60 rounded-xl p-3 flex items-center justify-between text-xs">
-            <span className="font-medium text-slate-500">Date:</span>
-            <span className="font-bold text-blue-700">{formattedDateLabel}</span>
+          <div className="bg-slate-100/80 border border-slate-200/70 rounded-2xl p-3 flex items-center justify-between text-xs">
+            <span className="font-semibold text-slate-500">Selected Date:</span>
+            <span className="font-extrabold text-slate-900 bg-white px-2.5 py-1 rounded-xl shadow-2xs">{formattedDateLabel}</span>
           </div>
 
           {/* 1. Event Name */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Event Name</label>
+            <label className="block text-xs font-extrabold text-slate-800 mb-1.5">Event Name</label>
             <input
               type="text"
               required
@@ -266,7 +268,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               value={evtTitle}
               onChange={(e) => setEvtTitle(e.target.value)}
               placeholder="e.g. Coffee with Sarah"
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              className="w-full bg-slate-50/80 border border-slate-200/80 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
             />
           </div>
 
@@ -292,30 +294,23 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             </div>
           </div>
 
-          {/* Category Quick Chips with Emojis */}
+          {/* Category & Type Dropdown */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Category & Type</label>
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+            <label className="block text-xs font-extrabold text-slate-800 mb-1.5">Category & Type</label>
+            <select
+              value={evtType}
+              onChange={(e) => setEvtType(e.target.value as EventType)}
+              className="w-full bg-slate-50/80 border border-slate-200/80 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all cursor-pointer"
+            >
               {(Object.keys(CATEGORY_METAS) as EventType[]).map((catKey) => {
                 const meta = CATEGORY_METAS[catKey];
-                const isSelected = evtType === catKey;
                 return (
-                  <button
-                    type="button"
-                    key={catKey}
-                    onClick={() => setEvtType(catKey)}
-                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
-                      isSelected
-                        ? 'bg-slate-900 text-white shadow-xs scale-105'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                    }`}
-                  >
-                    <span>{meta.emoji}</span>
-                    <span>{meta.label}</span>
-                  </button>
+                  <option key={catKey} value={catKey}>
+                    {meta.emoji} {meta.label}
+                  </option>
                 );
               })}
-            </div>
+            </select>
           </div>
 
           {/* 3. Event Color Palette Swatches */}
@@ -447,64 +442,64 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
       {modalType === 'class' && (
         <form onSubmit={handleClsSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Course Name</label>
+            <label className="block text-xs font-extrabold text-slate-800 mb-1.5">Course Name</label>
             <input
               type="text"
               required
               value={clsName}
               onChange={(e) => setClsName(e.target.value)}
               placeholder="e.g. Organic Chemistry II"
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900"
+              className="w-full bg-slate-50/80 border border-slate-200/80 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Instructor</label>
+              <label className="block text-xs font-extrabold text-slate-800 mb-1.5">Instructor</label>
               <input
                 type="text"
                 value={clsInstructor}
                 onChange={(e) => setClsInstructor(e.target.value)}
                 placeholder="Dr. Smith"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900"
+                className="w-full bg-slate-50/80 border border-slate-200/80 rounded-2xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 transition-all"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Room / Building</label>
+              <label className="block text-xs font-extrabold text-slate-800 mb-1.5">Room / Building</label>
               <input
                 type="text"
                 value={clsRoom}
                 onChange={(e) => setClsRoom(e.target.value)}
                 placeholder="Hall 104"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900"
+                className="w-full bg-slate-50/80 border border-slate-200/80 rounded-2xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 transition-all"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Start Time</label>
+              <label className="block text-xs font-extrabold text-slate-800 mb-1.5">Start Time</label>
               <input
                 type="time"
                 value={clsStartTime}
                 onChange={(e) => setClsStartTime(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900"
+                className="w-full bg-slate-50/80 border border-slate-200/80 rounded-2xl px-3 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 transition-all"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">End Time</label>
+              <label className="block text-xs font-extrabold text-slate-800 mb-1.5">End Time</label>
               <input
                 type="time"
                 value={clsEndTime}
                 onChange={(e) => setClsEndTime(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900"
+                className="w-full bg-slate-50/80 border border-slate-200/80 rounded-2xl px-3 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 transition-all"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Days of Week</label>
-            <div className="flex justify-between gap-1">
+            <label className="block text-xs font-extrabold text-slate-800 mb-1.5">Days of Week</label>
+            <div className="flex justify-between gap-1.5">
               {[
                 { num: 1, label: 'M' },
                 { num: 2, label: 'T' },
@@ -518,8 +513,8 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                     type="button"
                     key={d.num}
                     onClick={() => toggleClsDay(d.num)}
-                    className={`w-10 h-10 rounded-xl font-bold text-xs transition-all ${
-                      isSelected ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'
+                    className={`w-10 h-10 rounded-2xl font-black text-xs transition-all cursor-pointer ${
+                      isSelected ? 'bg-slate-900 text-white shadow-xs scale-105' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
                     {d.label}
@@ -530,28 +525,31 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Profile Owner</label>
+            <label className="block text-xs font-extrabold text-slate-800 mb-1.5">Profile Owner</label>
             <div className="flex gap-2">
-              {(['Eve', 'Abbie', 'Both'] as ProfilePersona[]).map((p) => (
-                <button
-                  type="button"
-                  key={p}
-                  onClick={() => setClsProfile(p)}
-                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
-                    clsProfile === p
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  {p}
-                </button>
-              ))}
+              {(['Eve', 'Abbie', 'Both'] as ProfilePersona[]).map((p) => {
+                const pColor = profileColors[p] || (p === 'Eve' ? '#2563eb' : p === 'Abbie' ? '#ec4899' : '#059669');
+                const isSelected = clsProfile === p;
+                return (
+                  <button
+                    type="button"
+                    key={p}
+                    onClick={() => setClsProfile(p)}
+                    className={`flex-1 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                      isSelected ? 'text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                    style={isSelected ? { backgroundColor: pColor } : undefined}
+                  >
+                    {p}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm shadow-md transition-all mt-4"
+            className="w-full bg-slate-900 hover:bg-slate-800 text-white font-extrabold py-3.5 rounded-2xl text-sm shadow-md transition-all mt-4 cursor-pointer"
           >
             Save Class
           </button>
@@ -782,35 +780,35 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
       {modalType === 'book' && (
         <form onSubmit={handleBokSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Book Title</label>
+            <label className="block text-xs font-extrabold text-slate-800 mb-1.5">Book Title</label>
             <input
               type="text"
               required
               value={bokTitle}
               onChange={(e) => setBokTitle(e.target.value)}
               placeholder="e.g. Deep Work"
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900"
+              className="w-full bg-slate-50/80 border border-slate-200/80 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Author</label>
+            <label className="block text-xs font-extrabold text-slate-800 mb-1.5">Author</label>
             <input
               type="text"
               value={bokAuthor}
               onChange={(e) => setBokAuthor(e.target.value)}
               placeholder="Cal Newport"
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900"
+              className="w-full bg-slate-50/80 border border-slate-200/80 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 transition-all"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Status</label>
+              <label className="block text-xs font-extrabold text-slate-800 mb-1.5">Status</label>
               <select
                 value={bokStatus}
                 onChange={(e) => setBokStatus(e.target.value as BookStatus)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900"
+                className="w-full bg-slate-50/80 border border-slate-200/80 rounded-2xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 transition-all"
               >
                 <option value="reading">Currently Reading</option>
                 <option value="want_to_read">Want to Read</option>
@@ -819,20 +817,20 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Total Pages</label>
+              <label className="block text-xs font-extrabold text-slate-800 mb-1.5">Total Pages</label>
               <input
                 type="number"
                 value={bokTotalPages}
                 onChange={(e) => setBokTotalPages(e.target.value)}
                 placeholder="300"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900"
+                className="w-full bg-slate-50/80 border border-slate-200/80 rounded-2xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 transition-all"
               />
             </div>
           </div>
 
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm shadow-md transition-all mt-4"
+            className="w-full bg-slate-900 hover:bg-slate-800 text-white font-extrabold py-3.5 rounded-2xl text-sm shadow-md transition-all mt-4 cursor-pointer"
           >
             Save Book
           </button>

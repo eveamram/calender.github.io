@@ -12,15 +12,23 @@ import {
   BookMarked,
   Settings,
   X,
+  Plus,
 } from 'lucide-react';
 
-export const MobileBottomNav: React.FC = () => {
+interface MobileBottomNavProps {
+  onOpenAddModal?: () => void;
+}
+
+export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onOpenAddModal }) => {
   const { activeTab, setActiveTab, setIsSettingsOpen } = useStore();
   const [showMoreMenu, setShowMoreMenu] = useState(false);
 
-  const primaryTabs: { tab: AppTab; label: string; icon: React.ReactNode }[] = [
+  const leftTabs: { tab: AppTab; label: string; icon: React.ReactNode }[] = [
     { tab: 'calendar', label: 'Calendar', icon: <Calendar className="w-5 h-5" /> },
     { tab: 'classes', label: 'Classes', icon: <BookOpen className="w-5 h-5" /> },
+  ];
+
+  const rightTabs: { tab: AppTab; label: string; icon: React.ReactNode }[] = [
     { tab: 'todo', label: 'To-Do', icon: <CheckSquare className="w-5 h-5" /> },
     { tab: 'habits', label: 'Habits', icon: <Sparkles className="w-5 h-5" /> },
   ];
@@ -36,41 +44,79 @@ export const MobileBottomNav: React.FC = () => {
   return (
     <>
       {/* Fixed Bottom Bar on Mobile/Tablet */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 glass-nav border-t border-slate-200/80 px-2 py-1 shadow-lg shadow-slate-900/5 pb-safe-bottom">
-        <div className="flex items-center justify-around max-w-md mx-auto">
-          {primaryTabs.map((t) => {
-            const isActive = activeTab === t.tab;
-            return (
-              <button
-                key={t.tab}
-                onClick={() => {
-                  setActiveTab(t.tab);
-                  setShowMoreMenu(false);
-                }}
-                className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl transition-all duration-200 cursor-pointer ${
-                  isActive
-                    ? 'text-blue-600 font-bold bg-blue-50/80 scale-105 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-900'
-                }`}
-              >
-                {t.icon}
-                <span className="text-[10px] mt-0.5 tracking-tight">{t.label}</span>
-              </button>
-            );
-          })}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-3 py-1.5 shadow-lg pb-safe-bottom">
+        <div className="flex items-center justify-between max-w-md mx-auto relative">
+          {/* Left 2 Tabs */}
+          <div className="flex items-center justify-around flex-1">
+            {leftTabs.map((t) => {
+              const isActive = activeTab === t.tab;
+              return (
+                <button
+                  key={t.tab}
+                  onClick={() => {
+                    setActiveTab(t.tab);
+                    setShowMoreMenu(false);
+                  }}
+                  className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-2xl transition-all duration-200 cursor-pointer ${
+                    isActive
+                      ? 'text-slate-900 font-bold bg-slate-100 scale-105'
+                      : 'text-slate-400 hover:text-slate-700'
+                  }`}
+                >
+                  {t.icon}
+                  <span className="text-[10px] mt-0.5 tracking-tight">{t.label}</span>
+                </button>
+              );
+            })}
+          </div>
 
-          {/* More button */}
-          <button
-            onClick={() => setShowMoreMenu((prev) => !prev)}
-            className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl transition-all duration-200 cursor-pointer ${
-              isSecondaryActive || showMoreMenu
-                ? 'text-pink-600 font-bold bg-pink-50/80 scale-105 shadow-xs'
-                : 'text-slate-500 hover:text-slate-900'
-            }`}
-          >
-            <MoreHorizontal className="w-5 h-5" />
-            <span className="text-[10px] mt-0.5 tracking-tight">More</span>
-          </button>
+          {/* Center Prominent Add Button */}
+          <div className="px-2 shrink-0">
+            <button
+              onClick={onOpenAddModal}
+              className="w-12 h-12 rounded-full bg-slate-900 hover:bg-slate-800 text-white shadow-md flex items-center justify-center active:scale-90 transition-transform cursor-pointer border-2 border-white"
+              title="Add New Item"
+            >
+              <Plus className="w-6 h-6 stroke-[3]" />
+            </button>
+          </div>
+
+          {/* Right 2 Tabs (To-Do & More) */}
+          <div className="flex items-center justify-around flex-1">
+            {rightTabs.slice(0, 1).map((t) => {
+              const isActive = activeTab === t.tab;
+              return (
+                <button
+                  key={t.tab}
+                  onClick={() => {
+                    setActiveTab(t.tab);
+                    setShowMoreMenu(false);
+                  }}
+                  className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-2xl transition-all duration-200 cursor-pointer ${
+                    isActive
+                      ? 'text-slate-900 font-bold bg-slate-100 scale-105'
+                      : 'text-slate-400 hover:text-slate-700'
+                  }`}
+                >
+                  {t.icon}
+                  <span className="text-[10px] mt-0.5 tracking-tight">{t.label}</span>
+                </button>
+              );
+            })}
+
+            {/* More Button */}
+            <button
+              onClick={() => setShowMoreMenu((prev) => !prev)}
+              className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-2xl transition-all duration-200 cursor-pointer ${
+                isSecondaryActive || showMoreMenu || activeTab === 'habits'
+                  ? 'text-rose-600 font-bold bg-rose-50 scale-105'
+                  : 'text-slate-400 hover:text-slate-700'
+              }`}
+            >
+              <MoreHorizontal className="w-5 h-5" />
+              <span className="text-[10px] mt-0.5 tracking-tight">More</span>
+            </button>
+          </div>
         </div>
       </nav>
 
@@ -134,8 +180,8 @@ export const MobileBottomNav: React.FC = () => {
                   <Settings className="w-5 h-5 text-pink-600" />
                 </div>
                 <div>
-                  <div className="text-sm font-bold">Settings & Color Options</div>
-                  <div className="text-[11px] text-slate-500 mt-0.5">Customize colors and reset app data</div>
+                  <div className="text-sm font-bold font-sans">Settings & Theme Options</div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">Customize themes and persona colors</div>
                 </div>
               </button>
             </div>

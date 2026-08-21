@@ -5,18 +5,8 @@ import {
   Settings,
   X,
   Palette,
-  RotateCcw,
-  ShieldCheck,
-  Heart,
-  Sparkles,
-  BookOpen,
-  CheckSquare,
-  ShoppingBag,
-  Utensils,
-  BookMarked,
-  Trash2,
-  AlertTriangle,
   CheckCircle2,
+  Clock,
 } from 'lucide-react';
 
 const PERSONA_COLORS = [
@@ -36,18 +26,11 @@ export const SettingsModal: React.FC = () => {
     setIsSettingsOpen,
     profileColors,
     setProfileColor,
-    clearCalendarEventsExceptAnniversaries,
-    clearAnniversariesOnly,
-    clearAllEvents,
-    clearClasses,
-    clearTasks,
-    clearWeeklyHabitProgress,
-    clearAllHabitCompletions,
-    clearAllHabits,
-    clearGroceryItems,
-    clearMealItems,
-    clearBookItems,
     factoryResetAllData,
+    clearAnniversariesOnly,
+    clearCalendarEventsExceptAnniversaries,
+    timeFormats,
+    setTimeFormat,
   } = useStore();
 
   const [colorPickerTarget, setColorPickerTarget] = useState<ProfilePersona | null>(null);
@@ -58,12 +41,6 @@ export const SettingsModal: React.FC = () => {
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
-  };
-
-  const handleAction = async (title: string, actionFn: () => Promise<void>, confirmMsg?: string) => {
-    if (confirmMsg && !window.confirm(confirmMsg)) return;
-    await actionFn();
-    showToast(`Successfully performed: ${title}`);
   };
 
   const profiles: ProfilePersona[] = ['Eve', 'Abbie', 'Both'];
@@ -83,13 +60,13 @@ export const SettingsModal: React.FC = () => {
               <Settings className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">App Settings & Resets</h2>
-              <p className="text-xs text-slate-500 font-medium">Manage persona themes and reset app modules</p>
+              <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">App Settings</h2>
+              <p className="text-xs text-slate-500 font-medium">Manage persona themes and app customization</p>
             </div>
           </div>
           <button
             onClick={() => setIsSettingsOpen(false)}
-            className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors"
+            className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -119,11 +96,11 @@ export const SettingsModal: React.FC = () => {
               return (
                 <div
                   key={p}
-                  className="flex items-center justify-between p-3 rounded-2xl border border-slate-200 bg-slate-50/60"
+                  className="flex items-center justify-between p-3.5 rounded-2xl border border-slate-200 bg-slate-50/60"
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2.5">
                     <div
-                      className="w-4 h-4 rounded-full border border-black/10 shadow-xs"
+                      className="w-4 h-4 rounded-full border border-black/10 shadow-xs shrink-0"
                       style={{ backgroundColor: currentColor }}
                     />
                     <span className="text-xs font-bold text-slate-900">{p}</span>
@@ -131,7 +108,7 @@ export const SettingsModal: React.FC = () => {
 
                   <button
                     onClick={() => setColorPickerTarget(p)}
-                    className="text-[11px] font-bold text-blue-600 hover:underline"
+                    className="text-[11px] font-bold text-blue-600 hover:underline cursor-pointer"
                   >
                     Change Color
                   </button>
@@ -141,237 +118,125 @@ export const SettingsModal: React.FC = () => {
           </div>
         </div>
 
-        {/* Calendar Resets Section */}
-        <div className="space-y-3 border-t border-slate-100 pt-4">
+        {/* Clock Format Preference Section */}
+        <div className="border-t border-slate-100 pt-4 space-y-3">
           <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <RotateCcw className="w-4 h-4 text-blue-600" />
-            Calendar Resets
+            <Clock className="w-4 h-4 text-indigo-600" />
+            Time Format Preference (12-Hour vs 24-Hour)
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-            <button
-              onClick={() =>
-                handleAction(
-                  'Reset Calendar (Keep Anniversaries)',
-                  clearCalendarEventsExceptAnniversaries,
-                  'Reset all calendar events? (Your anniversaries & birthdays will NOT be deleted)'
-                )
-              }
-              className="flex flex-col items-start p-3.5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 text-left transition-all gap-1.5"
-            >
-              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
-                <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
-                <span>Keep Anniversaries</span>
-              </div>
-              <span className="text-[11px] text-slate-500 font-medium">Clear standard calendar events only</span>
-            </button>
+            {profiles.map((p) => {
+              const currentFmt = timeFormats[p] || '12h';
 
-            <button
-              onClick={() =>
-                handleAction(
-                  'Reset Anniversaries & Birthdays Only',
-                  clearAnniversariesOnly,
-                  'Are you sure you want to reset ONLY your anniversaries and birthdays?'
-                )
-              }
-              className="flex flex-col items-start p-3.5 rounded-2xl border border-rose-200 bg-rose-50/40 hover:bg-rose-50 text-rose-900 text-left transition-all gap-1.5"
-            >
-              <div className="flex items-center gap-1.5 text-xs font-bold text-rose-700">
-                <Heart className="w-4 h-4 text-rose-500 fill-rose-500 shrink-0" />
-                <span>Anniversaries Only</span>
-              </div>
-              <span className="text-[11px] text-rose-600/80 font-medium">Reset birthdays & celebration events</span>
-            </button>
+              return (
+                <div
+                  key={p}
+                  className="flex items-center justify-between p-3.5 rounded-2xl border border-slate-200 bg-slate-50/60"
+                >
+                  <span className="text-xs font-bold text-slate-900">{p}</span>
 
-            <button
-              onClick={() =>
-                handleAction(
-                  'Reset All Calendar Events',
-                  clearAllEvents,
-                  'Delete ALL calendar events, including anniversaries?'
-                )
-              }
-              className="flex flex-col items-start p-3.5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 text-left transition-all gap-1.5"
-            >
-              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
-                <Trash2 className="w-4 h-4 text-slate-400 shrink-0" />
-                <span>Clear All Events</span>
-              </div>
-              <span className="text-[11px] text-slate-500 font-medium">Delete every single calendar entry</span>
-            </button>
+                  <div className="flex items-center bg-slate-200/80 p-0.5 rounded-xl">
+                    <button
+                      onClick={() => {
+                        setTimeFormat(p, '12h');
+                        showToast(`${p}'s clock format set to 12-Hour (AM/PM)`);
+                      }}
+                      className={`px-2 py-1 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer ${
+                        currentFmt === '12h'
+                          ? 'bg-white text-indigo-600 shadow-xs'
+                          : 'text-slate-500 hover:text-slate-900'
+                      }`}
+                    >
+                      12-Hr
+                    </button>
+                    <button
+                      onClick={() => {
+                        setTimeFormat(p, '24h');
+                        showToast(`${p}'s clock format set to 24-Hour (14:00)`);
+                      }}
+                      className={`px-2 py-1 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer ${
+                        currentFmt === '24h'
+                          ? 'bg-white text-indigo-600 shadow-xs'
+                          : 'text-slate-500 hover:text-slate-900'
+                      }`}
+                    >
+                      24-Hr
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* Habits & Progress Resets Section */}
-        <div className="space-y-3 border-t border-slate-100 pt-4">
-          <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <Sparkles className="w-4 h-4 text-blue-600" />
-            Habits & Weekly Progress Resets
-          </h3>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-            <button
-              onClick={() =>
-                handleAction(
-                  'Reset Weekly Habit Progress',
-                  clearWeeklyHabitProgress,
-                  'Uncheck all completed habit checkmarks?'
-                )
-              }
-              className="flex flex-col items-start p-3.5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 text-left transition-all gap-1.5"
-            >
-              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
-                <RotateCcw className="w-4 h-4 text-blue-600 shrink-0" />
-                <span>Reset Week Checkmarks</span>
-              </div>
-              <span className="text-[11px] text-slate-500 font-medium">Uncheck active week completions</span>
-            </button>
-
-            <button
-              onClick={() =>
-                handleAction(
-                  'Reset All Habit History',
-                  clearAllHabitCompletions,
-                  'Clear all recorded habit completion history?'
-                )
-              }
-              className="flex flex-col items-start p-3.5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 text-left transition-all gap-1.5"
-            >
-              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
-                <Trash2 className="w-4 h-4 text-slate-400 shrink-0" />
-                <span>Clear All Progress</span>
-              </div>
-              <span className="text-[11px] text-slate-500 font-medium">Clear entire habit checkmark history</span>
-            </button>
-
-            <button
-              onClick={() =>
-                handleAction(
-                  'Reset Habits List',
-                  clearAllHabits,
-                  'Delete all habit items and tracking history?'
-                )
-              }
-              className="flex flex-col items-start p-3.5 rounded-2xl border border-rose-200 bg-rose-50/40 hover:bg-rose-50 text-rose-900 text-left transition-all gap-1.5"
-            >
-              <div className="flex items-center gap-1.5 text-xs font-bold text-rose-700">
-                <Trash2 className="w-4 h-4 text-rose-500 shrink-0" />
-                <span>Delete All Habits</span>
-              </div>
-              <span className="text-[11px] text-rose-600/80 font-medium">Remove habit definitions</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Module Resets Section */}
-        <div className="space-y-3 border-t border-slate-100 pt-4">
-          <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <BookOpen className="w-4 h-4 text-blue-600" />
-            Module Resets
-          </h3>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-            <button
-              onClick={() =>
-                handleAction(
-                  'Reset Class Schedule',
-                  clearClasses,
-                  'Clear all scheduled academic classes?'
-                )
-              }
-              className="flex items-center gap-2 p-3 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-800 transition-all"
-            >
-              <BookOpen className="w-4 h-4 text-indigo-600 shrink-0" />
-              <span>Reset Classes</span>
-            </button>
-
-            <button
-              onClick={() =>
-                handleAction(
-                  'Reset Completed Tasks',
-                  () => clearTasks(true),
-                  'Clear all completed tasks?'
-                )
-              }
-              className="flex items-center gap-2 p-3 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-800 transition-all"
-            >
-              <CheckSquare className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Clear Done Tasks</span>
-            </button>
-
-            <button
-              onClick={() =>
-                handleAction(
-                  'Reset Grocery List',
-                  () => clearGroceryItems(false),
-                  'Clear all items from your grocery list?'
-                )
-              }
-              className="flex items-center gap-2 p-3 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-800 transition-all"
-            >
-              <ShoppingBag className="w-4 h-4 text-amber-600 shrink-0" />
-              <span>Reset Grocery</span>
-            </button>
-
-            <button
-              onClick={() =>
-                handleAction(
-                  'Reset Weekly Meal Plan',
-                  clearMealItems,
-                  'Clear all planned meals?'
-                )
-              }
-              className="flex items-center gap-2 p-3 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-800 transition-all"
-            >
-              <Utensils className="w-4 h-4 text-orange-600 shrink-0" />
-              <span>Reset Meal Plan</span>
-            </button>
-
-            <button
-              onClick={() =>
-                handleAction(
-                  'Reset Reading Shelf',
-                  clearBookItems,
-                  'Clear all books from your shelf?'
-                )
-              }
-              className="flex items-center gap-2 p-3 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-800 transition-all"
-            >
-              <BookMarked className="w-4 h-4 text-purple-600 shrink-0" />
-              <span>Reset Books</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Factory Reset Section */}
-        <div className="space-y-3 border-t border-rose-200/80 pt-4">
-          <h3 className="text-xs font-extrabold text-rose-500 uppercase tracking-wider flex items-center gap-1.5">
-            <AlertTriangle className="w-4 h-4 text-rose-600" />
-            Danger Zone & Factory Reset
-          </h3>
-
-          <button
-            onClick={() =>
-              handleAction(
-                'Full Application Factory Reset',
-                async () => {
-                  await factoryResetAllData();
-                  window.location.reload();
-                },
-                '⚠️ WARNING: Factory Reset will erase ALL events, tasks, habits, grocery items, meals, and books across the entire app. Are you completely sure?'
-              )
-            }
-            className="w-full flex items-center justify-between p-4 rounded-2xl border border-rose-300 bg-rose-50/80 hover:bg-rose-100 text-rose-900 font-extrabold text-xs transition-all shadow-xs"
-          >
-            <div className="flex items-center gap-2.5">
-              <AlertTriangle className="w-5 h-5 text-rose-600" />
-              <div className="text-left">
-                <div>Factory Reset All App Data</div>
-                <div className="text-[11px] text-rose-600 font-medium">Clear all tables, storage, and start with clean app state</div>
-              </div>
+        {/* Data Reset Section */}
+        <div className="border-t border-slate-100 pt-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
+                Reset Holidays & Anniversaries
+              </h3>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                Clear custom anniversaries & holiday overrides to restore default calendar dates.
+              </p>
             </div>
-            <Trash2 className="w-4 h-4 text-rose-600" />
-          </button>
+            <button
+              onClick={async () => {
+                if (window.confirm("Reset all stored holidays & anniversary custom entries?")) {
+                  await clearAnniversariesOnly();
+                  showToast("Holidays & Anniversaries reset to defaults!");
+                }
+              }}
+              className="bg-purple-50 hover:bg-purple-100 text-purple-700 font-extrabold px-4 py-2 rounded-2xl text-xs transition-colors cursor-pointer shrink-0"
+            >
+              Reset Holidays 💕
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between pt-2 border-t border-slate-100/60">
+            <div>
+              <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
+                Reset Events (Keep Holidays & Anniversaries)
+              </h3>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                Clear all scheduled user events while preserving holidays & anniversaries.
+              </p>
+            </div>
+            <button
+              onClick={async () => {
+                if (window.confirm("Clear all calendar events except holidays & anniversaries?")) {
+                  await clearCalendarEventsExceptAnniversaries();
+                  showToast("Events cleared! Holidays & anniversaries preserved.");
+                }
+              }}
+              className="bg-amber-50 hover:bg-amber-100 text-amber-700 font-extrabold px-4 py-2 rounded-2xl text-xs transition-colors cursor-pointer shrink-0"
+            >
+              Reset Except Holidays
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between pt-2 border-t border-slate-100/60">
+            <div>
+              <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
+                Reset All App Data
+              </h3>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                Clear stored calendar events and restore initial app state.
+              </p>
+            </div>
+            <button
+              onClick={async () => {
+                if (window.confirm("Are you sure you want to reset all app calendar data and restore defaults?")) {
+                  await factoryResetAllData();
+                  showToast("App data has been reset to defaults!");
+                }
+              }}
+              className="bg-rose-50 hover:bg-rose-100 text-rose-600 font-extrabold px-4 py-2 rounded-2xl text-xs transition-colors cursor-pointer shrink-0"
+            >
+              Reset All Data
+            </button>
+          </div>
         </div>
 
       </div>
@@ -389,7 +254,7 @@ export const SettingsModal: React.FC = () => {
               </div>
               <button
                 onClick={() => setColorPickerTarget(null)}
-                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"
+                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -408,7 +273,7 @@ export const SettingsModal: React.FC = () => {
                     setColorPickerTarget(null);
                     showToast(`Updated color for ${colorPickerTarget}`);
                   }}
-                  className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-slate-200 hover:border-slate-400 transition-all gap-1.5 text-xs font-semibold"
+                  className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-slate-200 hover:border-slate-400 transition-all gap-1.5 text-xs font-semibold cursor-pointer"
                 >
                   <div
                     className="w-6 h-6 rounded-full border border-slate-300/50 shadow-xs"
@@ -425,3 +290,4 @@ export const SettingsModal: React.FC = () => {
     </div>
   );
 };
+

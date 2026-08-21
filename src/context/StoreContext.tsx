@@ -32,6 +32,10 @@ interface StoreContextType {
   profileColors: Record<ProfilePersona, string>;
   setProfileColor: (profile: ProfilePersona, color: string) => Promise<void>;
 
+  // Clock Format Preference per Person: 12h vs 24h
+  timeFormats: Record<ProfilePersona, '12h' | '24h'>;
+  setTimeFormat: (profile: ProfilePersona, format: '12h' | '24h') => void;
+
   // Custom Calendar Day Colors: dateStr -> color hex
   dateColors: Record<string, string>;
   setDateColor: (dateStr: string, color: string) => Promise<void>;
@@ -128,6 +132,22 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return { Eve: '#2563eb', Abbie: '#7c3aed', Both: '#059669' };
     }
   });
+
+  // Clock Format Preference map per profile (Eve, Abbie, Both)
+  const [timeFormats, setTimeFormatsState] = useState<Record<ProfilePersona, '12h' | '24h'>>(() => {
+    try {
+      const saved = localStorage.getItem('calender_time_formats');
+      return saved ? JSON.parse(saved) : { Eve: '12h', Abbie: '12h', Both: '12h' };
+    } catch (e) {
+      return { Eve: '12h', Abbie: '12h', Both: '12h' };
+    }
+  });
+
+  const setTimeFormat = (profile: ProfilePersona, format: '12h' | '24h') => {
+    const updated = { ...timeFormats, [profile]: format };
+    setTimeFormatsState(updated);
+    localStorage.setItem('calender_time_formats', JSON.stringify(updated));
+  };
 
   // Date Highlight Colors map
   const [dateColors, setDateColors] = useState<Record<string, string>>(() => {
@@ -664,6 +684,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setSelectedDate,
         profileColors,
         setProfileColor,
+        timeFormats,
+        setTimeFormat,
         dateColors,
         setDateColor,
         events,

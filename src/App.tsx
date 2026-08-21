@@ -73,7 +73,10 @@ const MainAppContent: React.FC = () => {
           />
         )}
         {activeTab === 'classes' && (
-          <ClassesView onOpenAddClassModal={() => setActiveModal('class')} />
+          <ClassesView
+            onOpenAddClassModal={() => setActiveModal('class')}
+            onOpenAddExamModal={() => setActiveModal('event')}
+          />
         )}
         {activeTab === 'todo' && (
           <TodoView onOpenAddModal={() => setActiveModal('task')} />
@@ -96,11 +99,8 @@ const MainAppContent: React.FC = () => {
         )}
       </main>
 
-      {/* Mobile Floating Add Button */}
-      <FloatingAddButton onClick={handleOpenAddForTab} />
-
-      {/* Mobile Bottom Navigation */}
-      <MobileBottomNav />
+      {/* Mobile Bottom Navigation with centered + Add button */}
+      <MobileBottomNav onOpenAddModal={handleOpenAddForTab} />
 
       {/* Settings & Reset Modal */}
       <SettingsModal />

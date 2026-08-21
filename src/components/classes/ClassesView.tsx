@@ -5,11 +5,12 @@ import { Plus, BookOpen, Clock, MapPin, User, Trash2, AlertCircle } from 'lucide
 
 interface ClassesViewProps {
   onOpenAddClassModal: () => void;
+  onOpenAddExamModal?: () => void;
 }
 
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal }) => {
+export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, onOpenAddExamModal }) => {
   const { classes, events, deleteClass, deleteEvent, filterByProfile, activeProfile, profileColors } = useStore();
   const [selectedMobileDay, setSelectedMobileDay] = useState<number>(1); // 1 = Mon
 
@@ -116,15 +117,21 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal })
               return (
                 <div
                   key={cls.id}
-                  className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs space-y-2 relative group"
+                  className="bg-white rounded-2xl p-4 border-l-4 shadow-sm space-y-2.5 relative group hover:shadow-md transition-all"
+                  style={{
+                    borderLeftColor: cls.color || '#2563eb',
+                    backgroundColor: `${cls.color || '#2563eb'}0A`,
+                  }}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
-                      <div
-                        className="w-3 h-3 rounded-full shrink-0"
+                      <span
+                        className="text-xs font-black text-white px-2.5 py-0.5 rounded-lg shadow-2xs"
                         style={{ backgroundColor: cls.color || '#2563eb' }}
-                      />
-                      <h3 className="text-base font-bold text-slate-900">{cls.name}</h3>
+                      >
+                        {cls.start_time} - {cls.end_time}
+                      </span>
+                      <h3 className="text-base font-black text-slate-900 tracking-tight">{cls.name}</h3>
                     </div>
                     <div className="flex items-center gap-2">
                       {activeProfile === 'Both' && (
@@ -137,29 +144,24 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal })
                       )}
                       <button
                         onClick={() => deleteClass(cls.id)}
-                        className="text-slate-300 hover:text-red-500 p-1 transition-colors"
+                        className="text-slate-300 hover:text-red-500 p-1 transition-colors cursor-pointer"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-slate-600 pt-1">
-                    <span className="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-lg">
-                      <Clock className="w-3.5 h-3.5 text-slate-400" />
-                      {cls.start_time} – {cls.end_time}
-                    </span>
-
+                  <div className="flex flex-wrap items-center gap-3 text-xs font-bold text-slate-700 pt-0.5">
                     {cls.room && (
-                      <span className="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-lg">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                      <span className="flex items-center gap-1.5 bg-white/80 border border-slate-200/60 px-2.5 py-1 rounded-xl">
+                        <MapPin className="w-3.5 h-3.5 text-blue-600" />
                         {cls.room}
                       </span>
                     )}
 
                     {cls.instructor && (
-                      <span className="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-lg">
-                        <User className="w-3.5 h-3.5 text-slate-400" />
+                      <span className="flex items-center gap-1.5 bg-white/80 border border-slate-200/60 px-2.5 py-1 rounded-xl">
+                        <User className="w-3.5 h-3.5 text-indigo-600" />
                         {cls.instructor}
                       </span>
                     )}
@@ -202,15 +204,16 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal })
                     return (
                       <div
                         key={cls.id}
-                        className="p-3 rounded-xl border border-slate-100 bg-slate-50/60 hover:bg-slate-100/80 transition-all space-y-1.5 relative group"
+                        className="p-3.5 rounded-2xl border-l-4 shadow-xs transition-all space-y-2 relative group hover:shadow-md"
+                        style={{
+                          borderLeftColor: cls.color || '#2563eb',
+                          backgroundColor: `${cls.color || '#2563eb'}0F`,
+                        }}
                       >
                         <div className="flex items-center justify-between">
                           <span
-                            className="text-xs font-bold px-2 py-0.5 rounded-md"
-                            style={{
-                              backgroundColor: `${cls.color || '#2563eb'}18`,
-                              color: cls.color || '#2563eb',
-                            }}
+                            className="text-[11px] font-black text-white px-2 py-0.5 rounded-md shadow-2xs"
+                            style={{ backgroundColor: cls.color || '#2563eb' }}
                           >
                             {cls.start_time}
                           </span>
@@ -226,18 +229,18 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal })
                             )}
                             <button
                               onClick={() => deleteClass(cls.id)}
-                              className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-500 transition-opacity"
+                              className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 transition-opacity cursor-pointer"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </div>
 
-                        <h4 className="text-sm font-bold text-slate-900">{cls.name}</h4>
+                        <h4 className="text-sm font-black text-slate-900 tracking-tight">{cls.name}</h4>
 
-                        <div className="text-[11px] text-slate-500 space-y-0.5">
-                          {cls.room && <div className="truncate">📍 {cls.room}</div>}
-                          {cls.instructor && <div className="truncate">👤 {cls.instructor}</div>}
+                        <div className="text-[11px] font-bold text-slate-600 space-y-1">
+                          {cls.room && <div className="truncate flex items-center gap-1">📍 {cls.room}</div>}
+                          {cls.instructor && <div className="truncate flex items-center gap-1">👤 {cls.instructor}</div>}
                         </div>
                       </div>
                     );
@@ -261,9 +264,20 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal })
               <p className="text-xs text-slate-500 font-medium">Scheduled tests and midterm examinations</p>
             </div>
           </div>
-          <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg">
-            {filteredExams.length} {filteredExams.length === 1 ? 'Exam' : 'Exams'}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg">
+              {filteredExams.length} {filteredExams.length === 1 ? 'Exam' : 'Exams'}
+            </span>
+            {onOpenAddExamModal && (
+              <button
+                onClick={onOpenAddExamModal}
+                className="flex items-center gap-1 bg-rose-600 hover:bg-rose-700 text-white font-extrabold px-3 py-1.5 rounded-xl text-xs shadow-xs transition-all cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                <span>Add Exam</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {filteredExams.length === 0 ? (
