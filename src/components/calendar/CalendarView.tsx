@@ -10,8 +10,6 @@ import {
   CheckCircle,
   Circle,
   Calendar as CalendarIcon,
-  Palette,
-  X,
   RotateCcw,
   Heart,
   Edit2,
@@ -20,20 +18,6 @@ import {
 interface CalendarViewProps {
   onOpenAddModal: (initialDate?: string, eventToEdit?: CalendarEvent) => void;
 }
-
-const COLOR_PALETTE = [
-  { label: 'Default', hex: '' },
-  { label: 'Blue', hex: '#2563eb' },
-  { label: 'Emerald', hex: '#059669' },
-  { label: 'Purple', hex: '#7c3aed' },
-  { label: 'Red', hex: '#dc2626' },
-  { label: 'Amber', hex: '#d97706' },
-  { label: 'Pink', hex: '#db2777' },
-  { label: 'Sky', hex: '#0284c7' },
-  { label: 'Indigo', hex: '#4f46e5' },
-  { label: 'Teal', hex: '#0d9488' },
-  { label: 'Slate', hex: '#475569' },
-];
 
 export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) => {
   const {
@@ -44,17 +28,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
     tasks,
     filterByProfile,
     activeProfile,
-    dateColors,
-    setDateColor,
     profileColors,
     clearCalendarEventsExceptAnniversaries,
     clearAnniversariesOnly,
   } = useStore();
 
   const [currentMonthDate, setCurrentMonthDate] = useState(() => new Date());
-
-  // Modal State for Date Color Chooser
-  const [colorModalTargetDate, setColorModalTargetDate] = useState<string | null>(null);
 
   const year = currentMonthDate.getFullYear();
   const month = currentMonthDate.getMonth();
@@ -131,7 +110,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
     setSelectedDate(todayStr);
   };
 
-  // Double Click Handler specifically for Desktop
+  // Double Click Handler specifically for Desktop - Opens Create Event Modal
   const handleDesktopDayDoubleClick = (dateStr: string) => {
     setSelectedDate(dateStr);
     onOpenAddModal(dateStr);
@@ -158,12 +137,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-4 md:px-8 py-6">
-      {/* Banner & Reset Actions */}
+      {/* Reset Actions Banner */}
       <div className="bg-blue-50/70 border border-blue-200/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-blue-900 font-medium">
         <div className="flex items-center gap-2">
           <Plus className="w-4 h-4 text-blue-600 shrink-0" />
           <span>
-            <strong>Desktop Shortcut:</strong> Double-click any calendar day cell to instantly open the event form pre-filled with that date!
+            <strong>Desktop Shortcut:</strong> Double-click any calendar day cell to instantly open the <strong>Create Event</strong> form pre-filled with that date!
           </span>
         </div>
 
@@ -216,13 +195,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
               <h2 className="text-lg font-bold text-slate-900">{formattedSelectedDateHeader}</h2>
             </div>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setColorModalTargetDate(selectedDate)}
-                className="text-slate-400 hover:text-blue-600 p-1.5 rounded-lg hover:bg-slate-100"
-                title="Change day color"
-              >
-                <Palette className="w-4 h-4" />
-              </button>
               {selectedDate !== todayStr && (
                 <button
                   onClick={handleTodayClick}
@@ -368,13 +340,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
               const isToday = dayObj.dateStr === todayStr;
               const dayEvts = eventsByDate.get(dayObj.dateStr) || [];
               const hasEvents = dayEvts.length > 0;
-              const dayColor = dateColors[dayObj.dateStr];
 
               return (
                 <button
                   key={dayObj.dateStr}
                   onClick={() => setSelectedDate(dayObj.dateStr)}
-                  style={dayColor ? { backgroundColor: `${dayColor}22`, borderColor: dayColor } : undefined}
                   className={`flex flex-col items-center justify-center py-2 rounded-xl text-xs transition-all relative border border-transparent ${
                     !dayObj.isCurrentMonth
                       ? 'text-slate-300'
@@ -459,7 +429,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
               const isSelected = dayObj.dateStr === selectedDate;
               const isToday = dayObj.dateStr === todayStr;
               const dayEvts = eventsByDate.get(dayObj.dateStr) || [];
-              const dayColor = dateColors[dayObj.dateStr];
 
               return (
                 <div
@@ -469,11 +438,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                     e.stopPropagation();
                     handleDesktopDayDoubleClick(dayObj.dateStr);
                   }}
-                  style={
-                    dayColor
-                      ? { backgroundColor: `${dayColor}18`, borderColor: dayColor }
-                      : undefined
-                  }
                   className={`min-h-[105px] p-2.5 rounded-xl border text-left cursor-pointer transition-all flex flex-col justify-between group ${
                     !dayObj.isCurrentMonth
                       ? 'bg-slate-50/40 border-slate-100 text-slate-300'
@@ -483,7 +447,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                       ? 'bg-white border-blue-300 ring-2 ring-blue-100 hover:border-blue-400'
                       : 'bg-white border-slate-200/80 hover:border-blue-300 hover:shadow-xs hover:scale-[1.01]'
                   }`}
-                  title="Single-click to view schedule • Double-click to add event"
+                  title="Single-click to view schedule • Double-click to create event"
                 >
                   <div className="flex items-center justify-between">
                     <span
@@ -498,23 +462,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                       {dayObj.dayNum}
                     </span>
                     <div className="flex items-center gap-1">
-                      {dayColor && (
-                        <span
-                          className="w-2.5 h-2.5 rounded-full inline-block"
-                          style={{ backgroundColor: dayColor }}
-                        />
-                      )}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setColorModalTargetDate(dayObj.dateStr);
-                        }}
-                        onDoubleClick={(e) => e.stopPropagation()}
-                        className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-blue-600 transition-opacity p-0.5"
-                        title="Pick day color"
-                      >
-                        <Palette className="w-3 h-3" />
-                      </button>
                       {dayEvts.length > 0 && (
                         <span className="text-[10px] font-semibold text-slate-400">
                           {dayEvts.length}
@@ -584,13 +531,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
               <h3 className="text-lg font-bold text-slate-900">{formattedSelectedDateHeader}</h3>
             </div>
             <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setColorModalTargetDate(selectedDate)}
-                className="p-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
-                title="Change day color"
-              >
-                <Palette className="w-4 h-4" />
-              </button>
               <button
                 onClick={() => onOpenAddModal(selectedDate)}
                 className="p-2 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
@@ -701,51 +641,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
           )}
         </div>
       </div>
-
-      {/* DATE COLOR PICKER MODAL */}
-      {colorModalTargetDate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-2xl max-w-sm w-full space-y-4 animate-slide-up">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <Palette className="w-5 h-5 text-blue-600" />
-                <h3 className="text-base font-bold text-slate-900">
-                  Calendar Date Color ({colorModalTargetDate})
-                </h3>
-              </div>
-              <button
-                onClick={() => setColorModalTargetDate(null)}
-                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-500 font-medium">
-              Choose a custom background color accent for this calendar day:
-            </p>
-
-            <div className="grid grid-cols-4 gap-2.5 pt-1">
-              {COLOR_PALETTE.map((p) => (
-                <button
-                  key={p.label}
-                  onClick={() => {
-                    setDateColor(colorModalTargetDate, p.hex);
-                    setColorModalTargetDate(null);
-                  }}
-                  className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-slate-200 hover:border-slate-400 transition-all gap-1.5 text-xs font-semibold cursor-pointer"
-                >
-                  <div
-                    className="w-6 h-6 rounded-full border border-slate-300/50 shadow-xs"
-                    style={{ backgroundColor: p.hex || '#ffffff' }}
-                  />
-                  <span className="text-[11px] text-slate-700">{p.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
