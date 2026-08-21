@@ -229,7 +229,7 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
               { cover: 'from-blue-500 via-indigo-500 to-violet-600 border-blue-300/50', card: 'bg-gradient-to-br from-blue-50/70 via-indigo-50/40 to-white border-blue-200/80' },
               { cover: 'from-emerald-500 via-teal-500 to-cyan-600 border-emerald-300/50', card: 'bg-gradient-to-br from-emerald-50/70 via-teal-50/40 to-white border-emerald-200/80' },
               { cover: 'from-purple-500 via-fuchsia-500 to-pink-600 border-purple-300/50', card: 'bg-gradient-to-br from-purple-50/70 via-fuchsia-50/40 to-white border-purple-200/80' },
-              { cover: 'from-amber-500 via-orange-500 to-rose-500 border-amber-300/50', card: 'bg-gradient-to-br from-amber-50/70 via-orange-50/40 to-white border-amber-200/80' },
+              { cover: 'from-violet-600 via-indigo-600 to-purple-700 border-indigo-300/50', card: 'bg-gradient-to-br from-indigo-50/70 via-violet-50/40 to-white border-indigo-200/80' },
               { cover: 'from-cyan-500 via-sky-500 to-blue-600 border-cyan-300/50', card: 'bg-gradient-to-br from-cyan-50/70 via-sky-50/40 to-white border-cyan-200/80' },
             ];
             const palette = BOOK_PALETTES[idx % BOOK_PALETTES.length];
@@ -270,12 +270,12 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
                           <button
                             key={starNum}
                             onClick={() => handleUpdateRating(book, starNum)}
-                            className="p-0.5 text-amber-400 hover:scale-125 transition-transform cursor-pointer"
+                            className="p-0.5 text-yellow-400 hover:scale-125 transition-transform cursor-pointer"
                             title={`Rate ${starNum} Stars`}
                           >
                             <Star
                               className={`w-3.5 h-3.5 ${
-                                isFilled ? 'fill-amber-400 text-amber-400' : 'text-slate-300 fill-slate-100'
+                                isFilled ? 'fill-yellow-400 text-yellow-400' : 'text-slate-300 fill-slate-100'
                               }`}
                             />
                           </button>
@@ -316,7 +316,7 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
                       onClick={() => handleStatusChange(book, 'want_to_read')}
                       className={`px-2 py-1 rounded-lg text-[10px] font-extrabold transition-all ${
                         book.status === 'want_to_read'
-                          ? 'bg-amber-500 text-white shadow-xs'
+                          ? 'bg-purple-600 text-white shadow-xs'
                           : 'text-slate-600 hover:bg-slate-200'
                       }`}
                     >
