@@ -8,7 +8,7 @@ interface ClassesViewProps {
   onOpenAddExamModal?: () => void;
 }
 
-const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 
 export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, onOpenAddExamModal }) => {
   const { classes, events, deleteClass, deleteEvent, filterByProfile, activeProfile, profileColors } = useStore();
@@ -25,10 +25,10 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
     return [...result].sort((a, b) => a.event_date.localeCompare(b.event_date));
   }, [events, filterByProfile]);
 
-  // Map classes by day of week (1=Mon ... 7=Sun)
+  // Map classes by day of week (1=Mon ... 5=Fri)
   const classesByDay = useMemo(() => {
     const map = new Map<number, ClassItem[]>();
-    for (let i = 1; i <= 7; i++) map.set(i, []);
+    for (let i = 1; i <= 5; i++) map.set(i, []);
 
     filteredClasses.forEach((cls) => {
       cls.days_of_week.forEach((dayNum) => {
@@ -113,21 +113,22 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
             {selectedMobileClasses.map((cls) => {
               const ownerName = cls.profile || 'Eve';
               const badgeColor = profileColors[ownerName] || '#2563eb';
+              const cardColor = activeProfile === 'Both' ? badgeColor : (cls.color || badgeColor);
 
               return (
                 <div
                   key={cls.id}
                   className="bg-white rounded-2xl p-4 border-l-4 shadow-sm space-y-2.5 relative group hover:shadow-md transition-all"
                   style={{
-                    borderLeftColor: cls.color || '#2563eb',
-                    backgroundColor: `${cls.color || '#2563eb'}0A`,
+                    borderLeftColor: cardColor,
+                    backgroundColor: `${cardColor}0A`,
                   }}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
                       <span
                         className="text-xs font-black text-white px-2.5 py-0.5 rounded-lg shadow-2xs"
-                        style={{ backgroundColor: cls.color || '#2563eb' }}
+                        style={{ backgroundColor: cardColor }}
                       >
                         {cls.start_time} - {cls.end_time}
                       </span>
@@ -200,20 +201,21 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                   dayClasses.map((cls) => {
                     const ownerName = cls.profile || 'Eve';
                     const badgeColor = profileColors[ownerName] || '#2563eb';
+                    const cardColor = activeProfile === 'Both' ? badgeColor : (cls.color || badgeColor);
 
                     return (
                       <div
                         key={cls.id}
                         className="p-3.5 rounded-2xl border-l-4 shadow-xs transition-all space-y-2 relative group hover:shadow-md"
                         style={{
-                          borderLeftColor: cls.color || '#2563eb',
-                          backgroundColor: `${cls.color || '#2563eb'}0F`,
+                          borderLeftColor: cardColor,
+                          backgroundColor: `${cardColor}0F`,
                         }}
                       >
                         <div className="flex items-center justify-between">
                           <span
                             className="text-[11px] font-black text-white px-2 py-0.5 rounded-md shadow-2xs"
-                            style={{ backgroundColor: cls.color || '#2563eb' }}
+                            style={{ backgroundColor: cardColor }}
                           >
                             {cls.start_time}
                           </span>

@@ -157,7 +157,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
   }, [selectedDate]);
 
   return (
-    <div className="min-h-screen bg-[#faf9f6] text-slate-800 px-3 sm:px-6 md:px-8 py-4 sm:py-6 relative pb-28">
+    <div className="min-h-screen bg-[#faf9f6] text-slate-800 px-3 sm:px-6 md:px-8 py-4 sm:py-6 relative pb-6 lg:pb-8">
       {/* MOBILE LAYOUT (< lg screens) */}
       <div className="lg:hidden space-y-5">
         {/* 1. SELECTED DAY SCHEDULE FIRST */}
@@ -353,7 +353,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
               return (
                 <button
                   key={dayObj.dateStr}
-                  onClick={() => setSelectedDate(dayObj.dateStr)}
+                  onClick={() => {
+                    setSelectedDate(dayObj.dateStr);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
                   onDoubleClick={() => onOpenAddModal(dayObj.dateStr)}
                   className={`flex flex-col items-center justify-center h-11 rounded-2xl text-xs transition-all relative border cursor-pointer ${
                     !dayObj.isCurrentMonth

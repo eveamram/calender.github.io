@@ -499,15 +499,13 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
           <div>
             <label className="block text-xs font-extrabold text-slate-800 mb-1.5">Days of Week</label>
-            <div className="grid grid-cols-7 gap-1.5">
+            <div className="grid grid-cols-5 gap-1.5">
               {[
                 { num: 1, label: 'M' },
                 { num: 2, label: 'T' },
                 { num: 3, label: 'W' },
                 { num: 4, label: 'T' },
                 { num: 5, label: 'F' },
-                { num: 6, label: 'S' },
-                { num: 7, label: 'S' },
               ].map((d) => {
                 const isSelected = clsDays.includes(d.num);
                 return (

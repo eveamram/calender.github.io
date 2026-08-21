@@ -1,131 +1,161 @@
 -- ====================================================================
--- Shared Student Calendar - Supabase Database Schema & RLS Policies
+-- Shared Student Calendar - Complete Supabase Database Schema
 -- Execute this script in your Supabase SQL Editor (https://app.supabase.com)
 -- ====================================================================
 
--- 1. Create Tables
+-- 1. Create Tables with TEXT Primary Keys for real-time synchronization
 
--- Calendars Table
-CREATE TABLE IF NOT EXISTS public.calendars (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name TEXT NOT NULL,
-    invite_code TEXT NOT NULL UNIQUE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL
-);
-
--- Calendar Members Table (Junction table linking users to calendars)
-CREATE TABLE IF NOT EXISTS public.calendar_members (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    calendar_id UUID NOT NULL REFERENCES public.calendars(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    display_name TEXT NOT NULL,
-    profile_color TEXT NOT NULL DEFAULT '#3B82F6',
-    joined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT unique_calendar_user UNIQUE (calendar_id, user_id)
-);
-
--- Events Table
 CREATE TABLE IF NOT EXISTS public.events (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    calendar_id UUID NOT NULL REFERENCES public.calendars(id) ON DELETE CASCADE,
-    created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
-    owner_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
-    event_type TEXT NOT NULL DEFAULT 'Exam',
-    course TEXT NOT NULL DEFAULT '',
+    event_type TEXT NOT NULL DEFAULT 'personal',
     event_date DATE NOT NULL,
     start_time TEXT,
     end_time TEXT,
-    is_all_day BOOLEAN NOT NULL DEFAULT true,
-    location TEXT NOT NULL DEFAULT '',
-    notes TEXT NOT NULL DEFAULT '',
-    color TEXT NOT NULL DEFAULT '#EF4444',
-    reminder_minutes INTEGER NOT NULL DEFAULT 0,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    location TEXT DEFAULT '',
+    notes TEXT DEFAULT '',
+    color TEXT DEFAULT '#3b82f6',
+    profile TEXT DEFAULT 'Eve',
+    task_id TEXT,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 2. Indexes for Performance
-CREATE INDEX IF NOT EXISTS idx_calendar_members_user ON public.calendar_members(user_id);
-CREATE INDEX IF NOT EXISTS idx_calendar_members_calendar ON public.calendar_members(calendar_id);
-CREATE INDEX IF NOT EXISTS idx_events_calendar ON public.events(calendar_id);
-CREATE INDEX IF NOT EXISTS idx_events_date ON public.events(event_date);
-CREATE INDEX IF NOT EXISTS idx_events_owner ON public.events(owner_user_id);
+CREATE TABLE IF NOT EXISTS public.classes (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    instructor TEXT DEFAULT '',
+    room TEXT DEFAULT '',
+    days_of_week JSONB DEFAULT '[]'::jsonb,
+    start_time TEXT NOT NULL DEFAULT '09:00',
+    end_time TEXT NOT NULL DEFAULT '10:00',
+    color TEXT DEFAULT '#2563eb',
+    profile TEXT DEFAULT 'Eve',
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
 
--- 3. Row Level Security (RLS) Setup
+CREATE TABLE IF NOT EXISTS public.tasks (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    is_completed BOOLEAN NOT NULL DEFAULT false,
+    due_date DATE,
+    due_time TEXT,
+    category TEXT DEFAULT 'school',
+    profile TEXT DEFAULT 'Eve',
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
 
-ALTER TABLE public.calendars ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.calendar_members ENABLE ROW LEVEL SECURITY;
+CREATE TABLE IF NOT EXISTS public.habits (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    frequency TEXT DEFAULT 'daily',
+    target_count INTEGER DEFAULT 1,
+    unit TEXT DEFAULT 'times',
+    color TEXT DEFAULT '#8b5cf6',
+    profile TEXT DEFAULT 'Eve',
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public."habitCompletions" (
+    id TEXT PRIMARY KEY,
+    habit_id TEXT NOT NULL,
+    date DATE NOT NULL,
+    completed BOOLEAN NOT NULL DEFAULT true,
+    current_quantity INTEGER DEFAULT 1,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public."groceryItems" (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    category TEXT DEFAULT 'general',
+    is_completed BOOLEAN NOT NULL DEFAULT false,
+    quantity TEXT DEFAULT '1',
+    profile TEXT DEFAULT 'Eve',
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public."mealItems" (
+    id TEXT PRIMARY KEY,
+    date DATE NOT NULL,
+    meal_type TEXT NOT NULL, -- breakfast, lunch, dinner, snack
+    title TEXT NOT NULL,
+    notes TEXT DEFAULT '',
+    profile TEXT DEFAULT 'Eve',
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public."bookItems" (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    author TEXT DEFAULT '',
+    status TEXT DEFAULT 'want-to-read', -- want-to-read, reading, completed
+    rating INTEGER DEFAULT 0,
+    notes TEXT DEFAULT '',
+    profile TEXT DEFAULT 'Eve',
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public."profileColors" (
+    id TEXT PRIMARY KEY,
+    color TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public."dateColors" (
+    id TEXT PRIMARY KEY,
+    color TEXT NOT NULL
+);
+
+-- 2. Row Level Security (RLS) - Public Read & Write Access for App Realtime
 ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.classes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.habits ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public."habitCompletions" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public."groceryItems" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public."mealItems" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public."bookItems" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public."profileColors" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public."dateColors" ENABLE ROW LEVEL SECURITY;
 
--- Security Definer helper function to avoid recursion in RLS policies
-CREATE OR REPLACE FUNCTION public.is_member_of_calendar(_calendar_id UUID)
-RETURNS BOOLEAN AS $$
+-- Allow anonymous & authenticated access for public app operation
+DO $$
+DECLARE
+    tbl text;
 BEGIN
-    RETURN EXISTS (
-        SELECT 1 FROM public.calendar_members
-        WHERE calendar_id = _calendar_id
-        AND user_id = auth.uid()
-    );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+    FOR tbl IN SELECT unnest(ARRAY[
+        'events', 'classes', 'tasks', 'habits', 'habitCompletions',
+        'groceryItems', 'mealItems', 'bookItems', 'profileColors', 'dateColors'
+    ]) LOOP
+        EXECUTE format('DROP POLICY IF EXISTS "Public access on %I" ON public.%I', tbl, tbl);
+        EXECUTE format('CREATE POLICY "Public access on %I" ON public.%I FOR ALL USING (true) WITH CHECK (true)', tbl, tbl);
+    END LOOP;
+END $$;
 
--- Calendars RLS Policies
-CREATE POLICY "Users can view calendars they belong to or by invite code" ON public.calendars
-    FOR SELECT USING (
-        public.is_member_of_calendar(id) OR auth.role() = 'authenticated'
-    );
-
-CREATE POLICY "Authenticated users can create calendars" ON public.calendars
-    FOR INSERT WITH CHECK (auth.role() = 'authenticated');
-
-CREATE POLICY "Members can update their calendar" ON public.calendars
-    FOR UPDATE USING (public.is_member_of_calendar(id));
-
-CREATE POLICY "Creator can delete calendar" ON public.calendars
-    FOR DELETE USING (created_by = auth.uid());
-
--- Calendar Members RLS Policies
-CREATE POLICY "Members can view co-members of their calendars" ON public.calendar_members
-    FOR SELECT USING (
-        public.is_member_of_calendar(calendar_id) OR user_id = auth.uid()
-    );
-
-CREATE POLICY "Users can join calendars as member" ON public.calendar_members
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their member profile" ON public.calendar_members
-    FOR UPDATE USING (user_id = auth.uid());
-
-CREATE POLICY "Users can leave or calendar creator can remove member" ON public.calendar_members
-    FOR DELETE USING (user_id = auth.uid() OR public.is_member_of_calendar(calendar_id));
-
--- Events RLS Policies
-CREATE POLICY "Members can view events in their calendar" ON public.events
-    FOR SELECT USING (public.is_member_of_calendar(calendar_id));
-
-CREATE POLICY "Members can insert events into their calendar" ON public.events
-    FOR INSERT WITH CHECK (public.is_member_of_calendar(calendar_id));
-
-CREATE POLICY "Members can update events in their calendar" ON public.events
-    FOR UPDATE USING (public.is_member_of_calendar(calendar_id));
-
-CREATE POLICY "Members can delete events in their calendar" ON public.events
-    FOR DELETE USING (public.is_member_of_calendar(calendar_id));
-
--- 4. Enable Supabase Realtime for Events and Members
+-- 3. Enable Realtime Publications for Postgres Changes Listener
 BEGIN;
-  -- Drop publication if exists or alter publication
   DO $$
+  DECLARE
+      tbl text;
   BEGIN
-    IF EXISTS (
-      SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime'
-    ) THEN
-      ALTER PUBLICATION supabase_realtime ADD TABLE public.events, public.calendar_members;
-    END IF;
-  EXCEPTION WHEN OTHERS THEN
-    -- Ignore if already added
-    NULL;
+      IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+          FOR tbl IN SELECT unnest(ARRAY[
+              'events', 'classes', 'tasks', 'habits', 'habitCompletions',
+              'groceryItems', 'mealItems', 'bookItems', 'profileColors', 'dateColors'
+          ]) LOOP
+              BEGIN
+                  EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE public.%I', tbl);
+              EXCEPTION WHEN OTHERS THEN
+                  -- Table already in publication
+                  NULL;
+              END;
+          END LOOP;
+      END IF;
   END $$;
 COMMIT;

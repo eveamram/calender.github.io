@@ -93,7 +93,7 @@ function updateMemoryCache(event: SyncPayload) {
   saveToLocalStorage(event.table);
 }
 
-// Multi-tab broadcast channel listener
+// Multi-tab broadcast channel & window storage event listeners
 if (broadcastChannel) {
   broadcastChannel.onmessage = (msg: MessageEvent<SyncPayload>) => {
     if (msg && msg.data) {
@@ -101,6 +101,16 @@ if (broadcastChannel) {
       notifyGlobalListeners();
     }
   };
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key && e.key.startsWith('calender_sync_')) {
+      const table = e.key.replace('calender_sync_', '');
+      loadFromLocalStorage(table);
+      notifyGlobalListeners();
+    }
+  });
 }
 
 // Supabase Realtime Postgres Changes listener
@@ -143,6 +153,7 @@ if (isSupabaseConfigured()) {
     console.warn('Supabase Realtime subscription error:', err);
   }
 }
+
 
 export const syncEngine = {
   subscribeToSync: (listener: GlobalSyncListener) => {
