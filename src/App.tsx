@@ -1,153 +1,128 @@
 import React, { useState } from 'react';
-import { AuthProvider } from './context/AuthContext';
-import { CalendarProvider, useCalendar } from './context/CalendarContext';
+import { StoreProvider, useStore } from './context/StoreContext';
+import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { Header } from './components/layout/Header';
-import { MobileHeader } from './components/layout/MobileHeader';
 import { MobileBottomNav } from './components/layout/MobileBottomNav';
-import { MonthGrid } from './components/calendar/MonthGrid';
-import { SelectedDaySchedule } from './components/schedule/SelectedDaySchedule';
-import { WeeklyClassScheduleView } from './components/schedule/WeeklyClassScheduleView';
-import { TodoListView } from './components/todo/TodoListView';
+import { FloatingAddButton } from './components/ui/FloatingAddButton';
+import { CalendarView } from './components/calendar/CalendarView';
+import { ClassesView } from './components/classes/ClassesView';
+import { TodoView } from './components/todo/TodoView';
 import { HabitsView } from './components/habits/HabitsView';
 import { GroceryView } from './components/grocery/GroceryView';
 import { MealsView } from './components/meals/MealsView';
 import { BooksView } from './components/books/BooksView';
-import { NotesView } from './components/notes/NotesView';
-import { EventFormModal } from './components/events/EventFormModal';
-import { EventDetailsModal } from './components/events/EventDetailsModal';
-import { PersonCustomizeModal } from './components/auth/PersonCustomizeModal';
-import { ToastContainer } from './components/ui/ToastContainer';
-import { AppTab, CalendarEvent } from './types';
+import { CreationModalContainer } from './components/modals/CreationModalContainer';
+import { MealType } from './types';
 
-function AtlasAppContent() {
-  const { currentDate, setCurrentDate } = useCalendar();
-  const [activeTab, setActiveTab] = useState<AppTab>('calendar');
-  const [isEventFormOpen, setIsEventFormOpen] = useState(false);
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [isPersonModalOpen, setIsPersonModalOpen] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+const MainAppContent: React.FC = () => {
+  const { activeTab } = useStore();
 
-  const handleOpenAddEvent = () => {
-    setSelectedEvent(null);
-    setIsEventFormOpen(true);
-  };
+  const [activeModal, setActiveModal] = useState<
+    'event' | 'class' | 'task' | 'habit' | 'meal' | 'book' | null
+  >(null);
 
-  const handleSelectEvent = (event: CalendarEvent) => {
-    setSelectedEvent(event);
-    setIsDetailsOpen(true);
-  };
+  const [initialModalDate, setInitialModalDate] = useState<string | undefined>(undefined);
+  const [initialMealDay, setInitialMealDay] = useState<number | undefined>(undefined);
+  const [initialMealType, setInitialMealType] = useState<MealType | undefined>(undefined);
 
-  const handleSelectDate = (date: Date) => {
-    setCurrentDate(date);
-    setSelectedDate(date);
+  const handleOpenAddForTab = () => {
+    switch (activeTab) {
+      case 'calendar':
+        setActiveModal('event');
+        break;
+      case 'classes':
+        setActiveModal('class');
+        break;
+      case 'todo':
+        setActiveModal('task');
+        break;
+      case 'habits':
+        setActiveModal('habit');
+        break;
+      case 'grocery':
+        setActiveModal('event');
+        break;
+      case 'meals':
+        setActiveModal('meal');
+        break;
+      case 'books':
+        setActiveModal('book');
+        break;
+      default:
+        setActiveModal('event');
+    }
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)', display: 'flex', flexDirection: 'column', paddingBottom: '70px' }}>
-      {/* Desktop Header */}
-      <div className="hidden md:block">
-        <Header
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          onOpenAddEvent={handleOpenAddEvent}
-          onOpenPersonModal={() => setIsPersonModalOpen(true)}
-        />
-      </div>
-
-      {/* Mobile Header */}
-      <div className="block md:hidden">
-        <MobileHeader
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          selectedDate={selectedDate}
-          onOpenAddModal={handleOpenAddEvent}
-        />
-      </div>
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans pb-safe-bottom">
+      {/* Header with Centered Top Add Button */}
+      <Header onOpenAddModal={handleOpenAddForTab} />
 
       {/* Main Content Area */}
-      <main style={{ flex: 1, maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '1.25rem' }}>
+      <main className="flex-1">
         {activeTab === 'calendar' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-            <div className="lg:col-span-8">
-              <MonthGrid
-                onSelectEvent={handleSelectEvent}
-                onSelectDate={handleSelectDate}
-              />
-            </div>
-            <div className="lg:col-span-4">
-              <SelectedDaySchedule
-                selectedDate={selectedDate}
-                onSelectEvent={handleSelectEvent}
-                onOpenAddEvent={handleOpenAddEvent}
-              />
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'schedule' && (
-          <WeeklyClassScheduleView
-            onSelectEvent={(evt: any) => handleSelectEvent(evt)}
-            onOpenAddEvent={handleOpenAddEvent}
+          <CalendarView
+            onOpenAddModal={(date) => {
+              setInitialModalDate(date);
+              setActiveModal('event');
+            }}
           />
         )}
-
+        {activeTab === 'classes' && (
+          <ClassesView onOpenAddClassModal={() => setActiveModal('class')} />
+        )}
         {activeTab === 'todo' && (
-          <TodoListView
-            onOpenAddEvent={handleOpenAddEvent}
-            onEditTask={(evt) => handleSelectEvent(evt)}
+          <TodoView onOpenAddModal={() => setActiveModal('task')} />
+        )}
+        {activeTab === 'habits' && (
+          <HabitsView onOpenAddModal={() => setActiveModal('habit')} />
+        )}
+        {activeTab === 'grocery' && <GroceryView />}
+        {activeTab === 'meals' && (
+          <MealsView
+            onOpenAddMealModal={(day, type) => {
+              setInitialMealDay(day);
+              setInitialMealType(type);
+              setActiveModal('meal');
+            }}
           />
         )}
-
-        {activeTab === 'habits' && <HabitsView />}
-        {activeTab === 'grocery' && <GroceryView />}
-        {activeTab === 'meals' && <MealsView />}
-        {activeTab === 'books' && <BooksView />}
+        {activeTab === 'books' && (
+          <BooksView onOpenAddBookModal={() => setActiveModal('book')} />
+        )}
       </main>
 
+      {/* Mobile Floating Add Button */}
+      <FloatingAddButton onClick={handleOpenAddForTab} />
+
       {/* Mobile Bottom Navigation */}
-      <MobileBottomNav
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        onOpenAddModal={handleOpenAddEvent}
+      <MobileBottomNav />
+
+      {/* Creation Modal Container */}
+      <CreationModalContainer
+        modalType={activeModal}
+        onClose={() => {
+          setActiveModal(null);
+          setInitialModalDate(undefined);
+          setInitialMealDay(undefined);
+          setInitialMealType(undefined);
+        }}
+        initialDate={initialModalDate}
+        initialMealDay={initialMealDay}
+        initialMealType={initialMealType}
       />
-
-      {/* Modals */}
-      <EventFormModal
-        isOpen={isEventFormOpen}
-        onClose={() => setIsEventFormOpen(false)}
-        initialDate={selectedDate}
-      />
-
-      {selectedEvent && (
-        <EventDetailsModal
-          isOpen={isDetailsOpen}
-          onClose={() => setIsDetailsOpen(false)}
-          event={selectedEvent}
-          onEdit={(evt) => {
-            setIsDetailsOpen(false);
-            setSelectedEvent(evt);
-            setIsEventFormOpen(true);
-          }}
-        />
-      )}
-
-      <PersonCustomizeModal
-        isOpen={isPersonModalOpen}
-        onClose={() => setIsPersonModalOpen(false)}
-      />
-
-      <ToastContainer />
     </div>
   );
-}
+};
 
-export default function App() {
+export const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <CalendarProvider>
-        <AtlasAppContent />
-      </CalendarProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <StoreProvider>
+        <MainAppContent />
+      </StoreProvider>
+    </ErrorBoundary>
   );
-}
+};
+
+export default App;

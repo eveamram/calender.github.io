@@ -1,118 +1,121 @@
-export type UserRole = 'owner' | 'editor' | 'viewer';
-export type ViewMode = 'month' | 'week' | 'day' | 'schedule' | 'agenda';
+export type ProfilePersona = 'Eve' | 'Abbie' | 'Both';
+
+export type AppTab =
+  | 'calendar'
+  | 'classes'
+  | 'todo'
+  | 'habits'
+  | 'grocery'
+  | 'meals'
+  | 'books';
 
 export type EventType =
   | 'class'
-  | 'task'
   | 'exam'
+  | 'assignment'
   | 'appointment'
   | 'birthday'
   | 'trip'
   | 'personal'
   | 'meeting'
+  | 'work'
   | 'study'
-  | 'School'
-  | 'Event'
-  | 'Personal'
-  | 'Other';
-
-export interface UserProfile {
-  id: string;
-  email: string;
-  display_name: string;
-  profile_color?: string;
-  avatar_url?: string;
-  is_admin?: boolean;
-}
-
-export type EventCategory = EventType;
-
-export interface CategoryColor {
-  label: string;
-  type: EventType;
-  color: string;
-  textColor: string;
-  emoji?: string;
-}
-
-export const CATEGORY_COLORS: CategoryColor[] = [
-  { label: 'Class', type: 'class', color: '#3B82F6', textColor: '#FFFFFF', emoji: '📚' },
-  { label: 'Task', type: 'task', color: '#F59E0B', textColor: '#FFFFFF', emoji: '📝' },
-  { label: 'Exam', type: 'exam', color: '#EF4444', textColor: '#FFFFFF', emoji: '📝' },
-  { label: 'Appointment', type: 'appointment', color: '#10B981', textColor: '#FFFFFF', emoji: '🩺' },
-  { label: 'Birthday', type: 'birthday', color: '#EC4899', textColor: '#FFFFFF', emoji: '🎂' },
-  { label: 'Trip', type: 'trip', color: '#8B5CF6', textColor: '#FFFFFF', emoji: '✈️' },
-  { label: 'Personal', type: 'personal', color: '#06B6D4', textColor: '#FFFFFF', emoji: '☕' },
-  { label: 'Study', type: 'study', color: '#6366F1', textColor: '#FFFFFF', emoji: '💡' },
-];
+  | 'task';
 
 export interface CalendarEvent {
   id: string;
-  calendar_id?: string;
-  owner_user_id?: string | null;
-  created_by?: string;
   title: string;
-  description?: string;
-  event_type: EventType | string;
-  event_date?: string;
-  due_date?: string;
-  start_time?: string;
-  end_time?: string;
-  is_all_day?: boolean;
+  event_type: EventType;
+  event_date: string; // YYYY-MM-DD
+  start_time?: string; // HH:MM
+  end_time?: string;   // HH:MM
   location?: string;
   color?: string;
-  emoji?: string;
-  course?: string;
-  instructor?: string;
-  is_completed?: boolean;
-  is_anniversary?: boolean;
-  show_on_calendar?: boolean; // Specific toggle per to-do item
-  priority?: 'high' | 'normal' | 'low';
-  recurrence_days?: number[]; // 1 = Mon, 2 = Tue, 3 = Wed, 4 = Thu, 5 = Fri, 6 = Sat, 7 = Sun
-  term_start_date?: string; // e.g. "2026-08-24"
-  term_end_date?: string; // e.g. "2026-12-04"
-  notes?: string;
-  image_url?: string;
-  reminder_minutes?: number;
+  task_id?: string;
+  profile?: ProfilePersona;
   created_at?: string;
   updated_at?: string;
 }
 
-export interface SharedCalendar {
+export interface ClassItem {
   id: string;
   name: string;
-  description?: string;
-  created_by: string;
-  invite_code?: string;
-  created_at: string;
+  instructor?: string;
+  room?: string;
+  start_time: string; // HH:MM
+  end_time: string;   // HH:MM
+  days_of_week: number[]; // 1=Mon, 2=Tue, ..., 7=Sun
+  color?: string;
+  profile?: ProfilePersona;
+  created_at?: string;
+  updated_at?: string;
 }
 
-export type Calendar = SharedCalendar;
-
-export interface CalendarMember {
+export interface TaskItem {
   id: string;
-  calendar_id: string;
-  user_id: string;
-  role?: UserRole;
-  display_name: string;
-  profile_color?: string;
-  avatar_url?: string;
-  joined_at?: string;
+  title: string;
+  is_completed: boolean;
+  due_date?: string; // YYYY-MM-DD
+  due_time?: string; // HH:MM
+  priority?: 'low' | 'normal' | 'high';
+  profile?: ProfilePersona;
+  created_at?: string;
+  updated_at?: string;
 }
 
-export interface FilterState {
-  searchQuery?: string;
-  search?: string;
-  selectedCategories?: string[];
-  selectedMembers?: string[];
-  showCompleted?: boolean;
-  tabFilter?: string;
-  eventTypeFilter?: string;
-  personFilter?: string;
-  courseFilter?: string;
+export interface HabitItem {
+  id: string;
+  title: string;
+  emoji?: string;
+  target_quantity?: number;
+  target_unit?: string;
+  active_days?: number[]; // 1..7
+  color?: string;
+  profile?: ProfilePersona;
+  created_at?: string;
+  updated_at?: string;
 }
 
-export type AppTab = 'calendar' | 'schedule' | 'todo' | 'habits' | 'grocery' | 'meals' | 'books';
+export interface HabitCompletion {
+  id: string;
+  habit_id: string;
+  date: string; // YYYY-MM-DD
+  completed: boolean;
+  current_quantity?: number;
+  created_at?: string;
+}
+
+export type GroceryCategory =
+  | 'Produce'
+  | 'Dairy'
+  | 'Bakery'
+  | 'Pantry'
+  | 'Household'
+  | 'Other';
+
+export interface GroceryItem {
+  id: string;
+  name: string;
+  quantity?: string;
+  category: GroceryCategory;
+  is_completed: boolean;
+  profile?: ProfilePersona;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+
+export interface MealItem {
+  id: string;
+  title: string;
+  day_of_week: number; // 1=Mon, ..., 7=Sun
+  meal_type: MealType;
+  notes?: string;
+  profile?: ProfilePersona;
+  created_at?: string;
+  updated_at?: string;
+}
 
 export type BookStatus = 'reading' | 'want_to_read' | 'completed';
 
@@ -121,16 +124,25 @@ export interface BookItem {
   title: string;
   author: string;
   status: BookStatus;
+  current_page?: number;
   total_pages?: number;
-  eve_current_page?: number;
-  abbie_current_page?: number;
-  eve_rating?: number; // 1-5
-  abbie_rating?: number; // 1-5
-  cover_color?: string;
-  cover_url?: string;
+  rating?: number; // 1-5
   genre?: string;
-  completed_date?: string;
-  thoughts_notes?: string;
-  created_at: string;
+  profile?: ProfilePersona;
+  created_at?: string;
   updated_at?: string;
 }
+
+export const CATEGORY_METAS: Record<EventType, { label: string; color: string }> = {
+  class: { label: 'Class', color: '#2563eb' },       // blue
+  exam: { label: 'Exam', color: '#dc2626' },         // red
+  assignment: { label: 'Assignment', color: '#ea580c' }, // orange
+  appointment: { label: 'Appointment', color: '#7c3aed' }, // purple
+  birthday: { label: 'Birthday', color: '#db2777' }, // pink
+  trip: { label: 'Trip', color: '#059669' },         // emerald
+  personal: { label: 'Personal', color: '#475569' }, // slate
+  meeting: { label: 'Meeting', color: '#0284c7' },   // sky
+  work: { label: 'Work', color: '#4f46e5' },         // indigo
+  study: { label: 'Study', color: '#d97706' },       // amber
+  task: { label: 'Task', color: '#2563eb' },         // blue
+};

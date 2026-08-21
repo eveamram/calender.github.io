@@ -1,520 +1,178 @@
-import React, { useState, useEffect } from 'react';
-import { useCalendar } from '../../context/CalendarContext';
-import { ShoppingBag, Plus, Check, Trash2, Tag, Search, Sparkles, X } from 'lucide-react';
-import { subscribeToSync, syncInsertItem, syncUpdateItem, syncDeleteItem, fetchInitialData, startAutoPolling } from '../../lib/syncEngine';
+import React, { useState, useMemo } from 'react';
+import { useStore } from '../../context/StoreContext';
+import { GroceryCategory, GroceryItem } from '../../types';
+import { CheckSquare, Square, Plus, Trash2, ShoppingBag } from 'lucide-react';
 
-export interface GroceryItem {
-  id: string;
-  name: string;
-  category: string;
-  purchased: boolean;
-  owner: 'Eve' | 'Abbie' | 'Both';
-  createdAt: string;
-}
-
-const DEFAULT_GROCERY_ITEMS: GroceryItem[] = [
-  { id: '1', name: 'Bananas', category: 'Produce', purchased: false, owner: 'Both', createdAt: new Date().toISOString() },
-  { id: '2', name: 'Organic Milk', category: 'Dairy & Eggs', purchased: false, owner: 'Eve', createdAt: new Date().toISOString() },
-  { id: '3', name: 'Greek Yogurt', category: 'Dairy & Eggs', purchased: true, owner: 'Abbie', createdAt: new Date().toISOString() },
-  { id: '4', name: 'Almond Butter', category: 'Pantry', purchased: false, owner: 'Both', createdAt: new Date().toISOString() },
-];
-
-const CATEGORIES = ['All', 'Produce', 'Dairy & Eggs', 'Pantry', 'Snacks & Drinks', 'Household', 'Other'];
-
-const QUICK_SUGGESTIONS = [
-  { name: 'Eggs 🥚', category: 'Dairy & Eggs' },
-  { name: 'Avocados 🥑', category: 'Produce' },
-  { name: 'Coffee ☕', category: 'Snacks & Drinks' },
-  { name: 'Sourdough 🍞', category: 'Pantry' },
-  { name: 'Spinach 🥬', category: 'Produce' },
-  { name: 'Oat Milk 🥛', category: 'Dairy & Eggs' },
-];
+const CATEGORIES: GroceryCategory[] = ['Produce', 'Dairy', 'Bakery', 'Pantry', 'Household', 'Other'];
 
 export const GroceryView: React.FC = () => {
-  const { activePersonaFilter } = useCalendar();
-  const [items, setItems] = useState<GroceryItem[]>(DEFAULT_GROCERY_ITEMS);
+  const { groceryItems, addGroceryItem, toggleGroceryComplete, deleteGroceryItem, filterByProfile, activeProfile, profileColors } =
+    useStore();
 
-  const [newItemName, setNewItemName] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('Produce');
-  const [filterCategory, setFilterCategory] = useState('All');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [name, setName] = useState('');
+  const [quantity, setQuantity] = useState('');
+  const [category, setCategory] = useState<GroceryCategory>('Produce');
 
-  useEffect(() => {
-    fetchInitialData<GroceryItem>('grocery_items').then((remoteItems) => {
-      if (remoteItems && remoteItems.length > 0) {
-        setItems(remoteItems);
+  const filteredItems = useMemo(() => {
+    return filterByProfile(groceryItems);
+  }, [groceryItems, filterByProfile]);
+
+  const itemsByCategory = useMemo(() => {
+    const map = new Map<GroceryCategory, GroceryItem[]>();
+    CATEGORIES.forEach((cat) => map.set(cat, []));
+
+    filteredItems.forEach((item) => {
+      if (map.has(item.category)) {
+        map.get(item.category)!.push(item);
+      } else {
+        map.get('Other')!.push(item);
       }
     });
 
-    const stopPolling = startAutoPolling<GroceryItem>('grocery_items', (remoteItems) => {
-      if (remoteItems && remoteItems.length > 0) {
-        setItems(remoteItems);
-      }
-    }, 2500);
+    return map;
+  }, [filteredItems]);
 
-    const unsubscribe = subscribeToSync('grocery_items', (event) => {
-      if (event.type === 'INSERT' && event.payload) {
-        const item = event.payload as GroceryItem;
-        setItems((prev) => (prev.some((g) => g.id === item.id) ? prev : [item, ...prev]));
-      } else if (event.type === 'UPDATE' && event.id) {
-        setItems((prev) =>
-          prev.map((g) => (g.id === event.id ? { ...g, ...event.payload } : g))
-        );
-      } else if (event.type === 'DELETE' && event.id) {
-        setItems((prev) => prev.filter((g) => g.id !== event.id));
-      }
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+
+    await addGroceryItem({
+      name: name.trim(),
+      quantity: quantity.trim() || undefined,
+      category,
+      is_completed: false,
+      profile: activeProfile === 'Both' ? 'Eve' : activeProfile,
     });
-    return () => {
-      stopPolling();
-      unsubscribe();
-    };
-  }, []);
 
-  const handleAddItem = (e?: React.FormEvent, customName?: string, customCategory?: string) => {
-    if (e) e.preventDefault();
-    const nameToAdd = customName || newItemName;
-    if (!nameToAdd.trim()) return;
-
-    const newItem: GroceryItem = {
-      id: Date.now().toString(),
-      name: nameToAdd.trim(),
-      category: customCategory || selectedCategory,
-      purchased: false,
-      owner: activePersonaFilter === 'all' ? 'Both' : activePersonaFilter,
-      createdAt: new Date().toISOString(),
-    };
-
-    setItems((prev) => [newItem, ...prev]);
-    syncInsertItem('grocery_items', newItem);
-    if (!customName) setNewItemName('');
+    setName('');
+    setQuantity('');
   };
-
-  const toggleItem = (id: string) => {
-    const target = items.find((i) => i.id === id);
-    if (!target) return;
-
-    const nextState = !target.purchased;
-    setItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, purchased: nextState } : item))
-    );
-    syncUpdateItem('grocery_items', id, { purchased: nextState });
-  };
-
-  const deleteItem = (id: string) => {
-    setItems((prev) => prev.filter((item) => item.id !== id));
-    syncDeleteItem('grocery_items', id);
-  };
-
-  const clearPurchased = () => {
-    const purchasedIds = items.filter((i) => i.purchased).map((i) => i.id);
-    setItems((prev) => prev.filter((i) => !i.purchased));
-    purchasedIds.forEach((id) => syncDeleteItem('grocery_items', id));
-  };
-
-  const filteredItems = items.filter((item) => {
-    if (activePersonaFilter !== 'all' && item.owner !== activePersonaFilter && item.owner !== 'Both') {
-      return false;
-    }
-    if (filterCategory !== 'All' && item.category !== filterCategory) {
-      return false;
-    }
-    if (searchQuery.trim() && !item.name.toLowerCase().includes(searchQuery.toLowerCase().trim())) {
-      return false;
-    }
-    return true;
-  });
-
-  const activeItems = filteredItems.filter((i) => !i.purchased);
-  const completedItems = filteredItems.filter((i) => i.purchased);
 
   return (
-    <div style={{
-      maxWidth: '650px',
-      margin: '0 auto',
-      paddingBottom: '5rem',
-      fontFamily: "'Plus Jakarta Sans', sans-serif",
-    }}>
-      {/* Header */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: '1.25rem',
-        flexWrap: 'wrap',
-        gap: '0.75rem',
-      }}>
+    <div className="space-y-6 max-w-4xl mx-auto px-4 md:px-8 py-6">
+      <div className="flex items-center justify-between border-b border-slate-200/80 pb-4">
         <div>
-          <h2 style={{
-            fontSize: '1.35rem',
-            fontWeight: 800,
-            color: 'var(--text-primary)',
-            letterSpacing: '-0.02em',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            margin: 0,
-          }}>
-            Grocery List <ShoppingBag size={20} color="#10B981" />
-          </h2>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px', margin: 0 }}>
-            {activePersonaFilter === 'all' ? 'Shared store list for Eve & Abbie' : `Store list for ${activePersonaFilter}`}
-          </p>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Grocery List</h1>
+          <p className="text-xs text-slate-500 font-medium">Shared store checklist synced across all devices</p>
         </div>
-
-        {completedItems.length > 0 && (
-          <button
-            type="button"
-            onClick={clearPurchased}
-            style={{
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              color: '#EF4444',
-              backgroundColor: 'rgba(239, 68, 68, 0.1)',
-              border: 'none',
-              padding: '0.35rem 0.75rem',
-              borderRadius: '999px',
-              cursor: 'pointer',
-            }}
-          >
-            Clear Purchased ({completedItems.length})
-          </button>
-        )}
       </div>
 
-      {/* Fast Mobile Entry Bar */}
-      <form
-        onSubmit={handleAddItem}
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.5rem',
-          backgroundColor: 'var(--bg-secondary)',
-          padding: '0.85rem',
-          borderRadius: '16px',
-          border: '1px solid var(--border-color)',
-          marginBottom: '1.25rem',
-          boxShadow: 'var(--shadow-subtle)',
-        }}
-      >
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+      <form onSubmit={handleAdd} className="bg-white rounded-2xl p-3 border border-slate-200/80 shadow-xs space-y-3">
+        <div className="flex flex-col sm:flex-row items-center gap-2">
           <input
             type="text"
-            placeholder="Add item (e.g. Eggs, Coffee)..."
-            value={newItemName}
-            onChange={(e) => setNewItemName(e.target.value)}
-            style={{
-              flex: 1,
-              padding: '0.7rem 0.9rem',
-              borderRadius: '10px',
-              border: '1px solid var(--border-color)',
-              backgroundColor: 'var(--bg-hover)',
-              color: 'var(--text-primary)',
-              fontSize: '0.9rem',
-              outline: 'none',
-            }}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Item name (e.g. Milk, Bananas)"
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
           />
+          <input
+            type="text"
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+            placeholder="Qty (optional)"
+            className="w-full sm:w-32 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+          />
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value as GroceryCategory)}
+            className="w-full sm:w-36 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 font-medium focus:outline-none"
+          >
+            {CATEGORIES.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
           <button
             type="submit"
-            disabled={!newItemName.trim()}
-            style={{
-              padding: '0.7rem 1.1rem',
-              borderRadius: '10px',
-              border: 'none',
-              backgroundColor: newItemName.trim() ? '#10B981' : 'var(--bg-hover)',
-              color: newItemName.trim() ? '#FFFFFF' : 'var(--text-muted)',
-              fontWeight: 800,
-              fontSize: '0.9rem',
-              cursor: newItemName.trim() ? 'pointer' : 'default',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minHeight: '44px',
-              transition: 'all 0.15s ease',
-            }}
+            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2.5 rounded-xl text-xs flex items-center justify-center gap-1 shrink-0 transition-colors"
           >
-            <Plus size={18} />
+            <Plus className="w-4 h-4" />
+            <span>Add</span>
           </button>
-        </div>
-
-        {/* Category Pill Selector for New Item */}
-        <div style={{
-          display: 'flex',
-          gap: '0.35rem',
-          overflowX: 'auto',
-          paddingBottom: '2px',
-        }}>
-          {CATEGORIES.filter((c) => c !== 'All').map((cat) => (
-            <button
-              key={cat}
-              type="button"
-              onClick={() => setSelectedCategory(cat)}
-              style={{
-                padding: '0.25rem 0.6rem',
-                borderRadius: '999px',
-                border: selectedCategory === cat ? '1px solid #10B981' : '1px solid var(--border-color)',
-                backgroundColor: selectedCategory === cat ? '#10B9811A' : 'transparent',
-                color: selectedCategory === cat ? '#10B981' : 'var(--text-muted)',
-                fontSize: '0.725rem',
-                fontWeight: 700,
-                whiteSpace: 'nowrap',
-                cursor: 'pointer',
-              }}
-            >
-              {cat}
-            </button>
-          ))}
         </div>
       </form>
 
-      {/* Quick Tap Item Suggestions */}
-      <div style={{ marginBottom: '1.25rem' }}>
-        <div style={{ fontSize: '0.725rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.4rem', letterSpacing: '0.04em' }}>
-          Quick Add Staples
-        </div>
-        <div style={{ display: 'flex', gap: '0.35rem', overflowX: 'auto', paddingBottom: '4px' }}>
-          {QUICK_SUGGESTIONS.map((sug) => (
-            <button
-              key={sug.name}
-              type="button"
-              onClick={() => handleAddItem(undefined, sug.name, sug.category)}
-              style={{
-                padding: '0.3rem 0.65rem',
-                borderRadius: '999px',
-                border: '1px solid var(--border-subtle)',
-                backgroundColor: 'var(--bg-secondary)',
-                color: 'var(--text-primary)',
-                fontSize: '0.775rem',
-                fontWeight: 700,
-                whiteSpace: 'nowrap',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '3px',
-              }}
-            >
-              <Plus size={12} color="#10B981" /> {sug.name}
-            </button>
-          ))}
-        </div>
-      </div>
+      <div className="space-y-6">
+        {CATEGORIES.map((cat) => {
+          const items = itemsByCategory.get(cat) || [];
+          if (items.length === 0) return null;
 
-      {/* Search & Category Filter Row */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.4rem',
-          backgroundColor: 'var(--bg-secondary)',
-          padding: '0.4rem 0.75rem',
-          borderRadius: '999px',
-          border: '1px solid var(--border-color)',
-          flex: 1,
-          minWidth: '180px',
-        }}>
-          <Search size={14} color="var(--text-muted)" />
-          <input
-            type="text"
-            placeholder="Search groceries..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              border: 'none',
-              background: 'transparent',
-              outline: 'none',
-              fontSize: '0.8rem',
-              color: 'var(--text-primary)',
-              width: '100%',
-            }}
-          />
-          {searchQuery && (
-            <X size={13} color="var(--text-muted)" style={{ cursor: 'pointer' }} onClick={() => setSearchQuery('')} />
-          )}
-        </div>
+          return (
+            <div key={cat} className="space-y-2.5">
+              <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">
+                {cat} ({items.length})
+              </h2>
 
-        {/* Filter Pill */}
-        <select
-          value={filterCategory}
-          onChange={(e) => setFilterCategory(e.target.value)}
-          style={{
-            padding: '0.4rem 0.75rem',
-            borderRadius: '999px',
-            border: '1px solid var(--border-color)',
-            backgroundColor: 'var(--bg-secondary)',
-            color: 'var(--text-primary)',
-            fontSize: '0.8rem',
-            fontWeight: 700,
-            outline: 'none',
-          }}
-        >
-          {CATEGORIES.map((c) => (
-            <option key={c} value={c}>{c === 'All' ? 'All Categories' : c}</option>
-          ))}
-        </select>
-      </div>
+              <div className="space-y-2">
+                {items.map((item) => {
+                  const ownerName = item.profile || 'Eve';
+                  const badgeColor = profileColors[ownerName] || '#2563eb';
 
-      {/* Active Items List */}
-      {activeItems.length === 0 && completedItems.length === 0 ? (
-        <div style={{
-          textAlign: 'center',
-          padding: '2.5rem 1rem',
-          backgroundColor: 'var(--bg-secondary)',
-          borderRadius: '16px',
-          border: '1px solid var(--border-subtle)',
-          color: 'var(--text-muted)',
-          fontSize: '0.9rem',
-        }}>
-          No items found in your grocery list.
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-          {activeItems.map((item) => (
-            <div
-              key={item.id}
-              onClick={() => toggleItem(item.id)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '0.85rem 1rem',
-                borderRadius: '14px',
-                backgroundColor: 'var(--bg-secondary)',
-                border: '1px solid var(--border-color)',
-                cursor: 'pointer',
-                minHeight: '52px',
-                boxShadow: 'var(--shadow-subtle)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{
-                  width: '24px',
-                  height: '24px',
-                  borderRadius: '50%',
-                  border: '2px solid var(--border-color)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }} />
-
-                <div>
-                  <span style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    {item.name}
-                  </span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '2px' }}>
-                    <span style={{ fontSize: '0.675rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-                      <Tag size={10} style={{ display: 'inline', marginRight: '2px' }} />
-                      {item.category}
-                    </span>
-                    {item.owner !== 'Both' && (
-                      <span style={{
-                        fontSize: '0.65rem',
-                        fontWeight: 800,
-                        color: item.owner === 'Eve' ? '#EC4899' : '#3B82F6',
-                        backgroundColor: 'var(--bg-hover)',
-                        padding: '1px 5px',
-                        borderRadius: '4px',
-                      }}>
-                        {item.owner}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deleteItem(item.id);
-                }}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
-                  padding: '6px',
-                }}
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
-          ))}
-
-          {/* Completed Items Section */}
-          {completedItems.length > 0 && (
-            <div style={{ marginTop: '1.5rem' }}>
-              <div style={{
-                fontSize: '0.75rem',
-                fontWeight: 800,
-                textTransform: 'uppercase',
-                color: 'var(--text-muted)',
-                letterSpacing: '0.04em',
-                marginBottom: '0.65rem',
-              }}>
-                Purchased ({completedItems.length})
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {completedItems.map((item) => (
-                  <div
-                    key={item.id}
-                    onClick={() => toggleItem(item.id)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '0.7rem 1rem',
-                      borderRadius: '12px',
-                      backgroundColor: 'var(--bg-hover)',
-                      border: '1px solid var(--border-subtle)',
-                      opacity: 0.65,
-                      cursor: 'pointer',
-                      minHeight: '48px',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <div style={{
-                        width: '22px',
-                        height: '22px',
-                        borderRadius: '50%',
-                        backgroundColor: '#10B981',
-                        color: '#FFFFFF',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                      }}>
-                        <Check size={14} />
-                      </div>
-                      <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-muted)', textDecoration: 'line-through' }}>
-                        {item.name}
-                      </span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteItem(item.id);
-                      }}
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: 'var(--text-muted)',
-                        cursor: 'pointer',
-                        padding: '6px',
-                      }}
+                  return (
+                    <div
+                      key={item.id}
+                      className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all ${
+                        item.is_completed
+                          ? 'bg-slate-50/50 border-slate-100 opacity-60'
+                          : 'bg-white border-slate-200/80 shadow-xs'
+                      }`}
                     >
-                      <Trash2 size={15} />
-                    </button>
-                  </div>
-                ))}
+                      <button
+                        onClick={() => toggleGroceryComplete(item.id)}
+                        className="flex items-center gap-3 text-left flex-1 min-w-0 touch-target"
+                      >
+                        {item.is_completed ? (
+                          <CheckSquare className="w-5 h-5 text-emerald-500 shrink-0" />
+                        ) : (
+                          <Square className="w-5 h-5 text-slate-300 shrink-0" />
+                        )}
+                        <span
+                          className={`text-sm font-semibold text-slate-900 truncate ${
+                            item.is_completed ? 'line-through text-slate-400' : ''
+                          }`}
+                        >
+                          {item.name}
+                        </span>
+                        {item.quantity && (
+                          <span className="text-xs font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md shrink-0">
+                            {item.quantity}
+                          </span>
+                        )}
+                      </button>
+
+                      <div className="flex items-center gap-2">
+                        {activeProfile === 'Both' && (
+                          <span
+                            className="text-[10px] font-bold text-white px-2 py-0.5 rounded-md"
+                            style={{ backgroundColor: badgeColor }}
+                          >
+                            {ownerName}
+                          </span>
+                        )}
+                        <button
+                          onClick={() => deleteGroceryItem(item.id)}
+                          className="text-slate-300 hover:text-red-500 p-2 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          )}
-        </div>
-      )}
+          );
+        })}
+
+        {filteredItems.length === 0 && (
+          <div className="bg-white rounded-2xl p-10 border border-slate-200/80 text-center space-y-2">
+            <ShoppingBag className="w-8 h-8 mx-auto text-slate-300 stroke-[1.5]" />
+            <p className="text-sm font-medium text-slate-500">Your grocery list is empty</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
-

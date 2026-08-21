@@ -1,485 +1,310 @@
 import React, { useState } from 'react';
-import { AppLogo } from '../ui/AppLogo';
-import { Calendar as CalendarIcon, GraduationCap, CheckSquare, Settings, Plus, Palette, Check, Sparkles, Flame, MoreHorizontal, ShoppingBag, Utensils, FileText, ChevronDown, BookOpen } from 'lucide-react';
-import { useCalendar } from '../../context/CalendarContext';
-import { AppTab } from '../../types';
+import { useStore } from '../../context/StoreContext';
+import { AppTab, ProfilePersona } from '../../types';
+import {
+  Calendar,
+  BookOpen,
+  CheckSquare,
+  Sparkles,
+  ShoppingBag,
+  Utensils,
+  BookMarked,
+  User,
+  Users,
+  Plus,
+  Palette,
+  X,
+  Settings,
+  RotateCcw,
+  Heart,
+  ShieldCheck,
+} from 'lucide-react';
 
 interface HeaderProps {
-  activeTab: AppTab;
-  setActiveTab: (tab: AppTab) => void;
-  onOpenAddEvent: () => void;
-  onOpenPersonModal?: () => void;
-  onOpenSettings?: () => void;
+  onOpenAddModal: () => void;
 }
 
-const THEME_ACCENT_COLORS = [
-  { name: 'Sapphire Blue', hex: '#3B82F6' },
-  { name: 'Rose Pink', hex: '#EC4899' },
-  { name: 'Emerald Green', hex: '#10B981' },
-  { name: 'Royal Violet', hex: '#8B5CF6' },
-  { name: 'Sunset Amber', hex: '#F59E0B' },
+const PERSONA_COLORS = [
+  { label: 'Royal Blue', hex: '#2563eb' },
+  { label: 'Vibrant Pink', hex: '#ec4899' },
+  { label: 'Purple', hex: '#7c3aed' },
+  { label: 'Emerald', hex: '#059669' },
+  { label: 'Rose', hex: '#e11d48' },
+  { label: 'Amber', hex: '#d97706' },
+  { label: 'Cyan', hex: '#0891b2' },
+  { label: 'Indigo', hex: '#4f46e5' },
 ];
 
-export const Header: React.FC<HeaderProps> = ({
-  activeTab,
-  setActiveTab,
-  onOpenAddEvent,
-  onOpenPersonModal,
-  onOpenSettings,
-}) => {
-  const { activePersonaFilter, setActivePersonaFilter, themeColor, setThemeColor } = useCalendar();
-  const [showColorPicker, setShowColorPicker] = useState(false);
-  const [showMoreMenu, setShowMoreMenu] = useState(false);
+export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
+  const {
+    activeProfile,
+    setActiveProfile,
+    activeTab,
+    setActiveTab,
+    profileColors,
+    setProfileColor,
+    clearCalendarEventsExceptAnniversaries,
+    clearAnniversariesOnly,
+  } = useStore();
 
-  const handleOpenProfile = onOpenPersonModal || onOpenSettings || (() => {});
+  const [colorPickerTarget, setColorPickerTarget] = useState<ProfilePersona | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  const isMoreActive = activeTab === 'grocery' || activeTab === 'meals' || activeTab === 'books';
+  const navItems: { tab: AppTab; label: string; icon: React.ReactNode }[] = [
+    { tab: 'calendar', label: 'Calendar', icon: <Calendar className="w-4 h-4" /> },
+    { tab: 'classes', label: 'Classes', icon: <BookOpen className="w-4 h-4" /> },
+    { tab: 'todo', label: 'To-Do', icon: <CheckSquare className="w-4 h-4" /> },
+    { tab: 'habits', label: 'Habits', icon: <Sparkles className="w-4 h-4" /> },
+    { tab: 'grocery', label: 'Grocery', icon: <ShoppingBag className="w-4 h-4" /> },
+    { tab: 'meals', label: 'Meals', icon: <Utensils className="w-4 h-4" /> },
+    { tab: 'books', label: 'Books', icon: <BookMarked className="w-4 h-4" /> },
+  ];
+
+  const profiles: ProfilePersona[] = ['Eve', 'Abbie', 'Both'];
+
+  const handleResetCalendarKeepAnniversaries = async () => {
+    if (window.confirm('Reset all calendar events? (Your anniversaries & birthdays will NOT be deleted)')) {
+      await clearCalendarEventsExceptAnniversaries();
+      setIsSettingsOpen(false);
+    }
+  };
+
+  const handleResetAnniversariesOnly = async () => {
+    if (window.confirm('Are you sure you want to reset ONLY your anniversaries and birthdays?')) {
+      await clearAnniversariesOnly();
+      setIsSettingsOpen(false);
+    }
+  };
 
   return (
-    <header style={{
-      backgroundColor: 'var(--bg-secondary)',
-      borderBottom: '1px solid var(--border-color)',
-      padding: '0.85rem 1.5rem',
-      position: 'sticky',
-      top: 0,
-      zIndex: 100,
-      backdropFilter: 'blur(8px)',
-      fontFamily: "'Plus Jakarta Sans', sans-serif",
-    }}>
-      <div style={{
-        maxWidth: '1400px',
-        margin: '0 auto',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '1rem',
-      }}>
-        {/* Custom Apple-Style Calendar Logo matching image */}
-        <AppLogo
-          size={36}
-          fontSize="1.25rem"
-          onClick={() => setActiveTab('calendar')}
-        />
-
-        {/* Core Connected Views: Calendar | Class Schedule | To-Do List | Habits | More... */}
-        <nav style={{
-          display: 'flex',
-          alignItems: 'center',
-          backgroundColor: 'var(--bg-hover)',
-          padding: '3px',
-          borderRadius: '999px',
-          border: '1px solid var(--border-color)',
-          position: 'relative',
-        }}>
+    <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 md:px-8 py-3">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+        {/* Left: White Logo Badge & Desktop Navigation */}
+        <div className="flex items-center gap-6">
           <button
-            type="button"
             onClick={() => setActiveTab('calendar')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              padding: '0.45rem 0.9rem',
-              borderRadius: '999px',
-              border: 'none',
-              backgroundColor: activeTab === 'calendar' ? 'var(--bg-secondary)' : 'transparent',
-              color: activeTab === 'calendar' ? 'var(--accent-primary)' : 'var(--text-secondary)',
-              fontWeight: 700,
-              fontSize: '0.825rem',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
+            className="flex items-center gap-2.5 text-left group focus:outline-none"
           >
-            <CalendarIcon size={15} /> Calendar
+            <div className="w-9 h-9 rounded-xl bg-white border border-slate-200/90 flex items-center justify-center text-blue-600 shadow-sm group-hover:border-blue-300 transition-colors">
+              <Calendar className="w-5 h-5 stroke-[2.2]" />
+            </div>
+            <span className="text-xl font-black tracking-tight text-slate-900">
+              calender<span className="text-blue-600">.</span>
+            </span>
           </button>
 
+          {/* Desktop Nav Items */}
+          <nav className="hidden lg:flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl border border-slate-200/50">
+            {navItems.map((item) => {
+              const isActive = activeTab === item.tab;
+              return (
+                <button
+                  key={item.tab}
+                  onClick={() => setActiveTab(item.tab)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                    isActive
+                      ? 'bg-white text-slate-900 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                  }`}
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* Center: Prominent Add Button (Positioned in Middle) */}
+        <div className="flex-1 flex justify-center max-w-xs">
           <button
-            type="button"
-            onClick={() => setActiveTab('schedule')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              padding: '0.45rem 0.9rem',
-              borderRadius: '999px',
-              border: 'none',
-              backgroundColor: activeTab === 'schedule' ? 'var(--bg-secondary)' : 'transparent',
-              color: activeTab === 'schedule' ? 'var(--accent-primary)' : 'var(--text-secondary)',
-              fontWeight: 700,
-              fontSize: '0.825rem',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
+            onClick={onOpenAddModal}
+            className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold px-5 py-2 rounded-xl text-sm shadow-md shadow-blue-500/25 transition-all w-full sm:w-auto cursor-pointer"
           >
-            <GraduationCap size={15} /> Class Schedule
+            <Plus className="w-4 h-4 stroke-[3]" />
+            <span>Add Item</span>
           </button>
+        </div>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('todo')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              padding: '0.45rem 0.9rem',
-              borderRadius: '999px',
-              border: 'none',
-              backgroundColor: activeTab === 'todo' ? 'var(--bg-secondary)' : 'transparent',
-              color: activeTab === 'todo' ? 'var(--accent-primary)' : 'var(--text-secondary)',
-              fontWeight: 700,
-              fontSize: '0.825rem',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <CheckSquare size={15} /> To-Do List
-          </button>
+        {/* Right: Persona Switcher & Settings Button */}
+        <div className="flex items-center gap-2">
+          {/* Persona Picker */}
+          <div className="flex items-center bg-slate-100/90 p-1 rounded-xl border border-slate-200/60">
+            {profiles.map((p) => {
+              const isSelected = activeProfile === p;
+              const currentColor = profileColors[p] || (p === 'Eve' ? '#2563eb' : p === 'Abbie' ? '#ec4899' : '#059669');
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('habits')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              padding: '0.45rem 0.9rem',
-              borderRadius: '999px',
-              border: 'none',
-              backgroundColor: activeTab === 'habits' ? 'var(--bg-secondary)' : 'transparent',
-              color: activeTab === 'habits' ? 'var(--accent-primary)' : 'var(--text-secondary)',
-              fontWeight: 700,
-              fontSize: '0.825rem',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <Flame size={15} /> Habits
-          </button>
-
-          {/* Desktop More Options Dropdown Button */}
-          <div style={{ position: 'relative' }}>
-            <button
-              type="button"
-              onClick={() => setShowMoreMenu(!showMoreMenu)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-                padding: '0.45rem 0.9rem',
-                borderRadius: '999px',
-                border: 'none',
-                backgroundColor: activeTab === 'grocery' ? 'var(--bg-secondary)' : 'transparent',
-                color: activeTab === 'grocery' ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                fontWeight: 700,
-                fontSize: '0.825rem',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <MoreHorizontal size={15} />
-              <span>
-                {activeTab === 'grocery' ? 'Grocery' : activeTab === 'meals' ? 'Meals' : 'More'}
-              </span>
-              <ChevronDown size={12} style={{ transform: showMoreMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
-            </button>
-
-            {/* More Popover Dropdown Menu */}
-            {showMoreMenu && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: 'calc(100% + 8px)',
-                  right: 0,
-                  backgroundColor: 'var(--bg-secondary)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '16px',
-                  boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
-                  padding: '0.5rem',
-                  minWidth: '200px',
-                  zIndex: 200,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.25rem',
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('grocery');
-                    setShowMoreMenu(false);
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.65rem',
-                    padding: '0.65rem 0.85rem',
-                    borderRadius: '10px',
-                    border: 'none',
-                    backgroundColor: activeTab === 'grocery' ? 'var(--accent-light)' : 'transparent',
-                    color: activeTab === 'grocery' ? '#10B981' : 'var(--text-primary)',
-                    fontWeight: 700,
-                    fontSize: '0.875rem',
-                    cursor: 'pointer',
-                    width: '100%',
-                    textAlign: 'left',
-                  }}
-                >
-                  <ShoppingBag size={16} color="#10B981" /> Grocery List
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('meals');
-                    setShowMoreMenu(false);
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.65rem',
-                    padding: '0.65rem 0.85rem',
-                    borderRadius: '10px',
-                    border: 'none',
-                    backgroundColor: activeTab === 'meals' ? 'var(--accent-light)' : 'transparent',
-                    color: activeTab === 'meals' ? '#EC4899' : 'var(--text-primary)',
-                    fontWeight: 700,
-                    fontSize: '0.875rem',
-                    cursor: 'pointer',
-                    width: '100%',
-                    textAlign: 'left',
-                  }}
-                >
-                  <Utensils size={16} color="#EC4899" /> Meal Planner
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('books');
-                    setShowMoreMenu(false);
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.65rem',
-                    padding: '0.65rem 0.85rem',
-                    borderRadius: '10px',
-                    border: 'none',
-                    backgroundColor: activeTab === 'books' ? 'var(--accent-light)' : 'transparent',
-                    color: activeTab === 'books' ? '#6366F1' : 'var(--text-primary)',
-                    fontWeight: 700,
-                    fontSize: '0.875rem',
-                    cursor: 'pointer',
-                    width: '100%',
-                    textAlign: 'left',
-                  }}
-                >
-                  <BookOpen size={16} color="#6366F1" /> Books & Reading
-                </button>
-
-                <div style={{ height: '1px', backgroundColor: 'var(--border-color)', margin: '0.25rem 0' }} />
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowMoreMenu(false);
-                    handleOpenProfile();
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.65rem',
-                    padding: '0.65rem 0.85rem',
-                    borderRadius: '10px',
-                    border: 'none',
-                    backgroundColor: 'transparent',
-                    color: 'var(--text-secondary)',
-                    fontWeight: 700,
-                    fontSize: '0.875rem',
-                    cursor: 'pointer',
-                    width: '100%',
-                    textAlign: 'left',
-                  }}
-                >
-                  <Settings size={16} /> Settings & Sync
-                </button>
-              </div>
-            )}
-          </div>
-        </nav>
-
-        {/* Persona Switcher, Color Theme Picker & Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          {/* Persona Switcher */}
-          <div style={{
-            display: 'flex',
-            backgroundColor: 'var(--bg-hover)',
-            padding: '2px',
-            borderRadius: '999px',
-            border: '1px solid var(--border-color)',
-          }}>
-            {(['Eve', 'Abbie', 'all'] as const).map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setActivePersonaFilter(p)}
-                style={{
-                  padding: '0.3rem 0.75rem',
-                  borderRadius: '999px',
-                  border: 'none',
-                  backgroundColor: activePersonaFilter === p
-                    ? (p === 'Eve' ? '#3B82F6' : p === 'Abbie' ? '#EC4899' : 'var(--text-primary)')
-                    : 'transparent',
-                  color: activePersonaFilter === p ? '#FFFFFF' : 'var(--text-secondary)',
-                  fontWeight: 700,
-                  fontSize: '0.75rem',
-                  cursor: 'pointer',
-                  transition: 'all 0.12s ease',
-                }}
-              >
-                {p === 'all' ? 'Both' : p}
-              </button>
-            ))}
-          </div>
-
-          {/* Color Theme Selector Popover */}
-          <div style={{ position: 'relative' }}>
-            <button
-              type="button"
-              onClick={() => setShowColorPicker(!showColorPicker)}
-              style={{
-                backgroundColor: themeColor || '#3B82F6',
-                border: '2px solid var(--border-color)',
-                borderRadius: '50%',
-                width: '32px',
-                height: '32px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#FFFFFF',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                boxShadow: `0 2px 8px ${themeColor || '#3B82F6'}50`,
-              }}
-              title="Choose Theme Accent Color"
-            >
-              <Palette size={15} />
-            </button>
-
-            {showColorPicker && (
-              <div style={{
-                position: 'absolute',
-                top: '42px',
-                right: 0,
-                backgroundColor: 'var(--bg-secondary)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-md)',
-                padding: '0.85rem',
-                boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.65rem',
-                zIndex: 200,
-                minWidth: '180px',
-              }}>
-                <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                  Choose Theme Color
-                </span>
-                <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
-                  {THEME_ACCENT_COLORS.map((col) => (
-                    <button
-                      key={col.hex}
-                      type="button"
-                      onClick={() => {
-                        setThemeColor(col.hex);
-                        setShowColorPicker(false);
-                      }}
-                      style={{
-                        width: '26px',
-                        height: '26px',
-                        borderRadius: '50%',
-                        backgroundColor: col.hex,
-                        border: themeColor === col.hex ? '2.5px solid var(--text-primary)' : 'none',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#FFFFFF',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                      }}
-                      title={col.name}
-                    >
-                      {themeColor === col.hex && <Check size={13} strokeWidth={3} />}
-                    </button>
-                  ))}
-
-                  {/* Custom Multi-Color Rainbow Picker Icon */}
-                  <div
-                    style={{
-                      width: '28px',
-                      height: '28px',
-                      borderRadius: '50%',
-                      background: 'conic-gradient(from 0deg, #FF0000, #FF7F00, #FFFF00, #00FF00, #00C0FF, #0000FF, #8B00FF, #FF0000)',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      position: 'relative',
-                      cursor: 'pointer',
-                      border: '1.5px solid var(--border-color)',
-                    }}
-                    title="Choose any custom color (Multi-color Wheel)"
+              return (
+                <div key={p} className="flex items-center">
+                  <button
+                    onClick={() => setActiveProfile(p)}
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      isSelected ? 'text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                    style={isSelected ? { backgroundColor: currentColor } : undefined}
                   >
-                    <input
-                      type="color"
-                      value={themeColor}
-                      onChange={(e) => setThemeColor(e.target.value)}
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        opacity: 0,
-                        cursor: 'pointer',
-                      }}
+                    {p === 'Both' ? <Users className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
+                    <span>{p}</span>
+                  </button>
+                  <button
+                    onClick={() => setColorPickerTarget(p)}
+                    className="p-1 text-slate-400 hover:text-slate-700 transition-colors"
+                    title={`Change color for ${p}`}
+                  >
+                    <span
+                      className="w-2.5 h-2.5 rounded-full inline-block border border-black/10"
+                      style={{ backgroundColor: currentColor }}
                     />
-                  </div>
+                  </button>
                 </div>
-              </div>
-            )}
+              );
+            })}
           </div>
 
+          {/* Settings Button */}
           <button
-            type="button"
-            className="btn btn-primary"
-            onClick={onOpenAddEvent}
-            style={{ padding: '0.45rem 0.9rem', fontSize: '0.825rem' }}
+            onClick={() => setIsSettingsOpen(true)}
+            className="p-2 rounded-xl bg-slate-100/90 hover:bg-slate-200 text-slate-700 border border-slate-200/60 transition-all cursor-pointer"
+            title="Calendar Settings & Reset"
           >
-            <Plus size={15} /> Add
-          </button>
-
-          <button
-            type="button"
-            onClick={handleOpenProfile}
-            style={{
-              background: 'transparent',
-              border: '1px solid var(--border-color)',
-              borderRadius: '50%',
-              width: '34px',
-              height: '34px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-            }}
-            title="Settings & Persona Profile"
-          >
-            <Settings size={16} />
+            <Settings className="w-4 h-4" />
           </button>
         </div>
       </div>
+
+      {/* PERSONA COLOR PICKER MODAL */}
+      {colorPickerTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-2xl max-w-sm w-full space-y-4 animate-slide-up">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <Palette className="w-5 h-5 text-blue-600" />
+                <h3 className="text-base font-bold text-slate-900">
+                  Customize Color for {colorPickerTarget}
+                </h3>
+              </div>
+              <button
+                onClick={() => setColorPickerTarget(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500 font-medium">
+              Choose a unique persona color for {colorPickerTarget} so Eve and Abbie are visually distinct:
+            </p>
+
+            <div className="grid grid-cols-4 gap-2.5 pt-1">
+              {PERSONA_COLORS.map((c) => (
+                <button
+                  key={c.label}
+                  onClick={async () => {
+                    await setProfileColor(colorPickerTarget, c.hex);
+                    setColorPickerTarget(null);
+                  }}
+                  className="flex flex-col items-center justify-center p-2.5 rounded-xl border border-slate-200 hover:border-slate-400 transition-all gap-1.5 text-xs font-semibold"
+                >
+                  <div
+                    className="w-6 h-6 rounded-full border border-slate-300/50 shadow-xs"
+                    style={{ backgroundColor: c.hex }}
+                  />
+                  <span className="text-[11px] text-slate-700">{c.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FULL SETTINGS & RESET MODAL */}
+      {isSettingsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-2xl max-w-md w-full space-y-6 animate-slide-up">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <Settings className="w-5 h-5 text-blue-600" />
+                <h3 className="text-lg font-bold text-slate-900">App Settings & Reset</h3>
+              </div>
+              <button
+                onClick={() => setIsSettingsOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Persona Colors Section */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Persona Colors (Eve & Abbie)
+              </h4>
+
+              <div className="space-y-2">
+                {profiles.map((p) => {
+                  const currentColor = profileColors[p] || (p === 'Eve' ? '#2563eb' : p === 'Abbie' ? '#ec4899' : '#059669');
+
+                  return (
+                    <div
+                      key={p}
+                      className="flex items-center justify-between p-3 rounded-2xl border border-slate-200/80 bg-slate-50"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div
+                          className="w-4 h-4 rounded-full border border-black/10"
+                          style={{ backgroundColor: currentColor }}
+                        />
+                        <span className="text-sm font-bold text-slate-900">{p} Profile Color</span>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          setIsSettingsOpen(false);
+                          setColorPickerTarget(p);
+                        }}
+                        className="text-xs font-bold text-blue-600 hover:underline"
+                      >
+                        Change Color
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Reset Controls Section */}
+            <div className="space-y-3 border-t border-slate-100 pt-4">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Reset Options
+              </h4>
+
+              <div className="space-y-2.5">
+                <button
+                  onClick={handleResetCalendarKeepAnniversaries}
+                  className="w-full flex items-center justify-between p-3.5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs transition-all"
+                >
+                  <div className="flex items-center gap-2">
+                    <RotateCcw className="w-4 h-4 text-blue-600" />
+                    <span>Reset Calendar (Keep Anniversaries)</span>
+                  </div>
+                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                </button>
+
+                <button
+                  onClick={handleResetAnniversariesOnly}
+                  className="w-full flex items-center justify-between p-3.5 rounded-2xl border border-rose-200 bg-rose-50/50 hover:bg-rose-50 text-rose-700 font-bold text-xs transition-all"
+                >
+                  <div className="flex items-center gap-2">
+                    <Heart className="w-4 h-4 text-rose-500 fill-rose-500" />
+                    <span>Reset Anniversaries & Birthdays Only</span>
+                  </div>
+                  <X className="w-4 h-4 text-rose-400" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };

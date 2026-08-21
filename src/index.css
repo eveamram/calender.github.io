@@ -1,84 +1,92 @@
-@import 'tailwindcss/base';
-@import 'tailwindcss/components';
-@import 'tailwindcss/utilities';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 @layer base {
+  :root {
+    --bg-main: #f8fafc;
+    --card-bg: #ffffff;
+    --text-primary: #0f172a;
+    --text-secondary: #64748b;
+    --text-muted: #94a3b8;
+    --border-color: #e2e8f0;
+    --accent-blue: #2563eb;
+    --accent-blue-hover: #1d4ed8;
+    --accent-blue-light: #eff6ff;
+  }
+
   body {
-    @apply bg-slate-50 text-slate-900 antialiased font-sans min-h-screen selection:bg-blue-500 selection:text-white;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
   }
 }
 
-/* FullCalendar Custom Glassmorphic & Modern UI Overrides */
-.fc {
-  --fc-border-color: #e2e8f0;
-  --fc-page-bg-color: transparent;
-  --fc-neutral-bg-color: #f8fafc;
-  --fc-list-event-hover-bg-color: #f1f5f9;
-  --fc-today-bg-color: rgba(59, 130, 246, 0.06);
-  font-family: inherit;
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
-.fc .fc-toolbar {
-  @apply flex-wrap gap-3 mb-6 px-1;
+/* Touch Target Minimums */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
 }
 
-.fc .fc-toolbar-title {
-  @apply text-xl md:text-2xl font-extrabold tracking-tight text-slate-800;
+/* Custom Animations */
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
-.fc .fc-button-primary {
-  @apply bg-white hover:bg-slate-100 text-slate-700 border-slate-200 font-semibold px-3 py-1.5 rounded-lg shadow-sm transition-all focus:ring-2 focus:ring-blue-500 focus:outline-none capitalize text-sm active:bg-slate-200;
-}
-
-.fc .fc-button-primary:not(:disabled).fc-button-active,
-.fc .fc-button-primary:not(:disabled):active {
-  @apply bg-blue-600 text-white border-blue-600 shadow-md;
-}
-
-.fc .fc-daygrid-day-number {
-  @apply text-xs font-bold text-slate-600 p-2 hover:text-blue-600 transition-colors;
-}
-
-.fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
-  @apply bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center m-1 shadow-sm;
-}
-
-.fc-event {
-  @apply rounded-md border-0 shadow-sm transition-transform duration-150 cursor-pointer overflow-hidden text-xs font-semibold px-1.5 py-0.5 my-0.5;
-}
-
-.fc-event:hover {
-  @apply scale-[1.02] shadow-md z-10;
-}
-
-.fc-v-event {
-  @apply rounded-md p-1 border-l-4;
-}
-
-.fc-h-event {
-  @apply rounded-md px-2 py-1;
-}
-
-.fc-theme-standard td, .fc-theme-standard th {
-  @apply border-slate-200/80;
-}
-
-.fc-col-header-cell-cushion {
-  @apply text-xs font-bold text-slate-500 uppercase tracking-wider py-2;
-}
-
-/* Modal Animations */
-@keyframes modalIn {
+@keyframes fadeIn {
   from {
     opacity: 0;
-    transform: scale(0.95) translateY(8px);
   }
   to {
     opacity: 1;
-    transform: scale(1) translateY(0);
   }
 }
 
-.animate-modal-in {
-  animation: modalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.animate-slide-up {
+  animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.15s ease-out forwards;
+}
+
+/* Safe Area Paddings for Mobile */
+.pb-safe-bottom {
+  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

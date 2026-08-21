@@ -1,647 +1,217 @@
-import React, { useState, useEffect } from 'react';
-import { useCalendar } from '../../context/CalendarContext';
-import { Utensils, Edit2, Check, Sparkles, RefreshCw, Sun, Sunset, Coffee, Trash2, Plus, X } from 'lucide-react';
-import { format, startOfWeek } from 'date-fns';
-import { subscribeToSync, syncUpdateItem, fetchInitialData, startAutoPolling } from '../../lib/syncEngine';
+import React, { useState, useMemo } from 'react';
+import { useStore } from '../../context/StoreContext';
+import { MealItem, MealType } from '../../types';
+import { Plus, Trash2 } from 'lucide-react';
 
-export interface MealSlot {
-  breakfast?: string;
-  lunch?: string;
-  dinner?: string;
-  snack?: string;
+interface MealsViewProps {
+  onOpenAddMealModal: (dayOfWeek?: number, mealType?: MealType) => void;
 }
 
-type WeekMeals = Record<string, MealSlot>; // "Mon", "Tue", etc.
+const DAYS = [
+  { num: 1, name: 'Monday' },
+  { num: 2, name: 'Tuesday' },
+  { num: 3, name: 'Wednesday' },
+  { num: 4, name: 'Thursday' },
+  { num: 5, name: 'Friday' },
+  { num: 6, name: 'Saturday' },
+  { num: 7, name: 'Sunday' },
+];
 
-const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const MEAL_TYPES: { type: MealType; label: string; emoji: string }[] = [
+  { type: 'breakfast', label: 'Breakfast', emoji: '🍳' },
+  { type: 'lunch', label: 'Lunch', emoji: '🥗' },
+  { type: 'dinner', label: 'Dinner', emoji: '🍲' },
+  { type: 'snack', label: 'Snacks', emoji: '🍏' },
+];
 
-const DEFAULT_MEALS: WeekMeals = {
-  Mon: { breakfast: 'Avocado Toast & Espresso', lunch: 'Quinoa Grain Bowl', dinner: 'Grilled Salmon & Asparagus', snack: 'Mixed Nuts & Apple' },
-  Tue: { breakfast: 'Greek Yogurt & Berries', lunch: 'Chicken Caesar Wrap', dinner: 'Pasta Primavera', snack: 'Hummus & Carrots' },
-  Wed: { breakfast: 'Oatmeal & Almonds', lunch: 'Turkey Sandwich', dinner: 'Tofu & Veggie Stir-fry', snack: 'Dark Chocolate' },
-  Thu: { breakfast: 'Smoothie Bowl', lunch: 'Mediterranean Salad', dinner: 'Chicken Tacos', snack: 'Rice Cakes & Peanut Butter' },
-  Fri: { breakfast: 'Eggs & Spinach Toast', lunch: 'Poke Bowl', dinner: 'Homemade Pizza', snack: 'Popcorn & Green Tea' },
-  Sat: { breakfast: 'Pancakes & Fresh Fruit', lunch: 'Veggie Burger', dinner: 'Sushi Night', snack: 'Fruit Smoothie' },
-  Sun: { breakfast: 'Brunch Scramble', lunch: 'Minestrone Soup', dinner: 'Roast Chicken & Vegetables', snack: 'Yogurt Parfait' },
-};
+export const MealsView: React.FC<MealsViewProps> = ({ onOpenAddMealModal }) => {
+  const { mealItems, deleteMealItem, filterByProfile, activeProfile, profileColors } = useStore();
+  const [selectedMobileDay, setSelectedMobileDay] = useState<number>(1); // 1 = Mon
 
-export const MealsView: React.FC = () => {
-  const { activePersonaFilter } = useCalendar();
-  const todayDayName = DAYS[(new Date().getDay() + 6) % 7]; // Convert Sun=0 -> Mon=0
-  const [selectedDay, setSelectedDay] = useState(todayDayName);
-  const [viewMode, setViewMode] = useState<'daily' | 'weekly'>('daily');
+  const filteredMeals = useMemo(() => {
+    return filterByProfile(mealItems);
+  }, [mealItems, filterByProfile]);
 
-  const currentWeekStartStr = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
-
-  const [meals, setMeals] = useState<WeekMeals>(DEFAULT_MEALS);
-
-  const [editingSlot, setEditingSlot] = useState<{ day: string; slot: keyof MealSlot } | null>(null);
-  const [editValue, setEditValue] = useState('');
-
-  const [slotLabels, setSlotLabels] = useState<Record<string, string>>({
-    breakfast: 'Breakfast',
-    lunch: 'Lunch',
-    dinner: 'Dinner',
-    snack: 'Snack / Drink',
-  });
-
-  const [categoryModalSlot, setCategoryModalSlot] = useState<keyof MealSlot | null>(null);
-  const [categoryInputValue, setCategoryInputValue] = useState('');
-
-  const PRESET_CATEGORIES = [
-    'Breakfast 🥣',
-    'Lunch 🥗',
-    'Dinner 🍝',
-    'Snack / Drink 🥤',
-    'Meal Prep 🍱',
-    'Dessert 🍦',
-    'Late Night 🌙',
-    'Pre-Workout 🍌',
-  ];
-
-  const handleOpenCategoryModal = (slotKey: keyof MealSlot) => {
-    const currentLabel = slotLabels[slotKey] || slotKey;
-    setCategoryModalSlot(slotKey);
-    setCategoryInputValue(currentLabel);
-  };
-
-  const handleSaveCategoryModal = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!categoryModalSlot) return;
-
-    const trimmed = categoryInputValue.trim();
-    if (trimmed) {
-      setSlotLabels((prev) => ({
-        ...prev,
-        [categoryModalSlot]: trimmed,
-      }));
+  // Group meals by day & type
+  const mealsByDay = useMemo(() => {
+    const map = new Map<number, Map<MealType, MealItem[]>>();
+    for (let d = 1; d <= 7; d++) {
+      const typeMap = new Map<MealType, MealItem[]>();
+      MEAL_TYPES.forEach((m) => typeMap.set(m.type, []));
+      map.set(d, typeMap);
     }
-    setCategoryModalSlot(null);
-  };
 
-  const processRemoteMeals = (remoteData: any[]) => {
-    if (remoteData && remoteData.length > 0) {
-      if (remoteData[0]?.meals) {
-        setMeals(remoteData[0].meals);
-      } else {
-        const merged: WeekMeals = {};
-        remoteData.forEach((item) => {
-          if (item.id && (item.breakfast || item.lunch || item.dinner || item.snack)) {
-            merged[item.id] = item;
-          }
-        });
-        if (Object.keys(merged).length > 0) {
-          setMeals((prev) => ({ ...prev, ...merged }));
-        }
-      }
-    }
-  };
-
-  useEffect(() => {
-    fetchInitialData<any>('meal_plans').then((remoteData) => {
-      if (remoteData) processRemoteMeals(remoteData);
-    });
-
-    const stopPolling = startAutoPolling<any>('meal_plans', (remoteData) => {
-      if (remoteData) processRemoteMeals(remoteData);
-    }, 2500);
-
-    const unsubscribe = subscribeToSync('meal_plans', (event) => {
-      if (event.type === 'UPDATE' && event.id && event.payload) {
-        setMeals((prev) => ({
-          ...prev,
-          [event.id!]: {
-            ...prev[event.id!],
-            ...event.payload,
-          },
-        }));
+    filteredMeals.forEach((meal) => {
+      const dayMap = map.get(meal.day_of_week);
+      if (dayMap && dayMap.has(meal.meal_type)) {
+        dayMap.get(meal.meal_type)!.push(meal);
       }
     });
-    return () => {
-      stopPolling();
-      unsubscribe();
-    };
-  }, []);
 
-  const startEdit = (day: string, slot: keyof MealSlot) => {
-    setEditingSlot({ day, slot });
-    setEditValue(meals[day]?.[slot] || '');
-  };
-
-  const saveEdit = () => {
-    if (!editingSlot) return;
-    const { day, slot } = editingSlot;
-    const trimmed = editValue.trim();
-
-    setMeals((prev) => ({
-      ...prev,
-      [day]: {
-        ...prev[day],
-        [slot]: trimmed,
-      },
-    }));
-
-    syncUpdateItem('meal_plans', day, { [slot]: trimmed });
-    setEditingSlot(null);
-  };
-
-  const removeMealSlot = (day: string, slot: keyof MealSlot) => {
-    setMeals((prev) => ({
-      ...prev,
-      [day]: {
-        ...prev[day],
-        [slot]: '',
-      },
-    }));
-
-    syncUpdateItem('meal_plans', day, { [slot]: '' });
-    if (editingSlot?.day === day && editingSlot?.slot === slot) {
-      setEditingSlot(null);
-    }
-  };
-
-  const handleResetMeals = () => {
-    if (window.confirm('Reset this week’s meal plan back to default template?')) {
-      setMeals(DEFAULT_MEALS);
-    }
-  };
-
-  const currentMealSlot = meals[selectedDay] || { breakfast: '', lunch: '', dinner: '', snack: '' };
-
-  const SLOT_CONFIG: { key: keyof MealSlot; label: string; icon: React.ReactNode; color: string; bg: string }[] = [
-    { key: 'breakfast', label: slotLabels.breakfast || 'Breakfast', icon: <Sun size={16} color="#F59E0B" />, color: '#B45309', bg: '#FEF3C7' },
-    { key: 'lunch', label: slotLabels.lunch || 'Lunch', icon: <Utensils size={16} color="#10B981" />, color: '#047857', bg: '#D1FAE5' },
-    { key: 'dinner', label: slotLabels.dinner || 'Dinner', icon: <Sunset size={16} color="#EC4899" />, color: '#BE185D', bg: '#FCE7F3' },
-    { key: 'snack', label: slotLabels.snack || 'Snack / Drink', icon: <Coffee size={16} color="#8B5CF6" />, color: '#6D28D9', bg: '#EDE9FE' },
-  ];
+    return map;
+  }, [filteredMeals]);
 
   return (
-    <div style={{
-      maxWidth: '100%',
-      margin: '0 auto',
-      paddingBottom: '5rem',
-      fontFamily: "'Plus Jakarta Sans', sans-serif",
-    }}>
-      {/* Header & Controls */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '1rem',
-        marginBottom: '1.25rem',
-        paddingBottom: '0.85rem',
-        borderBottom: '1px solid var(--border-color)',
-      }}>
+    <div className="space-y-6 max-w-7xl mx-auto px-4 md:px-8 py-6">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-slate-200/80 pb-4">
         <div>
-          <h2 style={{
-            fontSize: '1.45rem',
-            fontWeight: 800,
-            color: 'var(--text-primary)',
-            letterSpacing: '-0.02em',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            margin: 0,
-          }}>
-            Meal Prep & Planner <Utensils size={20} color="#EC4899" />
-          </h2>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px', margin: 0 }}>
-            {activePersonaFilter === 'all' ? 'Weekly meals for Eve & Abbie • Refreshes weekly' : 'Weekly meal plan • Refreshes weekly'}
-          </p>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Meal Planner</h1>
+          <p className="text-xs text-slate-500 font-medium">Weekly meals schedule (Breakfast, Lunch, Dinner, Snacks)</p>
+        </div>
+        <button
+          onClick={() => onOpenAddMealModal()}
+          className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-xl text-xs shadow-xs transition-all"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Add Meal</span>
+        </button>
+      </div>
+
+      {/* MOBILE LAYOUT: Day Selector Tabs + Daily Meal List */}
+      <div className="lg:hidden space-y-5">
+        {/* Horizontal Day Picker */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+          {DAYS.map((day) => {
+            const isSelected = selectedMobileDay === day.num;
+            return (
+              <button
+                key={day.num}
+                onClick={() => setSelectedMobileDay(day.num)}
+                className={`py-2 px-4 rounded-xl text-xs font-semibold shrink-0 transition-all ${
+                  isSelected
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                {day.name.slice(0, 3)}
+              </button>
+            );
+          })}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <button
-            type="button"
-            onClick={handleResetMeals}
-            style={{
-              padding: '0.35rem 0.65rem',
-              borderRadius: '999px',
-              border: '1px solid var(--border-color)',
-              backgroundColor: 'var(--bg-secondary)',
-              color: 'var(--text-muted)',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '3px',
-            }}
-            title="Reset meals for new week"
-          >
-            <RefreshCw size={12} /> Reset Week
-          </button>
+        {/* Selected Day Meals List */}
+        <div className="space-y-4">
+          {MEAL_TYPES.map((mType) => {
+            const list = mealsByDay.get(selectedMobileDay)?.get(mType.type) || [];
+
+            return (
+              <div key={mType.type} className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">{mType.emoji}</span>
+                    <h3 className="text-sm font-bold text-slate-900">{mType.label}</h3>
+                  </div>
+                  <button
+                    onClick={() => onOpenAddMealModal(selectedMobileDay, mType.type)}
+                    className="text-xs font-semibold text-blue-600 hover:underline"
+                  >
+                    + Add
+                  </button>
+                </div>
+
+                {list.length === 0 ? (
+                  <p className="text-xs text-slate-400 font-medium italic">No meal planned</p>
+                ) : (
+                  <div className="space-y-2">
+                    {list.map((item) => {
+                      const ownerName = item.profile || 'Eve';
+                      const badgeColor = profileColors[ownerName] || '#2563eb';
+
+                      return (
+                        <div key={item.id} className="flex items-start justify-between gap-2 p-2.5 rounded-xl bg-slate-50">
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-xs font-bold text-slate-900">{item.title}</p>
+                              {activeProfile === 'Both' && (
+                                <span
+                                  className="text-[9px] font-bold text-white px-1.5 py-0.5 rounded-md"
+                                  style={{ backgroundColor: badgeColor }}
+                                >
+                                  {ownerName}
+                                </span>
+                              )}
+                            </div>
+                            {item.notes && <p className="text-[11px] text-slate-500 mt-0.5">{item.notes}</p>}
+                          </div>
+                          <button
+                            onClick={() => deleteMealItem(item.id)}
+                            className="text-slate-300 hover:text-red-500 p-1"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Day Selector Pills - Full Width Row */}
-      <div style={{
-        display: 'flex',
-        gap: '0.4rem',
-        marginBottom: '1.25rem',
-        overflowX: 'auto',
-        backgroundColor: 'var(--bg-hover)',
-        padding: '5px',
-        borderRadius: '999px',
-        border: '1px solid var(--border-color)',
-        width: '100%',
-        boxSizing: 'border-box',
-      }}>
-        {DAYS.map((d) => {
-          const isSelected = selectedDay === d;
-          const isTodayDay = d === todayDayName;
+      {/* DESKTOP LAYOUT: Weekly Meal Grid (7 cols) */}
+      <div className="hidden lg:grid grid-cols-7 gap-3">
+        {DAYS.map((day) => {
+          const dayMap = mealsByDay.get(day.num);
 
           return (
-            <button
-              key={d}
-              type="button"
-              onClick={() => {
-                setSelectedDay(d);
-                setEditingSlot(null);
-              }}
-              style={{
-                flex: 1,
-                padding: '0.5rem 0',
-                minWidth: '44px',
-                borderRadius: '999px',
-                border: 'none',
-                backgroundColor: isSelected ? 'var(--bg-secondary)' : 'transparent',
-                color: isSelected ? '#EC4899' : isTodayDay ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                fontWeight: 800,
-                fontSize: '0.825rem',
-                cursor: 'pointer',
-                boxShadow: isSelected ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              {d} {isTodayDay && '•'}
-            </button>
+            <div key={day.num} className="bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col min-h-[420px]">
+              <div className="bg-slate-50 border-b border-slate-200/80 p-3 text-center">
+                <span className="text-xs font-bold text-slate-900">{day.name}</span>
+              </div>
+
+              <div className="p-2 space-y-3 flex-1 overflow-y-auto">
+                {MEAL_TYPES.map((mType) => {
+                  const items = dayMap?.get(mType.type) || [];
+
+                  return (
+                    <div key={mType.type} className="space-y-1">
+                      <div className="flex items-center justify-between text-[10px] font-bold text-slate-400">
+                        <span>{mType.emoji} {mType.label}</span>
+                        <button
+                          onClick={() => onOpenAddMealModal(day.num, mType.type)}
+                          className="hover:text-blue-600"
+                        >
+                          +
+                        </button>
+                      </div>
+
+                      {items.map((item) => {
+                        const ownerName = item.profile || 'Eve';
+                        const badgeColor = profileColors[ownerName] || '#2563eb';
+
+                        return (
+                          <div key={item.id} className="p-2 rounded-lg bg-slate-50 border border-slate-100 text-xs font-semibold text-slate-800 flex justify-between items-start">
+                            <div>
+                              <span>{item.title}</span>
+                              {activeProfile === 'Both' && (
+                                <span
+                                  className="text-[9px] font-bold text-white px-1.5 py-0.2 rounded-xs ml-1 block mt-0.5"
+                                  style={{ backgroundColor: badgeColor }}
+                                >
+                                  {ownerName}
+                                </span>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => deleteMealItem(item.id)}
+                              className="text-slate-300 hover:text-red-500 ml-1"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           );
         })}
       </div>
-
-      {/* Meal Cards Grid - Fluidly adjusts 1 column on mobile, 2 columns on larger screens */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-        gap: '1rem',
-        width: '100%',
-      }}>
-            {SLOT_CONFIG.map((conf) => {
-              const val = currentMealSlot[conf.key];
-              const isEditingThis = editingSlot?.day === selectedDay && editingSlot?.slot === conf.key;
-
-              return (
-                <div
-                  key={conf.key}
-                  style={{
-                    backgroundColor: 'var(--bg-secondary)',
-                    borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--border-color)',
-                    borderLeft: `4px solid ${conf.color}`,
-                    padding: '1rem 1.1rem',
-                    boxShadow: 'var(--shadow-subtle)',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    marginBottom: '0.5rem',
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <span style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '24px',
-                        height: '24px',
-                        borderRadius: '6px',
-                        backgroundColor: conf.bg,
-                      }}>
-                        {conf.icon}
-                      </span>
-                      <span
-                        onClick={() => handleOpenCategoryModal(conf.key)}
-                        style={{
-                          fontSize: '0.825rem',
-                          fontWeight: 800,
-                          color: 'var(--text-primary)',
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                        }}
-                        title="Click to customize category title (e.g. Breakfast, Snack, Meal Prep)"
-                      >
-                        {conf.label} <Edit2 size={11} color="var(--text-muted)" style={{ opacity: 0.6 }} />
-                      </span>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                      {val && !isEditingThis && (
-                        <button
-                          type="button"
-                          onClick={() => removeMealSlot(selectedDay, conf.key)}
-                          style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: '#EF4444',
-                            cursor: 'pointer',
-                            padding: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '2px',
-                            fontSize: '0.725rem',
-                            fontWeight: 700,
-                          }}
-                          title={`Remove ${conf.label}`}
-                        >
-                          <Trash2 size={13} /> Remove
-                        </button>
-                      )}
-
-                      {!isEditingThis ? (
-                        <button
-                          type="button"
-                          onClick={() => startEdit(selectedDay, conf.key)}
-                          style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: 'var(--text-muted)',
-                            cursor: 'pointer',
-                            padding: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '3px',
-                            fontSize: '0.725rem',
-                            fontWeight: 700,
-                          }}
-                        >
-                          <Edit2 size={13} /> {val ? 'Edit' : 'Add'}
-                        </button>
-                      ) : (
-                        <div style={{ display: 'flex', gap: '0.35rem' }}>
-                          {val && (
-                            <button
-                              type="button"
-                              onClick={() => removeMealSlot(selectedDay, conf.key)}
-                              style={{
-                                padding: '0.2rem 0.5rem',
-                                borderRadius: '6px',
-                                border: '1px solid #EF4444',
-                                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                                color: '#EF4444',
-                                fontSize: '0.725rem',
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                              }}
-                            >
-                              Clear
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={saveEdit}
-                            style={{
-                              padding: '0.2rem 0.65rem',
-                              borderRadius: '6px',
-                              border: 'none',
-                              backgroundColor: '#EC4899',
-                              color: '#FFFFFF',
-                              fontSize: '0.75rem',
-                              fontWeight: 800,
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '3px',
-                            }}
-                          >
-                            <Check size={13} /> Save
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {isEditingThis ? (
-                    <form onSubmit={(e) => { e.preventDefault(); saveEdit(); }}>
-                      <input
-                        type="text"
-                        value={editValue}
-                        onChange={(e) => setEditValue(e.target.value)}
-                        placeholder={`Enter ${conf.label.toLowerCase()} menu...`}
-                        autoFocus
-                        style={{
-                          width: '100%',
-                          padding: '0.6rem 0.85rem',
-                          borderRadius: '8px',
-                          border: '1.5px solid #EC4899',
-                          backgroundColor: 'var(--bg-primary)',
-                          color: 'var(--text-primary)',
-                          fontSize: '0.9rem',
-                          fontWeight: 600,
-                          outline: 'none',
-                        }}
-                      />
-                    </form>
-                  ) : (
-                    <div
-                      onClick={() => startEdit(selectedDay, conf.key)}
-                      style={{
-                        fontSize: '0.925rem',
-                        fontWeight: 700,
-                        color: val ? 'var(--text-primary)' : 'var(--text-muted)',
-                        fontStyle: val ? 'normal' : 'italic',
-                        cursor: 'pointer',
-                        padding: '0.2rem 0',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.35rem',
-                      }}
-                      title="Click to edit meal"
-                    >
-                      {val ? (
-                        val
-                      ) : (
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '3px', color: 'var(--text-muted)' }}>
-                          <Plus size={14} color="#EC4899" /> No {conf.label.toLowerCase()} planned (Tap to add)
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-      {/* Modern Glassmorphic Category Customization Modal */}
-      {categoryModalSlot && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(15, 23, 42, 0.55)',
-            backdropFilter: 'blur(8px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 10000,
-            padding: '1rem',
-          }}
-          onClick={() => setCategoryModalSlot(null)}
-        >
-          <div
-            style={{
-              backgroundColor: 'var(--bg-secondary)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '24px',
-              width: '100%',
-              maxWidth: '440px',
-              padding: '1.6rem',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-              animation: 'modalSlideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.1rem' }}>
-              <div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                  Customize Category Title 🍽️
-                </h3>
-                <p style={{ fontSize: '0.775rem', color: 'var(--text-muted)', margin: '3px 0 0 0' }}>
-                  Pick a quick preset or type a custom category name
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setCategoryModalSlot(null)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
-                  padding: '6px',
-                  borderRadius: '50%',
-                }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveCategoryModal} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              {/* Preset Chips */}
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', display: 'block', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Quick Presets
-                </label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
-                  {PRESET_CATEGORIES.map((preset) => {
-                    const isSelected = categoryInputValue.trim() === preset.trim();
-                    return (
-                      <button
-                        key={preset}
-                        type="button"
-                        onClick={() => setCategoryInputValue(preset)}
-                        style={{
-                          padding: '0.4rem 0.75rem',
-                          borderRadius: '999px',
-                          border: isSelected ? '1.5px solid #EC4899' : '1px solid var(--border-color)',
-                          backgroundColor: isSelected ? '#FCE7F3' : 'var(--bg-hover)',
-                          color: isSelected ? '#BE185D' : 'var(--text-primary)',
-                          fontSize: '0.775rem',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                        }}
-                      >
-                        {preset} {isSelected && <Check size={12} />}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Custom Input */}
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', display: 'block', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Category Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={categoryInputValue}
-                  onChange={(e) => setCategoryInputValue(e.target.value)}
-                  placeholder="e.g. Smoothie & Snack 🥤"
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem 0.9rem',
-                    borderRadius: '12px',
-                    border: '1.5px solid var(--border-color)',
-                    backgroundColor: 'var(--bg-primary)',
-                    color: 'var(--text-primary)',
-                    fontSize: '0.9rem',
-                    fontWeight: 700,
-                    boxSizing: 'border-box',
-                    outline: 'none',
-                  }}
-                />
-              </div>
-
-              {/* Action Buttons */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', marginTop: '0.25rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setCategoryModalSlot(null)}
-                  style={{
-                    padding: '0.55rem 1rem',
-                    borderRadius: '999px',
-                    border: '1px solid var(--border-color)',
-                    backgroundColor: 'var(--bg-hover)',
-                    color: 'var(--text-secondary)',
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Cancel
-                </button>
-
-                <button
-                  type="submit"
-                  style={{
-                    padding: '0.55rem 1.2rem',
-                    borderRadius: '999px',
-                    border: 'none',
-                    background: 'linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%)',
-                    color: '#FFFFFF',
-                    fontSize: '0.8rem',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 12px rgba(236, 72, 153, 0.3)',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  <Check size={14} /> Save Category
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
-
-

@@ -1,897 +1,240 @@
-import React, { useState, useEffect } from 'react';
-import { useCalendar } from '../../context/CalendarContext';
+import React, { useState, useMemo } from 'react';
+import { useStore } from '../../context/StoreContext';
 import { BookItem, BookStatus } from '../../types';
-import { useIsMobile } from '../../hooks/useIsMobile';
-import { subscribeToSync, syncInsertItem, syncUpdateItem, syncDeleteItem, fetchInitialData, startAutoPolling } from '../../lib/syncEngine';
-import {
-  BookOpen,
-  Plus,
-  CheckCircle,
-  Star,
-  Edit2,
-  Trash2,
-  Bookmark,
-  Award,
-  X,
-  Check,
-  ChevronRight,
-  TrendingUp,
-} from 'lucide-react';
-import { format } from 'date-fns';
+import { Plus, BookOpen, Star, Trash2, Sparkles, Flame, CheckCircle, Bookmark } from 'lucide-react';
+import confetti from 'canvas-confetti';
 
-const INITIAL_BOOKS: BookItem[] = [
-  {
-    id: 'book-1',
-    title: 'Atomic Habits',
-    author: 'James Clear',
-    status: 'reading',
-    total_pages: 320,
-    eve_current_page: 185,
-    abbie_current_page: 190,
-    cover_color: '#3B82F6',
-    genre: 'Self-Improvement',
-    thoughts_notes: 'Reading together for daily habits & streak building!',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'book-2',
-    title: 'Tomorrow, and Tomorrow, and Tomorrow',
-    author: 'Gabrielle Zevin',
-    status: 'completed',
-    total_pages: 416,
-    eve_current_page: 416,
-    abbie_current_page: 416,
-    eve_rating: 5,
-    abbie_rating: 5,
-    cover_color: '#EC4899',
-    genre: 'Fiction',
-    completed_date: '2026-07-28',
-    thoughts_notes: 'One of our absolute favorite reads together! 💕',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'book-3',
-    title: 'Designing Your Life',
-    author: 'Bill Burnett & Dave Evans',
-    status: 'want_to_read',
-    total_pages: 272,
-    cover_color: '#F59E0B',
-    genre: 'Personal Growth',
-    created_at: new Date().toISOString(),
-  },
+interface BooksViewProps {
+  onOpenAddBookModal: () => void;
+}
+
+const BOOK_SPINE_GRADIENTS = [
+  'from-blue-500 to-indigo-600',
+  'from-purple-500 to-pink-600',
+  'from-amber-500 to-rose-600',
+  'from-emerald-500 to-teal-600',
+  'from-cyan-500 to-blue-600',
+  'from-violet-500 to-purple-600',
 ];
 
-const PRESET_COVER_COLORS = [
-  { name: 'Sapphire Blue', hex: '#3B82F6' },
-  { name: 'Rose Pink', hex: '#EC4899' },
-  { name: 'Emerald Green', hex: '#10B981' },
-  { name: 'Violet Purple', hex: '#8B5CF6' },
-  { name: 'Amber Gold', hex: '#F59E0B' },
-  { name: 'Teal Cyan', hex: '#06B6D4' },
-];
+export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
+  const { bookItems, updateBookItem, deleteBookItem, filterByProfile, activeProfile, profileColors } = useStore();
+  const [activeStatusTab, setActiveStatusTab] = useState<BookStatus>('reading');
 
-export const BooksView: React.FC = () => {
-  const isMobile = useIsMobile();
-  const { activePersonaFilter } = useCalendar();
-  const [filterShelf, setFilterShelf] = useState<'all' | BookStatus>('all');
+  const filteredBooks = useMemo(() => {
+    return filterByProfile(bookItems);
+  }, [bookItems, filterByProfile]);
 
-  const [books, setBooks] = useState<BookItem[]>(INITIAL_BOOKS);
+  const booksByStatus = useMemo(() => {
+    return filteredBooks.filter((b) => b.status === activeStatusTab);
+  }, [filteredBooks, activeStatusTab]);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingBook, setEditingBook] = useState<BookItem | null>(null);
+  const totalPagesRead = useMemo(() => {
+    return filteredBooks.reduce((acc, b) => {
+      if (b.status === 'completed' && b.total_pages) return acc + b.total_pages;
+      if (b.status === 'reading' && b.current_page) return acc + b.current_page;
+      return acc;
+    }, 0);
+  }, [filteredBooks]);
 
-  // Form State
-  const [title, setTitle] = useState('');
-  const [author, setAuthor] = useState('');
-  const [status, setStatus] = useState<BookStatus>('reading');
-  const [totalPages, setTotalPages] = useState<number | ''>('');
-  const [evePage, setEvePage] = useState<number | ''>('');
-  const [abbiePage, setAbbiePage] = useState<number | ''>('');
-  const [eveRating, setEveRating] = useState<number>(0);
-  const [abbieRating, setAbbieRating] = useState<number>(0);
-  const [coverColor, setCoverColor] = useState('#3B82F6');
-  const [genre, setGenre] = useState('');
-  const [notes, setNotes] = useState('');
+  const tabs: { status: BookStatus; label: string; count: number; icon: string }[] = [
+    { status: 'reading', label: 'Currently Reading', count: filteredBooks.filter((b) => b.status === 'reading').length, icon: '📖' },
+    { status: 'want_to_read', label: 'Want to Read', count: filteredBooks.filter((b) => b.status === 'want_to_read').length, icon: '🔖' },
+    { status: 'completed', label: 'Finished Library', count: filteredBooks.filter((b) => b.status === 'completed').length, icon: '🎉' },
+  ];
 
-  useEffect(() => {
-    fetchInitialData<BookItem>('books').then((remoteBooks) => {
-      if (remoteBooks && remoteBooks.length > 0) {
-        setBooks(remoteBooks);
-      }
-    });
-
-    const stopPolling = startAutoPolling<BookItem>('books', (remoteBooks) => {
-      if (remoteBooks && remoteBooks.length > 0) {
-        setBooks(remoteBooks);
-      }
-    }, 2500);
-
-    const unsubscribe = subscribeToSync('books', (event) => {
-      if (event.type === 'INSERT' && event.payload) {
-        const item = event.payload as BookItem;
-        setBooks((prev) => (prev.some((b) => b.id === item.id) ? prev : [item, ...prev]));
-      } else if (event.type === 'UPDATE' && event.id) {
-        setBooks((prev) =>
-          prev.map((b) => (b.id === event.id ? { ...b, ...event.payload } : b))
-        );
-      } else if (event.type === 'DELETE' && event.id) {
-        setBooks((prev) => prev.filter((b) => b.id !== event.id));
-      }
-    });
-
-    return () => {
-      stopPolling();
-      unsubscribe();
-    };
-  }, []);
-
-  const handleOpenAddModal = () => {
-    setEditingBook(null);
-    setTitle('');
-    setAuthor('');
-    setStatus('reading');
-    setTotalPages('');
-    setEvePage('');
-    setAbbiePage('');
-    setEveRating(0);
-    setAbbieRating(0);
-    setCoverColor('#3B82F6');
-    setGenre('');
-    setNotes('');
-    setIsModalOpen(true);
+  const handleUpdateRating = async (book: BookItem, newRating: number) => {
+    confetti({ particleCount: 20, spread: 40, origin: { y: 0.8 } });
+    await updateBookItem(book.id, { rating: newRating });
   };
 
-  const handleOpenEditModal = (book: BookItem) => {
-    setEditingBook(book);
-    setTitle(book.title);
-    setAuthor(book.author);
-    setStatus(book.status);
-    setTotalPages(book.total_pages || '');
-    setEvePage(book.eve_current_page || '');
-    setAbbiePage(book.abbie_current_page || '');
-    setEveRating(book.eve_rating || 0);
-    setAbbieRating(book.abbie_rating || 0);
-    setCoverColor(book.cover_color || '#3B82F6');
-    setGenre(book.genre || '');
-    setNotes(book.thoughts_notes || '');
-    setIsModalOpen(true);
-  };
+  const handleIncrementPage = async (book: BookItem) => {
+    const nextPg = Math.min((book.total_pages || 999), (book.current_page || 0) + 20);
+    const updates: Partial<BookItem> = { current_page: nextPg };
 
-  const handleSaveBook = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim()) return;
-
-    const bookData: BookItem = {
-      id: editingBook ? editingBook.id : `book-${Date.now()}`,
-      title: title.trim(),
-      author: author.trim() || 'Unknown Author',
-      status,
-      total_pages: totalPages !== '' ? Number(totalPages) : undefined,
-      eve_current_page: evePage !== '' ? Number(evePage) : undefined,
-      abbie_current_page: abbiePage !== '' ? Number(abbiePage) : undefined,
-      eve_rating: eveRating > 0 ? eveRating : undefined,
-      abbie_rating: abbieRating > 0 ? abbieRating : undefined,
-      cover_color: coverColor,
-      genre: genre.trim() || undefined,
-      thoughts_notes: notes.trim() || undefined,
-      completed_date: status === 'completed' ? (editingBook?.completed_date || format(new Date(), 'yyyy-MM-dd')) : undefined,
-      created_at: editingBook ? editingBook.created_at : new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    if (editingBook) {
-      setBooks((prev) => prev.map((b) => (b.id === editingBook.id ? bookData : b)));
-      syncUpdateItem('books', editingBook.id, bookData);
-    } else {
-      setBooks((prev) => [bookData, ...prev]);
-      syncInsertItem('books', bookData);
+    if (book.total_pages && nextPg >= book.total_pages) {
+      updates.status = 'completed';
+      confetti({ particleCount: 50, spread: 80, origin: { y: 0.7 } });
     }
 
-    setIsModalOpen(false);
+    await updateBookItem(book.id, updates);
   };
-
-  const handleDeleteBook = (id: string) => {
-    if (window.confirm('Are you sure you want to remove this book from your library?')) {
-      setBooks((prev) => prev.filter((b) => b.id !== id));
-      syncDeleteItem('books', id);
-    }
-  };
-
-  const handleUpdatePageProgress = (bookId: string, persona: 'Eve' | 'Abbie') => {
-    const targetBook = books.find((b) => b.id === bookId);
-    if (!targetBook) return;
-
-    const currentPg = persona === 'Eve' ? (targetBook.eve_current_page || 0) : (targetBook.abbie_current_page || 0);
-    const newPgStr = window.prompt(`Update current page for ${persona} (Total: ${targetBook.total_pages || '?'}):`, currentPg.toString());
-
-    if (newPgStr !== null) {
-      const parsed = parseInt(newPgStr, 10);
-      if (!isNaN(parsed) && parsed >= 0) {
-        const updates: Partial<BookItem> = {
-          [persona === 'Eve' ? 'eve_current_page' : 'abbie_current_page']: parsed,
-          updated_at: new Date().toISOString(),
-        };
-
-        if (targetBook.total_pages && parsed >= targetBook.total_pages && (persona === 'Eve' ? targetBook.abbie_current_page : targetBook.eve_current_page) === targetBook.total_pages) {
-          updates.status = 'completed';
-          updates.completed_date = format(new Date(), 'yyyy-MM-dd');
-        }
-
-        setBooks((prev) =>
-          prev.map((b) => (b.id === bookId ? { ...b, ...updates } : b))
-        );
-        syncUpdateItem('books', bookId, updates);
-      }
-    }
-  };
-
-  const handleMarkAsCompleted = (bookId: string) => {
-    const target = books.find((b) => b.id === bookId);
-    const tot = target?.total_pages || 100;
-    const updates: Partial<BookItem> = {
-      status: 'completed',
-      eve_current_page: tot,
-      abbie_current_page: tot,
-      completed_date: format(new Date(), 'yyyy-MM-dd'),
-      updated_at: new Date().toISOString(),
-    };
-
-    setBooks((prev) =>
-      prev.map((b) => (b.id === bookId ? { ...b, ...updates } : b))
-    );
-    syncUpdateItem('books', bookId, updates);
-  };
-
-  const currentlyReadingBooks = books.filter((b) => b.status === 'reading');
-  const activeReadingBook = currentlyReadingBooks[0];
-
-  const filteredBooks = books.filter((b) => {
-    if (filterShelf === 'all') return true;
-    return b.status === filterShelf;
-  });
-
-  const completedCount = books.filter((b) => b.status === 'completed').length;
-  const wantToReadCount = books.filter((b) => b.status === 'want_to_read').length;
 
   return (
-    <div style={{
-      maxWidth: '100%',
-      margin: '0 auto',
-      paddingBottom: '5rem',
-      fontFamily: "'Plus Jakarta Sans', sans-serif",
-    }}>
-      {/* Top Header & Controls */}
-      <div style={{
-        display: 'flex',
-        flexDirection: isMobile ? 'column' : 'row',
-        alignItems: isMobile ? 'stretch' : 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '0.85rem',
-        marginBottom: '1.25rem',
-        paddingBottom: '0.85rem',
-        borderBottom: '1px solid var(--border-color)',
-      }}>
-        <div>
-          <h2 style={{
-            fontSize: isMobile ? '1.25rem' : '1.5rem',
-            fontWeight: 800,
-            color: 'var(--text-primary)',
-            letterSpacing: '-0.02em',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            margin: 0,
-          }}>
-            Shared Book Library <BookOpen size={20} color="#6366F1" />
-          </h2>
-          <p style={{ fontSize: '0.775rem', color: 'var(--text-muted)', marginTop: '2px', margin: 0 }}>
-            {activePersonaFilter === 'all' ? 'Eve & Abbie’s shared reading list & accomplishments' : 'Shared book tracker & reading goals'}
-          </p>
+    <div className="space-y-6 max-w-5xl mx-auto px-4 md:px-8 py-6">
+      {/* Fun Header Banner */}
+      <div className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 rounded-3xl p-6 text-white shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative overflow-hidden">
+        <div className="space-y-1.5 z-10">
+          <div className="flex items-center gap-2">
+            <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5" /> Book Nook & Oasis 📚
+            </span>
+            <span className="bg-amber-400/30 text-amber-200 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5">
+              <Flame className="w-3.5 h-3.5 fill-amber-300" /> {totalPagesRead} Pages Logged
+            </span>
+          </div>
+          <h1 className="text-3xl font-black tracking-tight">Your Reading Shelf</h1>
+          <p className="text-xs text-purple-100 font-medium">“A reader lives a thousand lives before he dies.” — George R.R. Martin</p>
         </div>
 
         <button
-          type="button"
-          className="btn btn-primary"
-          onClick={handleOpenAddModal}
-          style={{
-            padding: '0.45rem 0.85rem',
-            fontSize: '0.8rem',
-            alignSelf: isMobile ? 'flex-start' : 'center',
-            borderRadius: '999px',
-          }}
+          onClick={onOpenAddBookModal}
+          className="z-10 flex items-center gap-2 bg-white text-slate-900 hover:bg-slate-100 active:scale-95 font-black px-5 py-2.5 rounded-2xl text-xs shadow-lg transition-all"
         >
-          <Plus size={15} /> Add Book
+          <Plus className="w-4 h-4 stroke-[3]" />
+          <span>Add New Book</span>
         </button>
       </div>
 
-      {/* Hero Section: Currently Reading Together */}
-      {activeReadingBook && (
-        <div style={{
-          backgroundColor: 'var(--bg-secondary)',
-          borderRadius: '20px',
-          border: '1px solid var(--border-color)',
-          padding: isMobile ? '1.1rem' : '1.5rem',
-          marginBottom: '1.5rem',
-          boxShadow: 'var(--shadow-subtle)',
-          position: 'relative',
-          overflow: 'hidden',
-        }}>
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            padding: '0.25rem 0.65rem',
-            borderRadius: '999px',
-            backgroundColor: `${activeReadingBook.cover_color || '#3B82F6'}15`,
-            color: activeReadingBook.cover_color || '#3B82F6',
-            fontWeight: 800,
-            fontSize: '0.75rem',
-            marginBottom: '0.85rem',
-          }}>
-            <BookOpen size={13} /> Reading Together Now
-          </div>
-
-          <div style={{
-            display: 'flex',
-            flexDirection: isMobile ? 'column' : 'row',
-            gap: '1.25rem',
-            alignItems: isMobile ? 'stretch' : 'center',
-          }}>
-            {/* Book Cover Placeholder */}
-            <div style={{
-              width: isMobile ? '100%' : '110px',
-              height: isMobile ? '140px' : '150px',
-              borderRadius: '14px',
-              backgroundColor: activeReadingBook.cover_color || '#3B82F6',
-              color: '#FFFFFF',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              padding: '1rem',
-              boxShadow: '0 8px 20px rgba(0,0,0,0.12)',
-              flexShrink: 0,
-            }}>
-              <span style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                {activeReadingBook.genre || 'Book'}
-              </span>
-              <div>
-                <h4 style={{ fontSize: '1rem', fontWeight: 800, margin: 0, lineHeight: 1.25 }}>
-                  {activeReadingBook.title}
-                </h4>
-                <p style={{ fontSize: '0.75rem', margin: '4px 0 0 0', opacity: 0.9, fontWeight: 600 }}>
-                  {activeReadingBook.author}
-                </p>
-              </div>
-            </div>
-
-            {/* Reading Progress Bars & Actions */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-              <div>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                  {activeReadingBook.title}
-                </h3>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                  by {activeReadingBook.author} • {activeReadingBook.total_pages ? `${activeReadingBook.total_pages} total pages` : 'In Progress'}
-                </p>
-              </div>
-
-              {/* Progress Bars for Eve & Abbie */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                {/* Eve Progress */}
-                {activeReadingBook.total_pages && (
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700, marginBottom: '3px' }}>
-                      <span style={{ color: '#EC4899', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#EC4899' }}></span>
-                        Eve’s Progress
-                      </span>
-                      <span style={{ color: 'var(--text-secondary)' }}>
-                        Page {activeReadingBook.eve_current_page || 0} of {activeReadingBook.total_pages} ({Math.min(100, Math.round(((activeReadingBook.eve_current_page || 0) / activeReadingBook.total_pages) * 100))}%)
-                      </span>
-                    </div>
-                    <div style={{ height: '8px', borderRadius: '999px', backgroundColor: 'var(--bg-hover)', overflow: 'hidden' }}>
-                      <div style={{
-                        height: '100%',
-                        width: `${Math.min(100, ((activeReadingBook.eve_current_page || 0) / activeReadingBook.total_pages) * 100)}%`,
-                        backgroundColor: '#EC4899',
-                        borderRadius: '999px',
-                        transition: 'width 0.3s ease',
-                      }}></div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Abbie Progress */}
-                {activeReadingBook.total_pages && (
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700, marginBottom: '3px' }}>
-                      <span style={{ color: '#3B82F6', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3B82F6' }}></span>
-                        Abbie’s Progress
-                      </span>
-                      <span style={{ color: 'var(--text-secondary)' }}>
-                        Page {activeReadingBook.abbie_current_page || 0} of {activeReadingBook.total_pages} ({Math.min(100, Math.round(((activeReadingBook.abbie_current_page || 0) / activeReadingBook.total_pages) * 100))}%)
-                      </span>
-                    </div>
-                    <div style={{ height: '8px', borderRadius: '999px', backgroundColor: 'var(--bg-hover)', overflow: 'hidden' }}>
-                      <div style={{
-                        height: '100%',
-                        width: `${Math.min(100, ((activeReadingBook.abbie_current_page || 0) / activeReadingBook.total_pages) * 100)}%`,
-                        backgroundColor: '#3B82F6',
-                        borderRadius: '999px',
-                        transition: 'width 0.3s ease',
-                      }}></div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Action Buttons */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.25rem' }}>
-                <button
-                  type="button"
-                  onClick={() => handleUpdatePageProgress(activeReadingBook.id, 'Eve')}
-                  style={{
-                    padding: '0.35rem 0.75rem',
-                    borderRadius: '999px',
-                    border: '1px solid #FBCFE8',
-                    backgroundColor: '#FDF2F8',
-                    color: '#BE185D',
-                    fontSize: '0.75rem',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Update Eve’s Page
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleUpdatePageProgress(activeReadingBook.id, 'Abbie')}
-                  style={{
-                    padding: '0.35rem 0.75rem',
-                    borderRadius: '999px',
-                    border: '1px solid #BFDBFE',
-                    backgroundColor: '#EFF6FF',
-                    color: '#1D4ED8',
-                    fontSize: '0.75rem',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Update Abbie’s Page
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleMarkAsCompleted(activeReadingBook.id)}
-                  style={{
-                    padding: '0.35rem 0.75rem',
-                    borderRadius: '999px',
-                    border: 'none',
-                    backgroundColor: '#10B981',
-                    color: '#FFFFFF',
-                    fontSize: '0.75rem',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  <CheckCircle size={13} /> Finish Book
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Shelf Filter Tabs */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: isMobile ? '0.25rem' : '0.4rem',
-        marginBottom: '1.25rem',
-        backgroundColor: 'var(--bg-hover)',
-        padding: '4px',
-        borderRadius: '999px',
-        border: '1px solid var(--border-color)',
-        overflowX: 'auto',
-        width: '100%',
-        boxSizing: 'border-box',
-      }}>
-        {[
-          { id: 'all' as const, label: `All Books (${books.length})` },
-          { id: 'reading' as const, label: `📖 Reading (${currentlyReadingBooks.length})` },
-          { id: 'want_to_read' as const, label: `📌 Wishlist (${wantToReadCount})` },
-          { id: 'completed' as const, label: `🏆 Accomplished (${completedCount})` },
-        ].map((tab) => {
-          const isSelected = filterShelf === tab.id;
+      {/* Fun Tabs */}
+      <div className="flex items-center gap-2 border-b border-slate-200/60 pb-2 overflow-x-auto">
+        {tabs.map((tab) => {
+          const isActive = activeStatusTab === tab.status;
           return (
             <button
-              key={tab.id}
-              type="button"
-              onClick={() => setFilterShelf(tab.id)}
-              style={{
-                flex: isMobile ? '1 0 auto' : 1,
-                padding: '0.4rem 0.75rem',
-                borderRadius: '999px',
-                border: 'none',
-                backgroundColor: isSelected ? 'var(--bg-secondary)' : 'transparent',
-                color: isSelected ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                fontWeight: 800,
-                fontSize: '0.775rem',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.15s ease',
-              }}
+              key={tab.status}
+              onClick={() => setActiveStatusTab(tab.status)}
+              className={`flex items-center gap-2.5 py-2.5 px-4 rounded-2xl text-xs font-black transition-all ${
+                isActive
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                  : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200/70 hover:bg-slate-50'
+              }`}
             >
-              {tab.label}
+              <span>{tab.icon}</span>
+              <span>{tab.label}</span>
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700'
+                }`}
+              >
+                {tab.count}
+              </span>
             </button>
           );
         })}
       </div>
 
-      {/* Book Cards Grid */}
-      {filteredBooks.length === 0 ? (
-        <div style={{
-          textAlign: 'center',
-          padding: '3rem 1rem',
-          backgroundColor: 'var(--bg-secondary)',
-          borderRadius: '16px',
-          border: '1px border-dashed var(--border-color)',
-        }}>
-          <BookOpen size={36} color="var(--text-muted)" style={{ marginBottom: '0.5rem' }} />
-          <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-            No books in this shelf yet
-          </h3>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Tap "Add Book" to track a new book together!
-          </p>
+      {/* Books Display Grid */}
+      {booksByStatus.length === 0 ? (
+        <div className="bg-white rounded-3xl p-12 border border-slate-200/80 text-center space-y-3 shadow-xs">
+          <BookOpen className="w-12 h-12 mx-auto text-slate-300 stroke-[1.5]" />
+          <p className="text-base font-bold text-slate-700">No books in this shelf yet</p>
+          <p className="text-xs text-slate-400">Click below to add a book you're reading or want to read!</p>
+          <button
+            onClick={onOpenAddBookModal}
+            className="text-xs font-black text-blue-600 hover:underline pt-2"
+          >
+            + Add a book to your shelf
+          </button>
         </div>
       ) : (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-          gap: '1rem',
-        }}>
-          {filteredBooks.map((book) => {
-            const isCompleted = book.status === 'completed';
-            const isReading = book.status === 'reading';
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {booksByStatus.map((book, idx) => {
+            const hasPages = Boolean(book.total_pages && book.total_pages > 0);
+            const progressPercent = hasPages
+              ? Math.min(100, Math.round(((book.current_page || 0) / (book.total_pages || 1)) * 100))
+              : 0;
+            const gradient = BOOK_SPINE_GRADIENTS[idx % BOOK_SPINE_GRADIENTS.length];
+            const ownerName = book.profile || 'Eve';
+            const badgeColor = profileColors[ownerName] || '#2563eb';
 
             return (
               <div
                 key={book.id}
-                style={{
-                  backgroundColor: 'var(--bg-secondary)',
-                  borderRadius: '16px',
-                  border: '1px solid var(--border-color)',
-                  padding: '1rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  gap: '0.85rem',
-                  boxShadow: 'var(--shadow-subtle)',
-                  position: 'relative',
-                }}
+                className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-4 group relative"
               >
-                <div>
-                  {/* Status Badge */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
-                    <span style={{
-                      padding: '0.2rem 0.55rem',
-                      borderRadius: '999px',
-                      fontSize: '0.7rem',
-                      fontWeight: 800,
-                      backgroundColor: isCompleted ? '#D1FAE5' : isReading ? '#DBEAFE' : '#FEF3C7',
-                      color: isCompleted ? '#047857' : isReading ? '#1D4ED8' : '#B45309',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}>
-                      {isCompleted && <Award size={12} />}
-                      {isReading && <BookOpen size={12} />}
-                      {!isCompleted && !isReading && <Bookmark size={12} />}
-                      {isCompleted ? 'Accomplished' : isReading ? 'Reading Now' : 'Want to Read'}
-                    </span>
-
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                      <button
-                        type="button"
-                        onClick={() => handleOpenEditModal(book)}
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: 'var(--text-muted)',
-                          cursor: 'pointer',
-                          padding: '4px',
-                        }}
-                      >
-                        <Edit2 size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteBook(book.id)}
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: '#EF4444',
-                          cursor: 'pointer',
-                          padding: '4px',
-                        }}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
+                {/* Book Header Card */}
+                <div className="flex items-start gap-3.5">
+                  <div
+                    className={`w-12 h-16 rounded-xl bg-gradient-to-br ${gradient} flex flex-col items-center justify-between p-2 text-white shadow-md shrink-0`}
+                  >
+                    <Bookmark className="w-4 h-4" />
+                    <span className="text-[9px] font-black tracking-widest uppercase">READ</span>
                   </div>
 
-                  {/* Title & Author */}
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                    {book.title}
-                  </h3>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '2px 0 0.5rem 0' }}>
-                    by {book.author}
-                  </p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-1">
+                      <h3 className="text-base font-black text-slate-900 truncate leading-snug">{book.title}</h3>
+                      <button
+                        onClick={() => deleteBookItem(book.id)}
+                        className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-500 transition-opacity p-1"
+                        title="Delete book"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <p className="text-xs font-semibold text-slate-500 truncate">{book.author}</p>
 
-                  {/* Notes / Thoughts */}
-                  {book.thoughts_notes && (
-                    <p style={{
-                      fontSize: '0.75rem',
-                      color: 'var(--text-secondary)',
-                      fontStyle: 'italic',
-                      backgroundColor: 'var(--bg-hover)',
-                      padding: '0.45rem 0.65rem',
-                      borderRadius: '8px',
-                      margin: '0.4rem 0',
-                    }}>
-                      "{book.thoughts_notes}"
-                    </p>
-                  )}
+                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                      {book.genre && (
+                        <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
+                          {book.genre}
+                        </span>
+                      )}
+                      {activeProfile === 'Both' && (
+                        <span
+                          className="text-[10px] font-bold text-white px-2 py-0.5 rounded-md"
+                          style={{ backgroundColor: badgeColor }}
+                        >
+                          {ownerName}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
-                {/* Star Ratings for Completed Books */}
-                {isCompleted && (
-                  <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.65rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700 }}>
-                      <span style={{ color: '#EC4899' }}>Eve’s Rating:</span>
-                      <span style={{ color: '#F59E0B', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                        {'★'.repeat(book.eve_rating || 5)}{'☆'.repeat(5 - (book.eve_rating || 5))}
+                {/* Progress bar if reading */}
+                {book.status === 'reading' && hasPages && (
+                  <div className="space-y-2 pt-2 border-t border-slate-100">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                      <span>Reading Progress</span>
+                      <span>
+                        {book.current_page || 0} / {book.total_pages} pgs ({progressPercent}%)
                       </span>
                     </div>
+                    <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden p-0.5">
+                      <div
+                        className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all duration-300"
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                    <button
+                      onClick={() => handleIncrementPage(book)}
+                      className="w-full py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold text-xs transition-colors flex items-center justify-center gap-1"
+                    >
+                      <span>+ Read 20 Pages</span>
+                    </button>
+                  </div>
+                )}
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 700 }}>
-                      <span style={{ color: '#3B82F6' }}>Abbie’s Rating:</span>
-                      <span style={{ color: '#F59E0B', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                        {'★'.repeat(book.abbie_rating || 5)}{'☆'.repeat(5 - (book.abbie_rating || 5))}
-                      </span>
+                {/* Rating if completed */}
+                {book.status === 'completed' && (
+                  <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Your Rating
+                    </span>
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          onClick={() => handleUpdateRating(book, star)}
+                          className="hover:scale-125 transition-transform"
+                        >
+                          <Star
+                            className={`w-5 h-5 ${
+                              star <= (book.rating || 5)
+                                ? 'text-amber-400 fill-amber-400'
+                                : 'text-slate-200'
+                            }`}
+                          />
+                        </button>
+                      ))}
                     </div>
                   </div>
                 )}
               </div>
             );
           })}
-        </div>
-      )}
-
-      {/* Add / Edit Book Modal */}
-      {isModalOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(9, 9, 11, 0.45)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10000,
-          padding: '1rem',
-        }} onClick={() => setIsModalOpen(false)}>
-          <div style={{
-            backgroundColor: 'var(--bg-secondary)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '24px',
-            width: '100%',
-            maxWidth: '420px',
-            padding: '1.5rem',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
-          }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                {editingBook ? 'Edit Book' : 'Add New Book'}
-              </h3>
-              <button type="button" onClick={() => setIsModalOpen(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveBook} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                  Book Title *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. Atomic Habits"
-                  style={{ width: '100%', padding: '0.6rem', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                  Author
-                </label>
-                <input
-                  type="text"
-                  value={author}
-                  onChange={(e) => setAuthor(e.target.value)}
-                  placeholder="e.g. James Clear"
-                  style={{ width: '100%', padding: '0.6rem', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                    Status
-                  </label>
-                  <select
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value as BookStatus)}
-                    style={{ width: '100%', padding: '0.6rem', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontWeight: 700 }}
-                  >
-                    <option value="reading">📖 Reading</option>
-                    <option value="want_to_read">📌 Wishlist</option>
-                    <option value="completed">🏆 Accomplished</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                    Total Pages
-                  </label>
-                  <input
-                    type="number"
-                    value={totalPages}
-                    onChange={(e) => setTotalPages(e.target.value ? parseInt(e.target.value) : '')}
-                    placeholder="e.g. 320"
-                    style={{ width: '100%', padding: '0.6rem', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
-                  />
-                </div>
-              </div>
-
-              {/* Page Progress inputs if Reading */}
-              {status === 'reading' && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', backgroundColor: 'var(--bg-hover)', padding: '0.75rem', borderRadius: '12px' }}>
-                  <div>
-                    <label style={{ fontSize: '0.725rem', fontWeight: 700, color: '#EC4899', display: 'block', marginBottom: '4px' }}>
-                      Eve’s Current Page
-                    </label>
-                    <input
-                      type="number"
-                      value={evePage}
-                      onChange={(e) => setEvePage(e.target.value ? parseInt(e.target.value) : '')}
-                      placeholder="e.g. 150"
-                      style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: '0.725rem', fontWeight: 700, color: '#3B82F6', display: 'block', marginBottom: '4px' }}>
-                      Abbie’s Current Page
-                    </label>
-                    <input
-                      type="number"
-                      value={abbiePage}
-                      onChange={(e) => setAbbiePage(e.target.value ? parseInt(e.target.value) : '')}
-                      placeholder="e.g. 150"
-                      style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Ratings if Accomplished */}
-              {status === 'completed' && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', backgroundColor: 'var(--bg-hover)', padding: '0.75rem', borderRadius: '12px' }}>
-                  <div>
-                    <label style={{ fontSize: '0.725rem', fontWeight: 700, color: '#EC4899', display: 'block', marginBottom: '4px' }}>
-                      Eve’s Rating (1-5)
-                    </label>
-                    <select
-                      value={eveRating}
-                      onChange={(e) => setEveRating(parseInt(e.target.value))}
-                      style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
-                    >
-                      <option value={0}>Select rating...</option>
-                      {[1, 2, 3, 4, 5].map((r) => (
-                        <option key={r} value={r}>{'★'.repeat(r)} ({r}/5)</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: '0.725rem', fontWeight: 700, color: '#3B82F6', display: 'block', marginBottom: '4px' }}>
-                      Abbie’s Rating (1-5)
-                    </label>
-                    <select
-                      value={abbieRating}
-                      onChange={(e) => setAbbieRating(parseInt(e.target.value))}
-                      style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
-                    >
-                      <option value={0}>Select rating...</option>
-                      {[1, 2, 3, 4, 5].map((r) => (
-                        <option key={r} value={r}>{'★'.repeat(r)} ({r}/5)</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                  Cover Color Theme
-                </label>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  {PRESET_COVER_COLORS.map((col) => (
-                    <button
-                      key={col.hex}
-                      type="button"
-                      onClick={() => setCoverColor(col.hex)}
-                      style={{
-                        width: '28px',
-                        height: '28px',
-                        borderRadius: '50%',
-                        backgroundColor: col.hex,
-                        border: coverColor === col.hex ? '3px solid var(--text-primary)' : 'none',
-                        cursor: 'pointer',
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                  Shared Notes & Takeaways
-                </label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Favorite quotes, thoughts, or shared memories..."
-                  rows={2}
-                  style={{ width: '100%', padding: '0.6rem', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setIsModalOpen(false)}
-                  style={{ borderRadius: '999px', padding: '0.45rem 1rem' }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  style={{ borderRadius: '999px', padding: '0.45rem 1.25rem', fontWeight: 800 }}
-                >
-                  {editingBook ? 'Save Changes' : 'Add Book'}
-                </button>
-              </div>
-            </form>
-          </div>
         </div>
       )}
     </div>

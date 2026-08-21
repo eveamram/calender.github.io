@@ -1,241 +1,122 @@
 import React, { useState } from 'react';
-import { Calendar, GraduationCap, CheckSquare, MoreHorizontal, Flame, ShoppingBag, Utensils, FileText, Settings, Plus, BookOpen } from 'lucide-react';
-import { BottomSheet } from '../ui/BottomSheet';
+import { useStore } from '../../context/StoreContext';
 import { AppTab } from '../../types';
+import {
+  Calendar,
+  BookOpen,
+  CheckSquare,
+  Sparkles,
+  MoreHorizontal,
+  ShoppingBag,
+  Utensils,
+  BookMarked,
+  X,
+} from 'lucide-react';
 
-interface MobileBottomNavProps {
-  activeTab: AppTab;
-  setActiveTab: (tab: AppTab) => void;
-  onOpenAddModal: () => void;
-  onOpenSettings?: () => void;
-}
+export const MobileBottomNav: React.FC = () => {
+  const { activeTab, setActiveTab } = useStore();
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
 
-export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
-  activeTab,
-  setActiveTab,
-  onOpenAddModal,
-  onOpenSettings,
-}) => {
-  const [showMoreSheet, setShowMoreSheet] = useState(false);
-
-  const mainTabs = [
-    { id: 'calendar' as const, label: 'Calendar', icon: Calendar },
-    { id: 'schedule' as const, label: 'Classes', icon: GraduationCap },
-    { id: 'todo' as const, label: 'To-Do', icon: CheckSquare },
+  const primaryTabs: { tab: AppTab; label: string; icon: React.ReactNode }[] = [
+    { tab: 'calendar', label: 'Calendar', icon: <Calendar className="w-5 h-5" /> },
+    { tab: 'classes', label: 'Classes', icon: <BookOpen className="w-5 h-5" /> },
+    { tab: 'todo', label: 'To-Do', icon: <CheckSquare className="w-5 h-5" /> },
+    { tab: 'habits', label: 'Habits', icon: <Sparkles className="w-5 h-5" /> },
   ];
 
-  const moreItems = [
-    { id: 'habits' as const, label: 'Daily Habits', icon: Flame, color: '#F59E0B' },
-    { id: 'grocery' as const, label: 'Grocery List', icon: ShoppingBag, color: '#10B981' },
-    { id: 'meals' as const, label: 'Meal Planner', icon: Utensils, color: '#EC4899' },
-    { id: 'books' as const, label: 'Books & Reading', icon: BookOpen, color: '#6366F1' },
+  const secondaryTabs: { tab: AppTab; label: string; desc: string; icon: React.ReactNode }[] = [
+    { tab: 'grocery', label: 'Grocery', desc: 'Shared store checklist', icon: <ShoppingBag className="w-5 h-5 text-emerald-600" /> },
+    { tab: 'meals', label: 'Meals', desc: 'Weekly meal planner', icon: <Utensils className="w-5 h-5 text-amber-600" /> },
+    { tab: 'books', label: 'Books', desc: 'Reading & wishlist tracker', icon: <BookMarked className="w-5 h-5 text-indigo-600" /> },
   ];
 
-  const isMoreActive = moreItems.some((item) => item.id === activeTab);
+  const isSecondaryActive = secondaryTabs.some((t) => t.tab === activeTab);
 
   return (
     <>
-      {/* Floating Action + Button on Mobile */}
-      <button
-        type="button"
-        onClick={onOpenAddModal}
-        style={{
-          position: 'fixed',
-          bottom: 'calc(4rem + env(safe-area-inset-bottom, 12px))',
-          right: '1.25rem',
-          zIndex: 95,
-          width: '52px',
-          height: '52px',
-          borderRadius: '50%',
-          backgroundColor: '#2563EB',
-          color: '#FFFFFF',
-          border: 'none',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: '0 6px 18px rgba(37, 99, 235, 0.35)',
-          cursor: 'pointer',
-          transition: 'transform 0.15s ease',
-        }}
-        title="Quick Add"
-      >
-        <Plus size={26} strokeWidth={2.5} />
-      </button>
-
-      {/* Mobile Bottom Navigation Bar */}
-      <nav style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        zIndex: 90,
-        backgroundColor: 'var(--bg-secondary)',
-        borderTop: '1px solid var(--border-color)',
-        paddingTop: '0.4rem',
-        paddingBottom: 'calc(0.4rem + env(safe-area-inset-bottom, 0px))',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-around',
-        backdropFilter: 'blur(12px)',
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
-      }}>
-        {mainTabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '2px',
-                background: 'transparent',
-                border: 'none',
-                color: isActive ? 'var(--accent-primary)' : 'var(--text-muted)',
-                cursor: 'pointer',
-                minHeight: '44px',
-                transition: 'color 0.15s ease',
-              }}
-            >
-              <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
-              <span style={{
-                fontSize: '0.675rem',
-                fontWeight: isActive ? 800 : 600,
-                letterSpacing: '-0.01em',
-              }}>
-                {tab.label}
-              </span>
-            </button>
-          );
-        })}
-
-        {/* More Tab Button */}
-        <button
-          type="button"
-          onClick={() => setShowMoreSheet(true)}
-          style={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '2px',
-            background: 'transparent',
-            border: 'none',
-            color: isMoreActive ? 'var(--accent-primary)' : 'var(--text-muted)',
-            cursor: 'pointer',
-            minHeight: '44px',
-            transition: 'color 0.15s ease',
-          }}
-        >
-          <MoreHorizontal size={20} strokeWidth={isMoreActive ? 2.5 : 1.8} />
-          <span style={{
-            fontSize: '0.675rem',
-            fontWeight: isMoreActive ? 800 : 600,
-            letterSpacing: '-0.01em',
-          }}>
-            {isMoreActive ? activeTab.charAt(0).toUpperCase() + activeTab.slice(1) : 'More'}
-          </span>
-        </button>
-      </nav>
-
-      {/* More Options Bottom Sheet */}
-      <BottomSheet
-        isOpen={showMoreSheet}
-        onClose={() => setShowMoreSheet(false)}
-        title="More Sections"
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-          {moreItems.map((item) => {
-            const Icon = item.icon;
-            const isSelected = activeTab === item.id;
-
+      {/* Fixed Bottom Bar on Mobile/Tablet */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-2 py-1 shadow-lg shadow-slate-950/5 safe-bottom">
+        <div className="flex items-center justify-around max-w-md mx-auto">
+          {primaryTabs.map((t) => {
+            const isActive = activeTab === t.tab;
             return (
               <button
-                key={item.id}
-                type="button"
+                key={t.tab}
                 onClick={() => {
-                  setActiveTab(item.id);
-                  setShowMoreSheet(false);
+                  setActiveTab(t.tab);
+                  setShowMoreMenu(false);
                 }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.85rem',
-                  padding: '0.85rem 1rem',
-                  borderRadius: '14px',
-                  border: isSelected ? '2px solid var(--accent-primary)' : '1px solid var(--border-color)',
-                  backgroundColor: isSelected ? 'var(--accent-light)' : 'var(--bg-hover)',
-                  color: 'var(--text-primary)',
-                  fontWeight: 800,
-                  fontSize: '0.95rem',
-                  cursor: 'pointer',
-                  minHeight: '52px',
-                }}
+                className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-xl transition-all touch-target ${
+                  isActive ? 'text-blue-600 font-semibold' : 'text-slate-500 hover:text-slate-900'
+                }`}
               >
-                <div style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '10px',
-                  backgroundColor: item.color + '1A',
-                  color: item.color,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                  <Icon size={18} />
-                </div>
-                <span>{item.label}</span>
+                {t.icon}
+                <span className="text-[11px] mt-1">{t.label}</span>
               </button>
             );
           })}
 
-          {onOpenSettings && (
-            <button
-              type="button"
-              onClick={() => {
-                setShowMoreSheet(false);
-                onOpenSettings();
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.85rem',
-                padding: '0.85rem 1rem',
-                borderRadius: '14px',
-                border: '1px solid var(--border-color)',
-                backgroundColor: 'var(--bg-hover)',
-                color: 'var(--text-secondary)',
-                fontWeight: 700,
-                fontSize: '0.95rem',
-                cursor: 'pointer',
-                marginTop: '0.5rem',
-                minHeight: '52px',
-              }}
-            >
-              <div style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '10px',
-                backgroundColor: 'var(--bg-secondary)',
-                color: 'var(--text-muted)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                <Settings size={18} />
-              </div>
-              <span>Settings & Sync</span>
-            </button>
-          )}
+          {/* More button */}
+          <button
+            onClick={() => setShowMoreMenu((prev) => !prev)}
+            className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-xl transition-all touch-target ${
+              isSecondaryActive || showMoreMenu ? 'text-blue-600 font-semibold' : 'text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <MoreHorizontal className="w-5 h-5" />
+            <span className="text-[11px] mt-1">More</span>
+          </button>
         </div>
-      </BottomSheet>
+      </nav>
+
+      {/* More Menu Sheet */}
+      {showMoreMenu && (
+        <div className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end bg-slate-900/40 backdrop-blur-xs animate-fade-in">
+          <div
+            className="fixed inset-0"
+            onClick={() => setShowMoreMenu(false)}
+          />
+          <div className="relative bg-white rounded-t-3xl p-6 border-t border-slate-200 shadow-2xl animate-slide-up max-w-lg mx-auto w-full">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+              <h3 className="text-base font-bold text-slate-900">More Tools</h3>
+              <button
+                onClick={() => setShowMoreMenu(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 pb-4">
+              {secondaryTabs.map((t) => {
+                const isActive = activeTab === t.tab;
+                return (
+                  <button
+                    key={t.tab}
+                    onClick={() => {
+                      setActiveTab(t.tab);
+                      setShowMoreMenu(false);
+                    }}
+                    className={`flex items-start gap-3 p-3.5 rounded-2xl border text-left transition-all ${
+                      isActive
+                        ? 'bg-blue-50 border-blue-200 text-blue-900 shadow-xs'
+                        : 'bg-slate-50/60 border-slate-200/80 hover:bg-slate-100 text-slate-800'
+                    }`}
+                  >
+                    <div className="p-2 rounded-xl bg-white shadow-xs border border-slate-200/50">
+                      {t.icon}
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold">{t.label}</div>
+                      <div className="text-[11px] text-slate-500 mt-0.5">{t.desc}</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

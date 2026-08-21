@@ -1,0 +1,330 @@
+import React, { useState, useMemo } from 'react';
+import { useStore, getTodayDateString } from '../../context/StoreContext';
+import { ClassItem } from '../../types';
+import { Plus, BookOpen, Clock, MapPin, User, Trash2, AlertCircle } from 'lucide-react';
+
+interface ClassesViewProps {
+  onOpenAddClassModal: () => void;
+}
+
+const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal }) => {
+  const { classes, events, deleteClass, deleteEvent, filterByProfile, activeProfile, profileColors } = useStore();
+  const [selectedMobileDay, setSelectedMobileDay] = useState<number>(1); // 1 = Mon
+
+  const filteredClasses = useMemo(() => {
+    return filterByProfile(classes);
+  }, [classes, filterByProfile]);
+
+  const filteredExams = useMemo(() => {
+    const today = getTodayDateString();
+    const allExams = events.filter((e) => e.event_type === 'exam' && e.event_date >= today);
+    const result = filterByProfile(allExams);
+    return [...result].sort((a, b) => a.event_date.localeCompare(b.event_date));
+  }, [events, filterByProfile]);
+
+  // Map classes by day of week (1=Mon ... 7=Sun)
+  const classesByDay = useMemo(() => {
+    const map = new Map<number, ClassItem[]>();
+    for (let i = 1; i <= 7; i++) map.set(i, []);
+
+    filteredClasses.forEach((cls) => {
+      cls.days_of_week.forEach((dayNum) => {
+        if (map.has(dayNum)) {
+          map.get(dayNum)!.push(cls);
+        }
+      });
+    });
+
+    map.forEach((list) => {
+      list.sort((a, b) => a.start_time.localeCompare(b.start_time));
+    });
+
+    return map;
+  }, [filteredClasses]);
+
+  const selectedMobileClasses = classesByDay.get(selectedMobileDay) || [];
+
+  return (
+    <div className="space-y-8 max-w-7xl mx-auto px-4 md:px-8 py-6">
+      {/* View Header */}
+      <div className="flex items-center justify-between border-b border-slate-200/80 pb-4">
+        <div>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Class Schedule</h1>
+          <p className="text-xs text-slate-500 font-medium">Academic courses timetable and exam tracker</p>
+        </div>
+        <button
+          onClick={onOpenAddClassModal}
+          className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-xl text-xs shadow-xs transition-all"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Add Class</span>
+        </button>
+      </div>
+
+      {/* MOBILE LAYOUT: Horizontal Day Selector + Vertical Day Schedule */}
+      <div className="lg:hidden space-y-5">
+        {/* Day Selector Bar */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+          {DAY_NAMES.slice(0, 5).map((name, idx) => {
+            const dayNum = idx + 1;
+            const isSelected = selectedMobileDay === dayNum;
+            const count = (classesByDay.get(dayNum) || []).length;
+
+            return (
+              <button
+                key={dayNum}
+                onClick={() => setSelectedMobileDay(dayNum)}
+                className={`flex flex-col items-center justify-center py-2.5 px-4 rounded-xl text-xs font-semibold shrink-0 transition-all ${
+                  isSelected
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <span>{name}</span>
+                <span
+                  className={`text-[10px] mt-0.5 font-bold ${
+                    isSelected ? 'text-blue-100' : 'text-slate-400'
+                  }`}
+                >
+                  {count} {count === 1 ? 'class' : 'classes'}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Selected Day's Class Cards */}
+        {selectedMobileClasses.length === 0 ? (
+          <div className="bg-white rounded-2xl p-8 border border-slate-200/80 text-center space-y-2">
+            <BookOpen className="w-8 h-8 mx-auto text-slate-300 stroke-[1.5]" />
+            <p className="text-sm font-medium text-slate-500">No classes scheduled for {DAY_NAMES[selectedMobileDay - 1]}</p>
+            <button
+              onClick={onOpenAddClassModal}
+              className="text-xs font-semibold text-blue-600 hover:underline"
+            >
+              + Add a new class
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {selectedMobileClasses.map((cls) => {
+              const ownerName = cls.profile || 'Eve';
+              const badgeColor = profileColors[ownerName] || '#2563eb';
+
+              return (
+                <div
+                  key={cls.id}
+                  className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs space-y-2 relative group"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-3 h-3 rounded-full shrink-0"
+                        style={{ backgroundColor: cls.color || '#2563eb' }}
+                      />
+                      <h3 className="text-base font-bold text-slate-900">{cls.name}</h3>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {activeProfile === 'Both' && (
+                        <span
+                          className="text-[10px] font-bold text-white px-2 py-0.5 rounded-md"
+                          style={{ backgroundColor: badgeColor }}
+                        >
+                          {ownerName}
+                        </span>
+                      )}
+                      <button
+                        onClick={() => deleteClass(cls.id)}
+                        className="text-slate-300 hover:text-red-500 p-1 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-slate-600 pt-1">
+                    <span className="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-lg">
+                      <Clock className="w-3.5 h-3.5 text-slate-400" />
+                      {cls.start_time} – {cls.end_time}
+                    </span>
+
+                    {cls.room && (
+                      <span className="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-lg">
+                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                        {cls.room}
+                      </span>
+                    )}
+
+                    {cls.instructor && (
+                      <span className="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-lg">
+                        <User className="w-3.5 h-3.5 text-slate-400" />
+                        {cls.instructor}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* DESKTOP LAYOUT: Clean Mon–Fri Weekly Timetable */}
+      <div className="hidden lg:grid grid-cols-5 gap-4">
+        {DAY_NAMES.slice(0, 5).map((name, idx) => {
+          const dayNum = idx + 1;
+          const dayClasses = classesByDay.get(dayNum) || [];
+
+          return (
+            <div
+              key={dayNum}
+              className="bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col overflow-hidden min-h-[380px]"
+            >
+              <div className="bg-slate-50 border-b border-slate-200/80 px-4 py-3 text-center">
+                <span className="text-sm font-bold text-slate-900">{name}</span>
+                <span className="block text-[11px] font-semibold text-slate-400">
+                  {dayClasses.length} {dayClasses.length === 1 ? 'class' : 'classes'}
+                </span>
+              </div>
+
+              <div className="p-3 space-y-3 flex-1 overflow-y-auto">
+                {dayClasses.length === 0 ? (
+                  <div className="h-full flex items-center justify-center text-xs text-slate-400 font-medium py-10">
+                    No classes
+                  </div>
+                ) : (
+                  dayClasses.map((cls) => {
+                    const ownerName = cls.profile || 'Eve';
+                    const badgeColor = profileColors[ownerName] || '#2563eb';
+
+                    return (
+                      <div
+                        key={cls.id}
+                        className="p-3 rounded-xl border border-slate-100 bg-slate-50/60 hover:bg-slate-100/80 transition-all space-y-1.5 relative group"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span
+                            className="text-xs font-bold px-2 py-0.5 rounded-md"
+                            style={{
+                              backgroundColor: `${cls.color || '#2563eb'}18`,
+                              color: cls.color || '#2563eb',
+                            }}
+                          >
+                            {cls.start_time}
+                          </span>
+
+                          <div className="flex items-center gap-1.5">
+                            {activeProfile === 'Both' && (
+                              <span
+                                className="text-[10px] font-bold text-white px-1.5 py-0.5 rounded-md"
+                                style={{ backgroundColor: badgeColor }}
+                              >
+                                {ownerName}
+                              </span>
+                            )}
+                            <button
+                              onClick={() => deleteClass(cls.id)}
+                              className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-500 transition-opacity"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <h4 className="text-sm font-bold text-slate-900">{cls.name}</h4>
+
+                        <div className="text-[11px] text-slate-500 space-y-0.5">
+                          {cls.room && <div className="truncate">📍 {cls.room}</div>}
+                          {cls.instructor && <div className="truncate">👤 {cls.instructor}</div>}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* UPCOMING EXAMS SECTION */}
+      <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-xl bg-red-50 text-red-600">
+              <AlertCircle className="w-5 h-5 stroke-[2.5]" />
+            </div>
+            <div>
+              <h2 className="text-lg font-black text-slate-900 tracking-tight">Upcoming Exams</h2>
+              <p className="text-xs text-slate-500 font-medium">Scheduled tests and midterm examinations</p>
+            </div>
+          </div>
+          <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg">
+            {filteredExams.length} {filteredExams.length === 1 ? 'Exam' : 'Exams'}
+          </span>
+        </div>
+
+        {filteredExams.length === 0 ? (
+          <div className="py-6 text-center text-xs text-slate-400 font-medium">
+            No upcoming exams scheduled. Great job staying ahead!
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {filteredExams.map((exam) => {
+              const ownerName = exam.profile || 'Eve';
+              const badgeColor = profileColors[ownerName] || '#2563eb';
+
+              return (
+                <div
+                  key={exam.id}
+                  className="p-4 rounded-xl border border-red-100 bg-red-50/30 hover:bg-red-50/60 transition-all space-y-2 relative group"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-xs font-extrabold text-red-600 bg-red-100 px-2.5 py-0.5 rounded-md">
+                      {exam.event_date}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      {activeProfile === 'Both' && (
+                        <span
+                          className="text-[10px] font-bold text-white px-2 py-0.5 rounded-md"
+                          style={{ backgroundColor: badgeColor }}
+                        >
+                          {ownerName}
+                        </span>
+                      )}
+                      <button
+                        onClick={() => deleteEvent(exam.id)}
+                        className="text-slate-300 hover:text-red-500 transition-colors p-1"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <h4 className="text-sm font-extrabold text-slate-900">{exam.title}</h4>
+
+                  <div className="flex items-center gap-3 text-xs font-medium text-slate-600 pt-1">
+                    {exam.start_time && (
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-slate-400" />
+                        {exam.start_time} {exam.end_time ? `- ${exam.end_time}` : ''}
+                      </span>
+                    )}
+                    {exam.location && (
+                      <span className="flex items-center gap-1 truncate">
+                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                        {exam.location}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};

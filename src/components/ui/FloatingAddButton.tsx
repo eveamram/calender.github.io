@@ -1,39 +1,37 @@
 import React from 'react';
 import { Plus } from 'lucide-react';
-import { EventType } from '../../types';
+import { useStore } from '../../context/StoreContext';
 
 interface FloatingAddButtonProps {
-  onOpenAddEvent: (category: EventType) => void;
-  onNavigateTab?: (tab: string) => void;
+  onClick: () => void;
 }
 
-export const FloatingAddButton: React.FC<FloatingAddButtonProps> = ({ onOpenAddEvent }) => {
+export const FloatingAddButton: React.FC<FloatingAddButtonProps> = ({ onClick }) => {
+  const { activeTab } = useStore();
+
+  const getButtonLabel = () => {
+    switch (activeTab) {
+      case 'calendar': return 'Event';
+      case 'classes': return 'Class';
+      case 'todo': return 'Task';
+      case 'habits': return 'Habit';
+      case 'grocery': return 'Item';
+      case 'meals': return 'Meal';
+      case 'books': return 'Book';
+      default: return 'Item';
+    }
+  };
+
   return (
-    <button
-      type="button"
-      onClick={() => onOpenAddEvent('all' as any)}
-      aria-label="Add new item"
-      style={{
-        position: 'fixed',
-        bottom: 'calc(76px + env(safe-area-inset-bottom, 0px))',
-        right: '20px',
-        width: '54px',
-        height: '54px',
-        borderRadius: '50%',
-        backgroundColor: '#3B82F6',
-        color: '#FFFFFF',
-        border: 'none',
-        boxShadow: '0 4px 18px rgba(59, 130, 246, 0.45)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 900,
-        cursor: 'pointer',
-        transition: 'transform 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
-      }}
-    >
-      <Plus size={28} strokeWidth={2.5} />
-    </button>
+    <div className="fixed bottom-20 right-5 z-30 lg:hidden">
+      <button
+        onClick={onClick}
+        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-3 rounded-full shadow-lg shadow-blue-600/30 active:scale-95 transition-all"
+        aria-label={`Add ${getButtonLabel()}`}
+      >
+        <Plus className="w-5 h-5 stroke-[2.5]" />
+        <span className="text-sm tracking-wide font-bold pr-1">{getButtonLabel()}</span>
+      </button>
+    </div>
   );
 };
-

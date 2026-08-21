@@ -1,0 +1,623 @@
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import {
+  ProfilePersona,
+  AppTab,
+  CalendarEvent,
+  ClassItem,
+  TaskItem,
+  HabitItem,
+  HabitCompletion,
+  GroceryItem,
+  MealItem,
+  BookItem,
+} from '../types';
+import { syncEngine } from '../lib/syncEngine';
+
+interface StoreContextType {
+  // Profile & Tab Navigation
+  activeProfile: ProfilePersona;
+  setActiveProfile: (profile: ProfilePersona) => void;
+  activeTab: AppTab;
+  setActiveTab: (tab: AppTab) => void;
+
+  // Selected Date for Calendar
+  selectedDate: string; // YYYY-MM-DD
+  setSelectedDate: (date: string) => void;
+
+  // Persona Badge Colors: Eve, Abbie, Both
+  profileColors: Record<ProfilePersona, string>;
+  setProfileColor: (profile: ProfilePersona, color: string) => Promise<void>;
+
+  // Custom Calendar Day Colors: dateStr -> color hex
+  dateColors: Record<string, string>;
+  setDateColor: (dateStr: string, color: string) => Promise<void>;
+
+  // Data Collections
+  events: CalendarEvent[];
+  classes: ClassItem[];
+  tasks: TaskItem[];
+  habits: HabitItem[];
+  habitCompletions: HabitCompletion[];
+  groceryItems: GroceryItem[];
+  mealItems: MealItem[];
+  bookItems: BookItem[];
+
+  // Helper filter by profile
+  filterByProfile: <T extends { profile?: ProfilePersona }>(items: T[]) => T[];
+
+  // CRUD Operations
+  addEvent: (evt: Omit<CalendarEvent, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
+  updateEvent: (id: string, updates: Partial<CalendarEvent>) => Promise<void>;
+  deleteEvent: (id: string) => Promise<void>;
+  clearCalendarEventsExceptAnniversaries: () => Promise<void>;
+  clearAnniversariesOnly: () => Promise<void>;
+
+  addClass: (cls: Omit<ClassItem, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
+  updateClass: (id: string, updates: Partial<ClassItem>) => Promise<void>;
+  deleteClass: (id: string) => Promise<void>;
+
+  addTask: (tsk: Omit<TaskItem, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
+  toggleTaskComplete: (id: string) => Promise<void>;
+  deleteTask: (id: string) => Promise<void>;
+
+  addHabit: (hbt: Omit<HabitItem, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
+  toggleHabitCompletion: (habitId: string, date: string, quantity?: number) => Promise<void>;
+  deleteHabit: (id: string) => Promise<void>;
+
+  addGroceryItem: (item: Omit<GroceryItem, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
+  toggleGroceryComplete: (id: string) => Promise<void>;
+  deleteGroceryItem: (id: string) => Promise<void>;
+
+  addMealItem: (meal: Omit<MealItem, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
+  deleteMealItem: (id: string) => Promise<void>;
+
+  addBookItem: (book: Omit<BookItem, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
+  updateBookItem: (id: string, updates: Partial<BookItem>) => Promise<void>;
+  deleteBookItem: (id: string) => Promise<void>;
+}
+
+const StoreContext = createContext<StoreContextType | undefined>(undefined);
+
+export const getTodayDateString = (): string => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+export const isAnniversaryEvent = (evt: CalendarEvent): boolean => {
+  if (evt.event_type === 'birthday') return true;
+  const titleLower = evt.title.toLowerCase();
+  return titleLower.includes('anniversary') || titleLower.includes('birthday');
+};
+
+export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [activeProfile, setActiveProfileState] = useState<ProfilePersona>(() => {
+    return (localStorage.getItem('calender_profile') as ProfilePersona) || 'Eve';
+  });
+
+  const [activeTab, setActiveTabState] = useState<AppTab>(() => {
+    return (localStorage.getItem('calender_tab') as AppTab) || 'calendar';
+  });
+
+  const [selectedDate, setSelectedDate] = useState<string>(getTodayDateString());
+
+  // Persona Colors Configuration
+  const [profileColors, setProfileColors] = useState<Record<ProfilePersona, string>>(() => {
+    try {
+      const saved = localStorage.getItem('calender_profile_colors');
+      return saved ? JSON.parse(saved) : { Eve: '#2563eb', Abbie: '#7c3aed', Both: '#059669' };
+    } catch (e) {
+      return { Eve: '#2563eb', Abbie: '#7c3aed', Both: '#059669' };
+    }
+  });
+
+  // Date Highlight Colors map
+  const [dateColors, setDateColors] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem('calender_date_colors');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+
+  // Reactive State Collections
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [classes, setClasses] = useState<ClassItem[]>([]);
+  const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [habits, setHabits] = useState<HabitItem[]>([]);
+  const [habitCompletions, setHabitCompletions] = useState<HabitCompletion[]>([]);
+  const [groceryItems, setGroceryItems] = useState<GroceryItem[]>([]);
+  const [mealItems, setMealItems] = useState<MealItem[]>([]);
+  const [bookItems, setBookItems] = useState<BookItem[]>([]);
+
+  const setActiveProfile = (profile: ProfilePersona) => {
+    setActiveProfileState(profile);
+    localStorage.setItem('calender_profile', profile);
+  };
+
+  const setActiveTab = (tab: AppTab) => {
+    setActiveTabState(tab);
+    localStorage.setItem('calender_tab', tab);
+  };
+
+  const setProfileColor = async (profile: ProfilePersona, color: string) => {
+    const updated = { ...profileColors, [profile]: color };
+    setProfileColors(updated);
+    localStorage.setItem('calender_profile_colors', JSON.stringify(updated));
+    await syncEngine.upsertItem('profileColors', { id: profile, color });
+  };
+
+  const setDateColor = async (dateStr: string, color: string) => {
+    const updated = { ...dateColors, [dateStr]: color };
+    setDateColors(updated);
+    localStorage.setItem('calender_date_colors', JSON.stringify(updated));
+    await syncEngine.upsertItem('dateColors', { id: dateStr, color });
+  };
+
+  // Seed Initial Demo Data if empty
+  const seedInitialDataIfEmpty = () => {
+    const today = getTodayDateString();
+
+    if (events.length === 0) {
+      const initialEvents: CalendarEvent[] = [
+        {
+          id: 'evt-1',
+          title: 'Organic Chemistry Lecture',
+          event_type: 'class',
+          event_date: today,
+          start_time: '10:00',
+          end_time: '11:15',
+          location: 'Hall A',
+          color: '#2563eb',
+          profile: 'Eve',
+        },
+        {
+          id: 'evt-2',
+          title: 'Midterm Exam - Biology',
+          event_type: 'exam',
+          event_date: today,
+          start_time: '14:00',
+          end_time: '15:30',
+          location: 'Science Center 201',
+          color: '#dc2626',
+          profile: 'Eve',
+        },
+        {
+          id: 'evt-3',
+          title: 'Calculus III Recitation',
+          event_type: 'class',
+          event_date: today,
+          start_time: '11:30',
+          end_time: '12:45',
+          location: 'Math Hall 12',
+          color: '#0284c7',
+          profile: 'Abbie',
+        },
+        {
+          id: 'evt-4',
+          title: 'Physics Lab Practical Exam',
+          event_type: 'exam',
+          event_date: '2026-08-25',
+          start_time: '09:00',
+          end_time: '11:00',
+          location: 'Physics Lab B',
+          color: '#dc2626',
+          profile: 'Abbie',
+        },
+        {
+          id: 'evt-5',
+          title: 'Anniversary Celebration 🎉',
+          event_type: 'birthday',
+          event_date: '2026-09-14',
+          start_time: '18:00',
+          end_time: '21:00',
+          location: 'Favorite Restaurant',
+          color: '#ec4899',
+          profile: 'Both',
+        },
+      ];
+      initialEvents.forEach((e) => syncEngine.upsertItem('events', e));
+      setEvents(initialEvents);
+    }
+
+    if (classes.length === 0) {
+      const initialClasses: ClassItem[] = [
+        {
+          id: 'cls-1',
+          name: 'Organic Chemistry II',
+          instructor: 'Dr. Smith',
+          room: 'Hall A',
+          start_time: '10:00',
+          end_time: '11:15',
+          days_of_week: [1, 3, 5],
+          color: '#2563eb',
+          profile: 'Eve',
+        },
+        {
+          id: 'cls-2',
+          name: 'Calculus III',
+          instructor: 'Prof. Davis',
+          room: 'Math Hall 12',
+          start_time: '11:30',
+          end_time: '12:45',
+          days_of_week: [2, 4],
+          color: '#0284c7',
+          profile: 'Abbie',
+        },
+      ];
+      initialClasses.forEach((c) => syncEngine.upsertItem('classes', c));
+      setClasses(initialClasses);
+    }
+
+    if (tasks.length === 0) {
+      const initialTasks: TaskItem[] = [
+        {
+          id: 'tsk-1',
+          title: 'Submit Chemistry Problem Set #4',
+          is_completed: false,
+          due_date: today,
+          priority: 'high',
+          profile: 'Eve',
+        },
+        {
+          id: 'tsk-2',
+          title: 'Read Chapter 6 Calculus',
+          is_completed: false,
+          due_date: today,
+          priority: 'normal',
+          profile: 'Abbie',
+        },
+      ];
+      initialTasks.forEach((t) => syncEngine.upsertItem('tasks', t));
+      setTasks(initialTasks);
+    }
+
+    if (habits.length === 0) {
+      const initialHabits: HabitItem[] = [
+        {
+          id: 'hbt-1',
+          title: 'Drink 8 cups of water',
+          emoji: '💧',
+          target_quantity: 8,
+          target_unit: 'cups',
+          active_days: [1, 2, 3, 4, 5, 6, 7],
+          profile: 'Eve',
+        },
+        {
+          id: 'hbt-2',
+          title: 'Morning Yoga',
+          emoji: '🧘‍♀️',
+          active_days: [1, 3, 5],
+          profile: 'Abbie',
+        },
+      ];
+      initialHabits.forEach((h) => syncEngine.upsertItem('habits', h));
+      setHabits(initialHabits);
+    }
+
+    if (groceryItems.length === 0) {
+      const initialGrocery: GroceryItem[] = [
+        { id: 'gro-1', name: 'Almond Milk', category: 'Dairy', is_completed: false, profile: 'Eve' },
+        { id: 'gro-2', name: 'Organic Bananas', category: 'Produce', is_completed: false, profile: 'Abbie' },
+      ];
+      initialGrocery.forEach((g) => syncEngine.upsertItem('groceryItems', g));
+      setGroceryItems(initialGrocery);
+    }
+
+    if (mealItems.length === 0) {
+      const initialMeals: MealItem[] = [
+        { id: 'mel-1', title: 'Avocado Toast & Eggs', day_of_week: 1, meal_type: 'breakfast', profile: 'Eve' },
+        { id: 'mel-2', title: 'Chicken Caesar Salad', day_of_week: 1, meal_type: 'lunch', profile: 'Abbie' },
+      ];
+      initialMeals.forEach((m) => syncEngine.upsertItem('mealItems', m));
+      setMealItems(initialMeals);
+    }
+
+    if (bookItems.length === 0) {
+      const initialBooks: BookItem[] = [
+        {
+          id: 'bok-1',
+          title: 'Deep Work',
+          author: 'Cal Newport',
+          status: 'reading',
+          current_page: 120,
+          total_pages: 300,
+          genre: 'Productivity',
+          profile: 'Eve',
+        },
+        {
+          id: 'bok-2',
+          title: 'Atomic Habits',
+          author: 'James Clear',
+          status: 'completed',
+          rating: 5,
+          genre: 'Self Improvement',
+          profile: 'Abbie',
+        },
+      ];
+      initialBooks.forEach((b) => syncEngine.upsertItem('bookItems', b));
+      setBookItems(initialBooks);
+    }
+  };
+
+  // Sync Engine Listener Setup
+  useEffect(() => {
+    const unsub = syncEngine.subscribeToSync((storeData) => {
+      setEvents(storeData.events || []);
+      setClasses(storeData.classes || []);
+      setTasks(storeData.tasks || []);
+      setHabits(storeData.habits || []);
+      setHabitCompletions(storeData.habitCompletions || []);
+      setGroceryItems(storeData.groceryItems || []);
+      setMealItems(storeData.mealItems || []);
+      setBookItems(storeData.bookItems || []);
+
+      if (storeData.dateColors && Array.isArray(storeData.dateColors)) {
+        const colorMap: Record<string, string> = {};
+        storeData.dateColors.forEach((dc: { id: string; color: string }) => {
+          if (dc.id && dc.color) colorMap[dc.id] = dc.color;
+        });
+        setDateColors(colorMap);
+      }
+
+      if (storeData.profileColors && Array.isArray(storeData.profileColors)) {
+        const pMap: Record<ProfilePersona, string> = { Eve: '#2563eb', Abbie: '#7c3aed', Both: '#059669' };
+        storeData.profileColors.forEach((pc: { id: ProfilePersona; color: string }) => {
+          if (pc.id && pc.color) pMap[pc.id] = pc.color;
+        });
+        setProfileColors(pMap);
+      }
+    });
+
+    syncEngine.fetchAll().then(() => {
+      seedInitialDataIfEmpty();
+    });
+
+    return () => unsub();
+  }, []);
+
+  // Filter Helper
+  const filterByProfile = <T extends { profile?: ProfilePersona }>(items: T[]): T[] => {
+    if (activeProfile === 'Both') return items;
+    return items.filter((item) => !item.profile || item.profile === activeProfile || item.profile === 'Both');
+  };
+
+  // CRUD Implementations
+  const addEvent = async (evt: Omit<CalendarEvent, 'id' | 'created_at' | 'updated_at'>) => {
+    const newEvt: CalendarEvent = {
+      ...evt,
+      id: `evt-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      created_at: new Date().toISOString(),
+    };
+    await syncEngine.upsertItem('events', newEvt);
+  };
+
+  const updateEvent = async (id: string, updates: Partial<CalendarEvent>) => {
+    const existing = events.find((e) => e.id === id);
+    if (!existing) return;
+    const updated = { ...existing, ...updates, updated_at: new Date().toISOString() };
+    await syncEngine.upsertItem('events', updated);
+  };
+
+  const deleteEvent = async (id: string) => {
+    await syncEngine.deleteItem('events', id);
+  };
+
+  const clearCalendarEventsExceptAnniversaries = async () => {
+    const toDelete = events.filter((e) => !isAnniversaryEvent(e));
+    for (const evt of toDelete) {
+      await syncEngine.deleteItem('events', evt.id);
+    }
+  };
+
+  const clearAnniversariesOnly = async () => {
+    const toDelete = events.filter((e) => isAnniversaryEvent(e));
+    for (const evt of toDelete) {
+      await syncEngine.deleteItem('events', evt.id);
+    }
+  };
+
+  const addClass = async (cls: Omit<ClassItem, 'id' | 'created_at' | 'updated_at'>) => {
+    const newClass: ClassItem = {
+      ...cls,
+      id: `cls-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      created_at: new Date().toISOString(),
+    };
+    await syncEngine.upsertItem('classes', newClass);
+  };
+
+  const updateClass = async (id: string, updates: Partial<ClassItem>) => {
+    const existing = classes.find((c) => c.id === id);
+    if (!existing) return;
+    const updated = { ...existing, ...updates, updated_at: new Date().toISOString() };
+    await syncEngine.upsertItem('classes', updated);
+  };
+
+  const deleteClass = async (id: string) => {
+    await syncEngine.deleteItem('classes', id);
+  };
+
+  const addTask = async (tsk: Omit<TaskItem, 'id' | 'created_at' | 'updated_at'>) => {
+    const newTask: TaskItem = {
+      ...tsk,
+      id: `tsk-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      created_at: new Date().toISOString(),
+    };
+    await syncEngine.upsertItem('tasks', newTask);
+
+    if (tsk.due_date) {
+      await addEvent({
+        title: tsk.title,
+        event_type: 'task',
+        event_date: tsk.due_date,
+        start_time: tsk.due_time || '09:00',
+        task_id: newTask.id,
+        profile: tsk.profile,
+      });
+    }
+  };
+
+  const toggleTaskComplete = async (id: string) => {
+    const existing = tasks.find((t) => t.id === id);
+    if (!existing) return;
+    const nextVal = !existing.is_completed;
+    await syncEngine.upsertItem('tasks', { ...existing, is_completed: nextVal });
+  };
+
+  const deleteTask = async (id: string) => {
+    await syncEngine.deleteItem('tasks', id);
+    const relatedEvt = events.find((e) => e.task_id === id);
+    if (relatedEvt) {
+      await syncEngine.deleteItem('events', relatedEvt.id);
+    }
+  };
+
+  const addHabit = async (hbt: Omit<HabitItem, 'id' | 'created_at' | 'updated_at'>) => {
+    const newHabit: HabitItem = {
+      ...hbt,
+      id: `hbt-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      created_at: new Date().toISOString(),
+    };
+    await syncEngine.upsertItem('habits', newHabit);
+  };
+
+  const toggleHabitCompletion = async (habitId: string, date: string, quantity?: number) => {
+    const existingIndex = habitCompletions.findIndex((hc) => hc.habit_id === habitId && hc.date === date);
+    if (existingIndex >= 0) {
+      const existing = habitCompletions[existingIndex];
+      const isCompleted = quantity !== undefined ? quantity > 0 : !existing.completed;
+      const updated: HabitCompletion = {
+        ...existing,
+        completed: isCompleted,
+        current_quantity: quantity !== undefined ? quantity : isCompleted ? 1 : 0,
+      };
+      await syncEngine.upsertItem('habitCompletions', updated);
+    } else {
+      const newhc: HabitCompletion = {
+        id: `hc-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+        habit_id: habitId,
+        date,
+        completed: true,
+        current_quantity: quantity !== undefined ? quantity : 1,
+        created_at: new Date().toISOString(),
+      };
+      await syncEngine.upsertItem('habitCompletions', newhc);
+    }
+  };
+
+  const deleteHabit = async (id: string) => {
+    await syncEngine.deleteItem('habits', id);
+  };
+
+  const addGroceryItem = async (item: Omit<GroceryItem, 'id' | 'created_at' | 'updated_at'>) => {
+    const newItem: GroceryItem = {
+      ...item,
+      id: `gro-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      created_at: new Date().toISOString(),
+    };
+    await syncEngine.upsertItem('groceryItems', newItem);
+  };
+
+  const toggleGroceryComplete = async (id: string) => {
+    const existing = groceryItems.find((g) => g.id === id);
+    if (!existing) return;
+    await syncEngine.upsertItem('groceryItems', { ...existing, is_completed: !existing.is_completed });
+  };
+
+  const deleteGroceryItem = async (id: string) => {
+    await syncEngine.deleteItem('groceryItems', id);
+  };
+
+  const addMealItem = async (meal: Omit<MealItem, 'id' | 'created_at' | 'updated_at'>) => {
+    const newMeal: MealItem = {
+      ...meal,
+      id: `mel-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      created_at: new Date().toISOString(),
+    };
+    await syncEngine.upsertItem('mealItems', newMeal);
+  };
+
+  const deleteMealItem = async (id: string) => {
+    await syncEngine.deleteItem('mealItems', id);
+  };
+
+  const addBookItem = async (book: Omit<BookItem, 'id' | 'created_at' | 'updated_at'>) => {
+    const newBook: BookItem = {
+      ...book,
+      id: `bok-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      created_at: new Date().toISOString(),
+    };
+    await syncEngine.upsertItem('bookItems', newBook);
+  };
+
+  const updateBookItem = async (id: string, updates: Partial<BookItem>) => {
+    const existing = bookItems.find((b) => b.id === id);
+    if (!existing) return;
+    await syncEngine.upsertItem('bookItems', { ...existing, ...updates, updated_at: new Date().toISOString() });
+  };
+
+  const deleteBookItem = async (id: string) => {
+    await syncEngine.deleteItem('bookItems', id);
+  };
+
+  return (
+    <StoreContext.Provider
+      value={{
+        activeProfile,
+        setActiveProfile,
+        activeTab,
+        setActiveTab,
+        selectedDate,
+        setSelectedDate,
+        profileColors,
+        setProfileColor,
+        dateColors,
+        setDateColor,
+        events,
+        classes,
+        tasks,
+        habits,
+        habitCompletions,
+        groceryItems,
+        mealItems,
+        bookItems,
+        filterByProfile,
+        addEvent,
+        updateEvent,
+        deleteEvent,
+        clearCalendarEventsExceptAnniversaries,
+        clearAnniversariesOnly,
+        addClass,
+        updateClass,
+        deleteClass,
+        addTask,
+        toggleTaskComplete,
+        deleteTask,
+        addHabit,
+        toggleHabitCompletion,
+        deleteHabit,
+        addGroceryItem,
+        toggleGroceryComplete,
+        deleteGroceryItem,
+        addMealItem,
+        deleteMealItem,
+        addBookItem,
+        updateBookItem,
+        deleteBookItem,
+      }}
+    >
+      {children}
+    </StoreContext.Provider>
+  );
+};
+
+export const useStore = () => {
+  const context = useContext(StoreContext);
+  if (!context) {
+    throw new Error('useStore must be used within a StoreProvider');
+  }
+  return context;
+};
