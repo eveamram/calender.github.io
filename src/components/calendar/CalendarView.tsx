@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useStore, getTodayDateString } from '../../context/StoreContext';
 import { CalendarEvent, CATEGORY_METAS, EventType } from '../../types';
 import { getAnniversaryEvent, getCommonHolidayEvent } from '../../utils/holidays';
@@ -35,6 +35,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
 
   const [currentMonthDate, setCurrentMonthDate] = useState(() => new Date());
   const [showDayScheduleSheet, setShowDayScheduleSheet] = useState(false);
+  const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const year = currentMonthDate.getFullYear();
   const month = currentMonthDate.getMonth();
@@ -137,8 +138,24 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
     setSelectedDate(todayStr);
   };
 
-  const handleDesktopDayDoubleClick = (dateStr: string) => {
+  const handleDayClick = (dateStr: string) => {
     setSelectedDate(dateStr);
+    if (clickTimeoutRef.current) {
+      clearTimeout(clickTimeoutRef.current);
+    }
+    clickTimeoutRef.current = setTimeout(() => {
+      setShowDayScheduleSheet(true);
+    }, 220);
+  };
+
+  const handleDayDoubleClick = (e: React.MouseEvent, dateStr: string) => {
+    e.stopPropagation();
+    if (clickTimeoutRef.current) {
+      clearTimeout(clickTimeoutRef.current);
+      clickTimeoutRef.current = null;
+    }
+    setSelectedDate(dateStr);
+    setShowDayScheduleSheet(false);
     onOpenAddModal(dateStr);
   };
 
@@ -451,14 +468,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
               return (
                 <div
                   key={dayObj.dateStr}
-                  onClick={() => {
-                    setSelectedDate(dayObj.dateStr);
-                    setShowDayScheduleSheet(true);
-                  }}
-                  onDoubleClick={(e) => {
-                    e.stopPropagation();
-                    handleDesktopDayDoubleClick(dayObj.dateStr);
-                  }}
+                  onClick={() => handleDayClick(dayObj.dateStr)}
+                  onDoubleClick={(e) => handleDayDoubleClick(e, dayObj.dateStr)}
                   className={`min-h-[105px] p-2.5 rounded-2xl border text-left cursor-pointer transition-all flex flex-col justify-between group ${
                     !dayObj.isCurrentMonth
                       ? 'bg-slate-50/40 border-slate-100 text-slate-300'
