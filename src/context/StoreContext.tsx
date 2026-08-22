@@ -239,7 +239,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // Initial fetch from Supabase
     syncEngine.fetchAll();
 
-    // 1. Re-fetch whenever window gets focus or becomes visible
+    // Re-fetch when tab gets focus or becomes visible
     const handleFocus = () => {
       syncEngine.fetchAll();
     };
@@ -247,17 +247,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     window.addEventListener('focus', handleFocus);
     document.addEventListener('visibilitychange', handleFocus);
 
-    // 2. Periodic background poll every 10 seconds for real-time consistency across all devices
-    const pollInterval = setInterval(() => {
-      syncEngine.fetchAll();
-    }, 10000);
-
     return () => {
       unsubStatus();
       unsubSync();
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleFocus);
-      clearInterval(pollInterval);
     };
   }, []);
 
