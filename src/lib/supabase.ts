@@ -14,7 +14,9 @@ const getEnvOrStorage = (key: string, storageKey: string): string => {
 };
 
 export const supabaseUrl = getEnvOrStorage('VITE_SUPABASE_URL', 'calender_supabase_url');
-export const supabaseAnonKey = getEnvOrStorage('VITE_SUPABASE_ANON_KEY', 'calender_supabase_key');
+export const supabaseAnonKey =
+  getEnvOrStorage('VITE_SUPABASE_ANON_KEY', 'calender_supabase_key') ||
+  'sb_publishable_gDiT6Wk52sGIpO0i2twPJA_JRIyRm_B';
 
 export const isSupabaseConfigured = (): boolean => {
   return (

@@ -13,7 +13,7 @@ export const ConnectionErrorBanner: React.FC<ConnectionErrorBannerProps> = ({
 }) => {
   const status = getSupabaseConfigStatus();
   const [url, setUrl] = useState(currentUrl || '');
-  const [key, setKey] = useState(currentKey || '');
+  const [key, setKey] = useState(currentKey || 'sb_publishable_gDiT6Wk52sGIpO0i2twPJA_JRIyRm_B');
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   const handleSaveCredentials = (e: React.FormEvent) => {
