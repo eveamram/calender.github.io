@@ -2,13 +2,63 @@ import { supabase, isSupabaseConfigured } from './supabase';
 
 export interface SyncPayload<T = any> {
   type: 'INSERT' | 'UPDATE' | 'DELETE' | 'RESET';
-  table: string;
+  table: string; // Logical app table name
   id?: string;
   payload?: T;
   timestamp: number;
 }
 
-const SYNC_CHANNEL_NAME = 'calender_live_sync_v2';
+export const APP_TABLES = [
+  'events',
+  'classes',
+  'tasks',
+  'habits',
+  'habitCompletions',
+  'groceryItems',
+  'mealItems',
+  'bookItems',
+  'profileColors',
+  'dateColors',
+] as const;
+
+export type AppTable = typeof APP_TABLES[number];
+
+// Master 1:1 Authoritative Mapping: Logical App Table Key -> Supabase PostgreSQL Table Name
+export const APP_TO_SUPABASE_TABLE_MAP: Record<string, string> = {
+  events: 'events',
+  classes: 'classes',
+  tasks: 'tasks',
+  habits: 'habits',
+  habitCompletions: 'habitCompletions',
+  groceryItems: 'groceryItems',
+  mealItems: 'mealItems',
+  bookItems: 'bookItems',
+  profileColors: 'profileColors',
+  dateColors: 'dateColors',
+};
+
+// Reverse Mapping: Supabase PostgreSQL Table Name (camelCase or snake_case) -> Logical App Table Key
+export const SUPABASE_TO_APP_TABLE_MAP: Record<string, string> = {
+  events: 'events',
+  classes: 'classes',
+  tasks: 'tasks',
+  habits: 'habits',
+  habitCompletions: 'habitCompletions',
+  groceryItems: 'groceryItems',
+  mealItems: 'mealItems',
+  bookItems: 'bookItems',
+  profileColors: 'profileColors',
+  dateColors: 'dateColors',
+  // PostgreSQL snake_case aliases
+  habit_completions: 'habitCompletions',
+  grocery_items: 'groceryItems',
+  meal_items: 'mealItems',
+  book_items: 'bookItems',
+  profile_colors: 'profileColors',
+  date_colors: 'dateColors',
+};
+
+const SYNC_CHANNEL_NAME = 'calender_live_sync_v3';
 const broadcastChannel =
   typeof window !== 'undefined' && 'BroadcastChannel' in window
     ? new BroadcastChannel(SYNC_CHANNEL_NAME)
@@ -17,39 +67,73 @@ const broadcastChannel =
 type GlobalSyncListener = (store: Record<string, any[]>) => void;
 const globalSyncListeners = new Set<GlobalSyncListener>();
 
-// In-memory store per table with LocalStorage persistence backup
-const memoryStore = new Map<string, Map<string, any>>();
-
-function loadFromLocalStorage(table: string) {
-  try {
-    const raw = localStorage.getItem(`calender_sync_${table}`);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        if (!memoryStore.has(table)) memoryStore.set(table, new Map());
-        const map = memoryStore.get(table)!;
-        map.clear();
-        parsed.forEach((item) => {
-          if (item && item.id) map.set(item.id, item);
-        });
-      }
-    }
-  } catch (err) {
-    console.warn(`LocalStorage load failed for ${table}:`, err);
-  }
+export interface SyncStatus {
+  isConfigured: boolean;
+  isSyncing: boolean;
+  syncError: string | null;
+  lastSyncedAt: number | null;
 }
 
-function saveToLocalStorage(table: string) {
+type SyncStatusListener = (status: SyncStatus) => void;
+const syncStatusListeners = new Set<SyncStatusListener>();
+
+let currentSyncStatus: SyncStatus = {
+  isConfigured: isSupabaseConfigured(),
+  isSyncing: false,
+  syncError: isSupabaseConfigured() ? null : 'Supabase credentials missing or unconfigured',
+  lastSyncedAt: null,
+};
+
+function updateSyncStatus(updates: Partial<SyncStatus>) {
+  currentSyncStatus = { ...currentSyncStatus, ...updates };
+  syncStatusListeners.forEach((cb) => {
+    try {
+      cb(currentSyncStatus);
+    } catch (e) {
+      console.error('Error in sync status listener:', e);
+    }
+  });
+}
+
+// Server-Authoritative In-Memory Store: Map<appTable, Map<itemId, itemObject>>
+const memoryStore = new Map<string, Map<string, any>>();
+APP_TABLES.forEach((tbl) => memoryStore.set(tbl, new Map()));
+
+function loadInitialCacheFromLocalStorage() {
+  if (typeof window === 'undefined') return;
+  APP_TABLES.forEach((table) => {
+    try {
+      const raw = localStorage.getItem(`calender_sync_${table}`);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          const map = memoryStore.get(table)!;
+          map.clear();
+          parsed.forEach((item) => {
+            if (item && item.id) map.set(item.id, item);
+          });
+        }
+      }
+    } catch (err) {
+      console.warn(`Initial LocalStorage cache load failed for ${table}:`, err);
+    }
+  });
+}
+
+loadInitialCacheFromLocalStorage();
+
+function saveSnapshotToLocalStorage(table: string) {
+  if (typeof window === 'undefined') return;
   try {
     const map = memoryStore.get(table);
-    if (map) {
+    if (map && map.size > 0) {
       const arr = Array.from(map.values());
       localStorage.setItem(`calender_sync_${table}`, JSON.stringify(arr));
     } else {
       localStorage.removeItem(`calender_sync_${table}`);
     }
   } catch (err) {
-    console.warn(`LocalStorage save failed for ${table}:`, err);
+    console.warn(`LocalStorage save snapshot failed for ${table}:`, err);
   }
 }
 
@@ -72,11 +156,12 @@ function notifyGlobalListeners() {
   });
 }
 
-function updateMemoryCache(event: SyncPayload) {
-  if (!memoryStore.has(event.table)) {
-    memoryStore.set(event.table, new Map());
+function applyMemoryMutation(event: SyncPayload) {
+  const table = event.table;
+  if (!memoryStore.has(table)) {
+    memoryStore.set(table, new Map());
   }
-  const tableMap = memoryStore.get(event.table)!;
+  const tableMap = memoryStore.get(table)!;
 
   if (event.type === 'INSERT' || event.type === 'UPDATE') {
     if (event.id && event.payload) {
@@ -90,39 +175,30 @@ function updateMemoryCache(event: SyncPayload) {
     tableMap.clear();
   }
 
-  saveToLocalStorage(event.table);
+  saveSnapshotToLocalStorage(table);
 }
 
-// Multi-tab broadcast channel & window storage event listeners
+// Multi-tab broadcast listener
 if (broadcastChannel) {
   broadcastChannel.onmessage = (msg: MessageEvent<SyncPayload>) => {
-    if (msg && msg.data) {
-      updateMemoryCache(msg.data);
+    if (msg?.data) {
+      applyMemoryMutation(msg.data);
       notifyGlobalListeners();
     }
   };
 }
 
-if (typeof window !== 'undefined') {
-  window.addEventListener('storage', (e) => {
-    if (e.key && e.key.startsWith('calender_sync_')) {
-      const table = e.key.replace('calender_sync_', '');
-      loadFromLocalStorage(table);
-      notifyGlobalListeners();
-    }
-  });
-}
-
-// Supabase Realtime Postgres Changes listener
+// Supabase Realtime Listener
 if (isSupabaseConfigured()) {
   try {
     supabase
-      .channel('calender-realtime-schema')
+      .channel('calender-realtime-global')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public' },
         (payload) => {
-          const table = payload.table;
+          const rawTable = payload.table;
+          const appTable = SUPABASE_TO_APP_TABLE_MAP[rawTable] || rawTable;
           const eventType = payload.eventType;
 
           let syncType: SyncPayload['type'] = 'UPDATE';
@@ -131,16 +207,17 @@ if (isSupabaseConfigured()) {
 
           const oldRecord = payload.old as Record<string, any> | undefined;
           const newRecord = payload.new as Record<string, any> | undefined;
+          const targetId = (newRecord?.id || oldRecord?.id) as string | undefined;
 
           const syncData: SyncPayload = {
             type: syncType,
-            table,
-            id: (newRecord?.id || oldRecord?.id) as string | undefined,
+            table: appTable,
+            id: targetId,
             payload: syncType === 'DELETE' ? oldRecord : newRecord,
             timestamp: Date.now(),
           };
 
-          updateMemoryCache(syncData);
+          applyMemoryMutation(syncData);
           notifyGlobalListeners();
 
           if (broadcastChannel) {
@@ -150,131 +227,249 @@ if (isSupabaseConfigured()) {
       )
       .subscribe();
   } catch (err) {
-    console.warn('Supabase Realtime subscription error:', err);
+    console.warn('Supabase Realtime global subscription error:', err);
   }
 }
-
 
 export const syncEngine = {
   subscribeToSync: (listener: GlobalSyncListener) => {
     globalSyncListeners.add(listener);
+    listener(getStoreSnapshot());
     return () => {
       globalSyncListeners.delete(listener);
     };
   },
 
-  fetchAll: async (): Promise<Record<string, any[]>> => {
-    const tables = ['events', 'classes', 'tasks', 'habits', 'habitCompletions', 'groceryItems', 'mealItems', 'bookItems', 'profileColors', 'dateColors'];
+  subscribeSyncStatus: (listener: SyncStatusListener) => {
+    syncStatusListeners.add(listener);
+    listener(currentSyncStatus);
+    return () => {
+      syncStatusListeners.delete(listener);
+    };
+  },
 
-    if (isSupabaseConfigured()) {
-      await Promise.all(
-        tables.map(async (table) => {
-          try {
-            const { data, error } = await supabase.from(table).select('*');
-            if (!error && Array.isArray(data)) {
-              if (!memoryStore.has(table)) memoryStore.set(table, new Map());
-              const tableMap = memoryStore.get(table)!;
-              tableMap.clear();
-              data.forEach((item) => {
-                if (item && item.id) tableMap.set(item.id, item);
-              });
-              saveToLocalStorage(table);
-            } else {
-              loadFromLocalStorage(table);
-            }
-          } catch (e) {
-            console.warn(`Supabase fetch failed for ${table}:`, e);
-            loadFromLocalStorage(table);
+  getSyncStatus: (): SyncStatus => currentSyncStatus,
+  isConfigured: () => isSupabaseConfigured(),
+
+  /**
+   * SERVER-AUTHORITATIVE FETCH ALL
+   */
+  fetchAll: async (): Promise<Record<string, any[]>> => {
+    if (!isSupabaseConfigured()) {
+      updateSyncStatus({ isSyncing: false, syncError: 'Supabase unconfigured' });
+      notifyGlobalListeners();
+      return getStoreSnapshot();
+    }
+
+    updateSyncStatus({ isSyncing: true, syncError: null });
+    let fetchErrors: string[] = [];
+
+    await Promise.all(
+      APP_TABLES.map(async (appTable) => {
+        const dbTable = APP_TO_SUPABASE_TABLE_MAP[appTable] || appTable;
+        try {
+          const { data, error } = await supabase.from(dbTable).select('*');
+          if (!error && Array.isArray(data)) {
+            const tableMap = memoryStore.get(appTable)!;
+            tableMap.clear();
+            data.forEach((item) => {
+              if (item && item.id) {
+                tableMap.set(item.id, item);
+              }
+            });
+            saveSnapshotToLocalStorage(appTable);
+          } else if (error) {
+            const errMsg = `Fetch failed for ${appTable} (${dbTable}): ${error.message}`;
+            console.error(errMsg, error);
+            fetchErrors.push(errMsg);
           }
-        })
-      );
+        } catch (e: any) {
+          const errMsg = `Exception fetching ${appTable}: ${e?.message || e}`;
+          console.error(errMsg, e);
+          fetchErrors.push(errMsg);
+        }
+      })
+    );
+
+    if (fetchErrors.length > 0) {
+      updateSyncStatus({
+        isSyncing: false,
+        syncError: fetchErrors.join('; '),
+      });
     } else {
-      tables.forEach((table) => loadFromLocalStorage(table));
+      updateSyncStatus({
+        isSyncing: false,
+        syncError: null,
+        lastSyncedAt: Date.now(),
+      });
     }
 
     notifyGlobalListeners();
     return getStoreSnapshot();
   },
 
-  upsertItem: async <T extends { id: string }>(table: string, item: T): Promise<T> => {
+  /**
+   * Item-level upsert mutation with automatic optimistic state rollback on server rejection.
+   */
+  upsertItem: async <T extends { id: string }>(appTable: string, item: T): Promise<boolean> => {
+    const tableMap = memoryStore.get(appTable);
+    const previousItem = tableMap ? tableMap.get(item.id) : undefined;
+    const isNewItem = previousItem === undefined;
+
     const syncPayload: SyncPayload<T> = {
       type: 'UPDATE',
-      table,
+      table: appTable,
       id: item.id,
       payload: item,
       timestamp: Date.now(),
     };
 
-    updateMemoryCache(syncPayload);
+    // Optimistic update
+    applyMemoryMutation(syncPayload);
     notifyGlobalListeners();
-
-    if (broadcastChannel) {
-      broadcastChannel.postMessage(syncPayload);
-    }
+    if (broadcastChannel) broadcastChannel.postMessage(syncPayload);
 
     if (isSupabaseConfigured()) {
+      const dbTable = APP_TO_SUPABASE_TABLE_MAP[appTable] || appTable;
       try {
-        const { error } = await supabase.from(table).upsert([item]);
-        if (error) console.error(`Supabase upsert error [${table}]:`, error.message);
-      } catch (err) {
-        console.error(`Supabase upsert exception [${table}]:`, err);
+        const { error } = await supabase.from(dbTable).upsert([item]);
+        if (error) {
+          console.error(`Supabase upsert error [${appTable} -> ${dbTable}]:`, error.message, error);
+          // ROLLBACK OPTIMISTIC UPDATE
+          if (tableMap) {
+            if (isNewItem) {
+              tableMap.delete(item.id);
+            } else {
+              tableMap.set(item.id, previousItem);
+            }
+            saveSnapshotToLocalStorage(appTable);
+            notifyGlobalListeners();
+          }
+          updateSyncStatus({ syncError: `Upsert failed for ${appTable}: ${error.message}` });
+          return false;
+        }
+      } catch (err: any) {
+        console.error(`Supabase upsert exception [${appTable} -> ${dbTable}]:`, err);
+        // ROLLBACK OPTIMISTIC UPDATE
+        if (tableMap) {
+          if (isNewItem) {
+            tableMap.delete(item.id);
+          } else {
+            tableMap.set(item.id, previousItem);
+          }
+          saveSnapshotToLocalStorage(appTable);
+          notifyGlobalListeners();
+        }
+        updateSyncStatus({ syncError: `Upsert exception for ${appTable}: ${err?.message || err}` });
+        return false;
       }
     }
 
-    return item;
+    updateSyncStatus({ lastSyncedAt: Date.now(), syncError: null });
+    return true;
   },
 
-  deleteItem: async (table: string, id: string): Promise<boolean> => {
+  /**
+   * Item-level delete mutation with automatic optimistic rollback on server rejection.
+   */
+  deleteItem: async (appTable: string, id: string): Promise<boolean> => {
+    const tableMap = memoryStore.get(appTable);
+    const previousItem = tableMap ? tableMap.get(id) : undefined;
+    if (!previousItem && !tableMap?.has(id)) {
+      return true; // Already deleted or nonexistent
+    }
+
     const syncPayload: SyncPayload = {
       type: 'DELETE',
-      table,
+      table: appTable,
       id,
       timestamp: Date.now(),
     };
 
-    updateMemoryCache(syncPayload);
+    // Optimistic deletion
+    applyMemoryMutation(syncPayload);
     notifyGlobalListeners();
-
-    if (broadcastChannel) {
-      broadcastChannel.postMessage(syncPayload);
-    }
+    if (broadcastChannel) broadcastChannel.postMessage(syncPayload);
 
     if (isSupabaseConfigured()) {
+      const dbTable = APP_TO_SUPABASE_TABLE_MAP[appTable] || appTable;
       try {
-        const { error } = await supabase.from(table).delete().eq('id', id);
-        if (error) console.error(`Supabase delete error [${table}]:`, error.message);
-      } catch (err) {
-        console.error(`Supabase delete exception [${table}]:`, err);
+        const { error } = await supabase.from(dbTable).delete().eq('id', id);
+        if (error) {
+          console.error(`Supabase delete error [${appTable} -> ${dbTable}]:`, error.message, error);
+          // ROLLBACK OPTIMISTIC DELETION
+          if (tableMap && previousItem !== undefined) {
+            tableMap.set(id, previousItem);
+            saveSnapshotToLocalStorage(appTable);
+            notifyGlobalListeners();
+          }
+          updateSyncStatus({ syncError: `Delete failed for ${appTable}: ${error.message}` });
+          return false;
+        }
+      } catch (err: any) {
+        console.error(`Supabase delete exception [${appTable} -> ${dbTable}]:`, err);
+        // ROLLBACK OPTIMISTIC DELETION
+        if (tableMap && previousItem !== undefined) {
+          tableMap.set(id, previousItem);
+          saveSnapshotToLocalStorage(appTable);
+          notifyGlobalListeners();
+        }
+        updateSyncStatus({ syncError: `Delete exception for ${appTable}: ${err?.message || err}` });
+        return false;
       }
     }
 
+    updateSyncStatus({ lastSyncedAt: Date.now(), syncError: null });
     return true;
   },
 
-  clearTable: async (table: string): Promise<boolean> => {
+  /**
+   * Table-level clear operation with automatic optimistic rollback on server rejection.
+   */
+  clearTable: async (appTable: string): Promise<boolean> => {
+    const tableMap = memoryStore.get(appTable);
+    const previousSnapshot = tableMap ? new Map(tableMap) : new Map();
+
     const syncPayload: SyncPayload = {
       type: 'RESET',
-      table,
+      table: appTable,
       timestamp: Date.now(),
     };
 
-    updateMemoryCache(syncPayload);
+    // Optimistic table clear
+    applyMemoryMutation(syncPayload);
     notifyGlobalListeners();
-
-    if (broadcastChannel) {
-      broadcastChannel.postMessage(syncPayload);
-    }
+    if (broadcastChannel) broadcastChannel.postMessage(syncPayload);
 
     if (isSupabaseConfigured()) {
+      const dbTable = APP_TO_SUPABASE_TABLE_MAP[appTable] || appTable;
       try {
-        // Delete all records in table
-        const { error } = await supabase.from(table).delete().neq('id', '___impossible_id___');
-        if (error) console.error(`Supabase clear table error [${table}]:`, error.message);
-      } catch (err) {
-        console.error(`Supabase clear table exception [${table}]:`, err);
+        const { error } = await supabase.from(dbTable).delete().neq('id', '___impossible_id___');
+        if (error) {
+          console.error(`Supabase clear table error [${appTable} -> ${dbTable}]:`, error.message, error);
+          // ROLLBACK OPTIMISTIC CLEAR
+          if (tableMap) {
+            previousSnapshot.forEach((val, key) => tableMap.set(key, val));
+            saveSnapshotToLocalStorage(appTable);
+            notifyGlobalListeners();
+          }
+          updateSyncStatus({ syncError: `Clear table failed for ${appTable}: ${error.message}` });
+          return false;
+        }
+      } catch (err: any) {
+        console.error(`Supabase clear table exception [${appTable} -> ${dbTable}]:`, err);
+        // ROLLBACK OPTIMISTIC CLEAR
+        if (tableMap) {
+          previousSnapshot.forEach((val, key) => tableMap.set(key, val));
+          saveSnapshotToLocalStorage(appTable);
+          notifyGlobalListeners();
+        }
+        updateSyncStatus({ syncError: `Clear table exception for ${appTable}: ${err?.message || err}` });
+        return false;
       }
     }
 
+    updateSyncStatus({ lastSyncedAt: Date.now(), syncError: null });
     return true;
   },
 };

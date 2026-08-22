@@ -11,9 +11,12 @@ import {
   MealItem,
   BookItem,
 } from '../types';
-import { syncEngine } from '../lib/syncEngine';
+import { syncEngine, SyncStatus } from '../lib/syncEngine';
 
 interface StoreContextType {
+  // Sync Status Feedback
+  syncStatus: SyncStatus;
+
   // Profile & Tab Navigation
   activeProfile: ProfilePersona;
   setActiveProfile: (profile: ProfilePersona) => void;
@@ -30,7 +33,7 @@ interface StoreContextType {
 
   // Persona Badge Colors: Eve, Abbie, Both
   profileColors: Record<ProfilePersona, string>;
-  setProfileColor: (profile: ProfilePersona, color: string) => Promise<void>;
+  setProfileColor: (profile: ProfilePersona, color: string) => Promise<boolean>;
 
   // Clock Format Preference per Person: 12h vs 24h
   timeFormats: Record<ProfilePersona, '12h' | '24h'>;
@@ -38,7 +41,7 @@ interface StoreContextType {
 
   // Custom Calendar Day Colors: dateStr -> color hex
   dateColors: Record<string, string>;
-  setDateColor: (dateStr: string, color: string) => Promise<void>;
+  setDateColor: (dateStr: string, color: string) => Promise<boolean>;
 
   // Data Collections
   events: CalendarEvent[];
@@ -54,43 +57,43 @@ interface StoreContextType {
   filterByProfile: <T extends { profile?: ProfilePersona }>(items: T[]) => T[];
 
   // CRUD & Reset Operations
-  addEvent: (evt: Omit<CalendarEvent, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
-  updateEvent: (id: string, updates: Partial<CalendarEvent>) => Promise<void>;
-  deleteEvent: (id: string) => Promise<void>;
+  addEvent: (evt: Omit<CalendarEvent, 'id' | 'created_at' | 'updated_at'>) => Promise<boolean>;
+  updateEvent: (id: string, updates: Partial<CalendarEvent>) => Promise<boolean>;
+  deleteEvent: (id: string) => Promise<boolean>;
   clearCalendarEventsExceptAnniversaries: () => Promise<void>;
   clearAnniversariesOnly: () => Promise<void>;
-  clearAllEvents: () => Promise<void>;
+  clearAllEvents: () => Promise<boolean>;
 
-  addClass: (cls: Omit<ClassItem, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
-  updateClass: (id: string, updates: Partial<ClassItem>) => Promise<void>;
-  deleteClass: (id: string) => Promise<void>;
-  clearClasses: () => Promise<void>;
+  addClass: (cls: Omit<ClassItem, 'id' | 'created_at' | 'updated_at'>) => Promise<boolean>;
+  updateClass: (id: string, updates: Partial<ClassItem>) => Promise<boolean>;
+  deleteClass: (id: string) => Promise<boolean>;
+  clearClasses: () => Promise<boolean>;
 
-  addTask: (tsk: Omit<TaskItem, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
-  toggleTaskComplete: (id: string) => Promise<void>;
-  deleteTask: (id: string) => Promise<void>;
+  addTask: (tsk: Omit<TaskItem, 'id' | 'created_at' | 'updated_at'>) => Promise<boolean>;
+  toggleTaskComplete: (id: string) => Promise<boolean>;
+  deleteTask: (id: string) => Promise<boolean>;
   clearTasks: (onlyCompleted?: boolean) => Promise<void>;
 
-  addHabit: (hbt: Omit<HabitItem, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
-  toggleHabitCompletion: (habitId: string, date: string, quantity?: number) => Promise<void>;
-  deleteHabit: (id: string) => Promise<void>;
+  addHabit: (hbt: Omit<HabitItem, 'id' | 'created_at' | 'updated_at'>) => Promise<boolean>;
+  toggleHabitCompletion: (habitId: string, date: string, quantity?: number) => Promise<boolean>;
+  deleteHabit: (id: string) => Promise<boolean>;
   clearWeeklyHabitProgress: (dateStrs?: string[]) => Promise<void>;
-  clearAllHabitCompletions: () => Promise<void>;
-  clearAllHabits: () => Promise<void>;
+  clearAllHabitCompletions: () => Promise<boolean>;
+  clearAllHabits: () => Promise<boolean>;
 
-  addGroceryItem: (item: Omit<GroceryItem, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
-  toggleGroceryComplete: (id: string) => Promise<void>;
-  deleteGroceryItem: (id: string) => Promise<void>;
-  clearGroceryItems: (onlyCompleted?: boolean) => Promise<void>;
+  addGroceryItem: (item: Omit<GroceryItem, 'id' | 'created_at' | 'updated_at'>) => Promise<boolean>;
+  toggleGroceryComplete: (id: string) => Promise<boolean>;
+  deleteGroceryItem: (id: string) => Promise<boolean>;
+  clearGroceryItems: (onlyCompleted?: boolean) => Promise<boolean>;
 
-  addMealItem: (meal: Omit<MealItem, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
-  deleteMealItem: (id: string) => Promise<void>;
-  clearMealItems: () => Promise<void>;
+  addMealItem: (meal: Omit<MealItem, 'id' | 'created_at' | 'updated_at'>) => Promise<boolean>;
+  deleteMealItem: (id: string) => Promise<boolean>;
+  clearMealItems: () => Promise<boolean>;
 
-  addBookItem: (book: Omit<BookItem, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
-  updateBookItem: (id: string, updates: Partial<BookItem>) => Promise<void>;
-  deleteBookItem: (id: string) => Promise<void>;
-  clearBookItems: () => Promise<void>;
+  addBookItem: (book: Omit<BookItem, 'id' | 'created_at' | 'updated_at'>) => Promise<boolean>;
+  updateBookItem: (id: string, updates: Partial<BookItem>) => Promise<boolean>;
+  deleteBookItem: (id: string) => Promise<boolean>;
+  clearBookItems: () => Promise<boolean>;
 
   factoryResetAllData: () => Promise<void>;
 }
@@ -122,15 +125,15 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [selectedDate, setSelectedDate] = useState<string>(getTodayDateString());
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>(() => syncEngine.getSyncStatus());
 
-  // Persona Colors Configuration
+  // Persona Colors Configuration (Server-Synced with Local Fallback)
   const [profileColors, setProfileColors] = useState<Record<ProfilePersona, string>>(() => {
     try {
       const saved = localStorage.getItem('calender_profile_colors');
-      return saved ? JSON.parse(saved) : { Eve: '#2563eb', Abbie: '#7c3aed', Both: '#059669' };
-    } catch (e) {
-      return { Eve: '#2563eb', Abbie: '#7c3aed', Both: '#059669' };
-    }
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return { Eve: '#2563eb', Abbie: '#7c3aed', Both: '#059669' };
   });
 
   // Clock Format Preference map per profile (Eve, Abbie, Both)
@@ -149,14 +152,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem('calender_time_formats', JSON.stringify(updated));
   };
 
-  // Date Highlight Colors map
+  // Date Highlight Colors map (Server-Synced with Local Fallback)
   const [dateColors, setDateColors] = useState<Record<string, string>>(() => {
     try {
       const saved = localStorage.getItem('calender_date_colors');
-      return saved ? JSON.parse(saved) : {};
-    } catch (e) {
-      return {};
-    }
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return {};
   });
 
   // Reactive State Collections
@@ -180,22 +182,34 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const setProfileColor = async (profile: ProfilePersona, color: string) => {
-    const updated = { ...profileColors, [profile]: color };
-    setProfileColors(updated);
-    localStorage.setItem('calender_profile_colors', JSON.stringify(updated));
-    await syncEngine.upsertItem('profileColors', { id: profile, color });
+    setProfileColors((prev) => {
+      const updated = { ...prev, [profile]: color };
+      try {
+        localStorage.setItem('calender_profile_colors', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+    return await syncEngine.upsertItem('profileColors', { id: profile, color });
   };
 
   const setDateColor = async (dateStr: string, color: string) => {
-    const updated = { ...dateColors, [dateStr]: color };
-    setDateColors(updated);
-    localStorage.setItem('calender_date_colors', JSON.stringify(updated));
-    await syncEngine.upsertItem('dateColors', { id: dateStr, color });
+    setDateColors((prev) => {
+      const updated = { ...prev, [dateStr]: color };
+      try {
+        localStorage.setItem('calender_date_colors', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+    return await syncEngine.upsertItem('dateColors', { id: dateStr, color });
   };
 
   // Sync Engine Listener Setup
   useEffect(() => {
-    const unsub = syncEngine.subscribeToSync((storeData) => {
+    const unsubStatus = syncEngine.subscribeSyncStatus((status) => {
+      setSyncStatus(status);
+    });
+
+    const unsubSync = syncEngine.subscribeToSync((storeData) => {
       setEvents(storeData.events || []);
       setClasses(storeData.classes || []);
       setTasks(storeData.tasks || []);
@@ -205,27 +219,31 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setMealItems(storeData.mealItems || []);
       setBookItems(storeData.bookItems || []);
 
-      if (storeData.dateColors && Array.isArray(storeData.dateColors)) {
+      if (storeData.dateColors && Array.isArray(storeData.dateColors) && storeData.dateColors.length > 0) {
         const colorMap: Record<string, string> = {};
         storeData.dateColors.forEach((dc: { id: string; color: string }) => {
           if (dc.id && dc.color) colorMap[dc.id] = dc.color;
         });
-        setDateColors(colorMap);
+        setDateColors((prev) => ({ ...prev, ...colorMap }));
       }
 
-      if (storeData.profileColors && Array.isArray(storeData.profileColors)) {
-        const pMap: Record<ProfilePersona, string> = { Eve: '#2563eb', Abbie: '#7c3aed', Both: '#059669' };
+      if (storeData.profileColors && Array.isArray(storeData.profileColors) && storeData.profileColors.length > 0) {
+        const pMap: Partial<Record<ProfilePersona, string>> = {};
         storeData.profileColors.forEach((pc: { id: ProfilePersona; color: string }) => {
           if (pc.id && pc.color) pMap[pc.id] = pc.color;
         });
-        setProfileColors(pMap);
+        setProfileColors((prev) => ({ ...prev, ...pMap }));
       }
     });
 
     syncEngine.fetchAll();
 
-    return () => unsub();
+    return () => {
+      unsubStatus();
+      unsubSync();
+    };
   }, []);
+
 
   // Filter Helper
   const filterByProfile = <T extends { profile?: ProfilePersona }>(items: T[]): T[] => {
@@ -234,24 +252,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   // CRUD & Reset Implementations
-  const addEvent = async (evt: Omit<CalendarEvent, 'id' | 'created_at' | 'updated_at'>) => {
+  const addEvent = async (evt: Omit<CalendarEvent, 'id' | 'created_at' | 'updated_at'>): Promise<boolean> => {
     const newEvt: CalendarEvent = {
       ...evt,
       id: `evt-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
       created_at: new Date().toISOString(),
     };
-    await syncEngine.upsertItem('events', newEvt);
+    return await syncEngine.upsertItem('events', newEvt);
   };
 
-  const updateEvent = async (id: string, updates: Partial<CalendarEvent>) => {
+  const updateEvent = async (id: string, updates: Partial<CalendarEvent>): Promise<boolean> => {
     const existing = events.find((e) => e.id === id);
-    if (!existing) return;
+    if (!existing) return false;
     const updated = { ...existing, ...updates, updated_at: new Date().toISOString() };
-    await syncEngine.upsertItem('events', updated);
+    return await syncEngine.upsertItem('events', updated);
   };
 
-  const deleteEvent = async (id: string) => {
-    await syncEngine.deleteItem('events', id);
+  const deleteEvent = async (id: string): Promise<boolean> => {
+    return await syncEngine.deleteItem('events', id);
   };
 
   const clearCalendarEventsExceptAnniversaries = async () => {
@@ -268,43 +286,43 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  const clearAllEvents = async () => {
-    await syncEngine.clearTable('events');
+  const clearAllEvents = async (): Promise<boolean> => {
+    return await syncEngine.clearTable('events');
   };
 
-  const addClass = async (cls: Omit<ClassItem, 'id' | 'created_at' | 'updated_at'>) => {
+  const addClass = async (cls: Omit<ClassItem, 'id' | 'created_at' | 'updated_at'>): Promise<boolean> => {
     const newClass: ClassItem = {
       ...cls,
       id: `cls-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
       created_at: new Date().toISOString(),
     };
-    await syncEngine.upsertItem('classes', newClass);
+    return await syncEngine.upsertItem('classes', newClass);
   };
 
-  const updateClass = async (id: string, updates: Partial<ClassItem>) => {
+  const updateClass = async (id: string, updates: Partial<ClassItem>): Promise<boolean> => {
     const existing = classes.find((c) => c.id === id);
-    if (!existing) return;
+    if (!existing) return false;
     const updated = { ...existing, ...updates, updated_at: new Date().toISOString() };
-    await syncEngine.upsertItem('classes', updated);
+    return await syncEngine.upsertItem('classes', updated);
   };
 
-  const deleteClass = async (id: string) => {
-    await syncEngine.deleteItem('classes', id);
+  const deleteClass = async (id: string): Promise<boolean> => {
+    return await syncEngine.deleteItem('classes', id);
   };
 
-  const clearClasses = async () => {
-    await syncEngine.clearTable('classes');
+  const clearClasses = async (): Promise<boolean> => {
+    return await syncEngine.clearTable('classes');
   };
 
-  const addTask = async (tsk: Omit<TaskItem, 'id' | 'created_at' | 'updated_at'>) => {
+  const addTask = async (tsk: Omit<TaskItem, 'id' | 'created_at' | 'updated_at'>): Promise<boolean> => {
     const newTask: TaskItem = {
       ...tsk,
       id: `tsk-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
       created_at: new Date().toISOString(),
     };
-    await syncEngine.upsertItem('tasks', newTask);
+    const res = await syncEngine.upsertItem('tasks', newTask);
 
-    if (tsk.due_date) {
+    if (res && tsk.due_date) {
       await addEvent({
         title: tsk.title,
         event_type: 'task',
@@ -314,21 +332,23 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         profile: tsk.profile,
       });
     }
+    return res;
   };
 
-  const toggleTaskComplete = async (id: string) => {
+  const toggleTaskComplete = async (id: string): Promise<boolean> => {
     const existing = tasks.find((t) => t.id === id);
-    if (!existing) return;
+    if (!existing) return false;
     const nextVal = !existing.is_completed;
-    await syncEngine.upsertItem('tasks', { ...existing, is_completed: nextVal });
+    return await syncEngine.upsertItem('tasks', { ...existing, is_completed: nextVal });
   };
 
-  const deleteTask = async (id: string) => {
-    await syncEngine.deleteItem('tasks', id);
+  const deleteTask = async (id: string): Promise<boolean> => {
+    const res = await syncEngine.deleteItem('tasks', id);
     const relatedEvt = events.find((e) => e.task_id === id);
     if (relatedEvt) {
       await syncEngine.deleteItem('events', relatedEvt.id);
     }
+    return res;
   };
 
   const clearTasks = async (onlyCompleted = false) => {
@@ -338,16 +358,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  const addHabit = async (hbt: Omit<HabitItem, 'id' | 'created_at' | 'updated_at'>) => {
+  const addHabit = async (hbt: Omit<HabitItem, 'id' | 'created_at' | 'updated_at'>): Promise<boolean> => {
     const newHabit: HabitItem = {
       ...hbt,
       id: `hbt-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
       created_at: new Date().toISOString(),
     };
-    await syncEngine.upsertItem('habits', newHabit);
+    return await syncEngine.upsertItem('habits', newHabit);
   };
 
-  const toggleHabitCompletion = async (habitId: string, date: string, quantity?: number) => {
+  const toggleHabitCompletion = async (habitId: string, date: string, quantity?: number): Promise<boolean> => {
     const existingIndex = habitCompletions.findIndex((hc) => hc.habit_id === habitId && hc.date === date);
     if (existingIndex >= 0) {
       const existing = habitCompletions[existingIndex];
@@ -357,7 +377,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         completed: isCompleted,
         current_quantity: quantity !== undefined ? quantity : isCompleted ? 1 : 0,
       };
-      await syncEngine.upsertItem('habitCompletions', updated);
+      return await syncEngine.upsertItem('habitCompletions', updated);
     } else {
       const newhc: HabitCompletion = {
         id: `hc-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
@@ -367,16 +387,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         current_quantity: quantity !== undefined ? quantity : 1,
         created_at: new Date().toISOString(),
       };
-      await syncEngine.upsertItem('habitCompletions', newhc);
+      return await syncEngine.upsertItem('habitCompletions', newhc);
     }
   };
 
-  const deleteHabit = async (id: string) => {
-    await syncEngine.deleteItem('habits', id);
+  const deleteHabit = async (id: string): Promise<boolean> => {
+    const res = await syncEngine.deleteItem('habits', id);
     const completionsToDelete = habitCompletions.filter((hc) => hc.habit_id === id);
     for (const hc of completionsToDelete) {
       await syncEngine.deleteItem('habitCompletions', hc.id);
     }
+    return res;
   };
 
   const clearWeeklyHabitProgress = async (dateStrs?: string[]) => {
@@ -389,100 +410,104 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  const clearAllHabitCompletions = async () => {
-    await syncEngine.clearTable('habitCompletions');
+  const clearAllHabitCompletions = async (): Promise<boolean> => {
+    return await syncEngine.clearTable('habitCompletions');
   };
 
-  const clearAllHabits = async () => {
-    await syncEngine.clearTable('habits');
-    await syncEngine.clearTable('habitCompletions');
+  const clearAllHabits = async (): Promise<boolean> => {
+    const r1 = await syncEngine.clearTable('habits');
+    const r2 = await syncEngine.clearTable('habitCompletions');
+    return r1 && r2;
   };
 
-  const addGroceryItem = async (item: Omit<GroceryItem, 'id' | 'created_at' | 'updated_at'>) => {
+  const addGroceryItem = async (item: Omit<GroceryItem, 'id' | 'created_at' | 'updated_at'>): Promise<boolean> => {
     const newItem: GroceryItem = {
       ...item,
       id: `gro-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
       created_at: new Date().toISOString(),
     };
-    await syncEngine.upsertItem('groceryItems', newItem);
+    return await syncEngine.upsertItem('groceryItems', newItem);
   };
 
-  const toggleGroceryComplete = async (id: string) => {
+  const toggleGroceryComplete = async (id: string): Promise<boolean> => {
     const existing = groceryItems.find((g) => g.id === id);
-    if (!existing) return;
-    await syncEngine.upsertItem('groceryItems', { ...existing, is_completed: !existing.is_completed });
+    if (!existing) return false;
+    return await syncEngine.upsertItem('groceryItems', { ...existing, is_completed: !existing.is_completed });
   };
 
-  const deleteGroceryItem = async (id: string) => {
-    await syncEngine.deleteItem('groceryItems', id);
+  const deleteGroceryItem = async (id: string): Promise<boolean> => {
+    return await syncEngine.deleteItem('groceryItems', id);
   };
 
-  const clearGroceryItems = async (onlyCompleted = false) => {
+  const clearGroceryItems = async (onlyCompleted = false): Promise<boolean> => {
     if (!onlyCompleted) {
-      await syncEngine.clearTable('groceryItems');
+      return await syncEngine.clearTable('groceryItems');
     } else {
       const completed = groceryItems.filter((g) => g.is_completed);
+      let success = true;
       for (const g of completed) {
-        await syncEngine.deleteItem('groceryItems', g.id);
+        const res = await syncEngine.deleteItem('groceryItems', g.id);
+        if (!res) success = false;
       }
+      return success;
     }
   };
 
-  const addMealItem = async (meal: Omit<MealItem, 'id' | 'created_at' | 'updated_at'>) => {
+  const addMealItem = async (meal: Omit<MealItem, 'id' | 'created_at' | 'updated_at'>): Promise<boolean> => {
     const newMeal: MealItem = {
       ...meal,
       id: `mel-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
       created_at: new Date().toISOString(),
     };
-    await syncEngine.upsertItem('mealItems', newMeal);
+    return await syncEngine.upsertItem('mealItems', newMeal);
   };
 
-  const deleteMealItem = async (id: string) => {
-    await syncEngine.deleteItem('mealItems', id);
+  const deleteMealItem = async (id: string): Promise<boolean> => {
+    return await syncEngine.deleteItem('mealItems', id);
   };
 
-  const clearMealItems = async () => {
-    await syncEngine.clearTable('mealItems');
+  const clearMealItems = async (): Promise<boolean> => {
+    return await syncEngine.clearTable('mealItems');
   };
 
-  const addBookItem = async (book: Omit<BookItem, 'id' | 'created_at' | 'updated_at'>) => {
+  const addBookItem = async (book: Omit<BookItem, 'id' | 'created_at' | 'updated_at'>): Promise<boolean> => {
     const newBook: BookItem = {
       ...book,
       id: `bok-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
       created_at: new Date().toISOString(),
     };
-    await syncEngine.upsertItem('bookItems', newBook);
+    return await syncEngine.upsertItem('bookItems', newBook);
   };
 
-  const updateBookItem = async (id: string, updates: Partial<BookItem>) => {
+  const updateBookItem = async (id: string, updates: Partial<BookItem>): Promise<boolean> => {
     const existing = bookItems.find((b) => b.id === id);
-    if (!existing) return;
-    await syncEngine.upsertItem('bookItems', { ...existing, ...updates, updated_at: new Date().toISOString() });
+    if (!existing) return false;
+    return await syncEngine.upsertItem('bookItems', { ...existing, ...updates, updated_at: new Date().toISOString() });
   };
 
-  const deleteBookItem = async (id: string) => {
-    await syncEngine.deleteItem('bookItems', id);
+  const deleteBookItem = async (id: string): Promise<boolean> => {
+    return await syncEngine.deleteItem('bookItems', id);
   };
 
-  const clearBookItems = async () => {
-    await syncEngine.clearTable('bookItems');
+  const clearBookItems = async (): Promise<boolean> => {
+    return await syncEngine.clearTable('bookItems');
   };
 
   const factoryResetAllData = async () => {
-    const tables = ['events', 'classes', 'tasks', 'habits', 'habitCompletions', 'groceryItems', 'mealItems', 'bookItems'];
+    const tables = ['events', 'classes', 'tasks', 'habits', 'habitCompletions', 'groceryItems', 'mealItems', 'bookItems', 'profileColors', 'dateColors'];
     for (const table of tables) {
       await syncEngine.clearTable(table);
       localStorage.removeItem(`calender_sync_${table}`);
     }
     localStorage.removeItem('calender_profile');
     localStorage.removeItem('calender_tab');
-    localStorage.removeItem('calender_profile_colors');
-    localStorage.removeItem('calender_date_colors');
+    localStorage.removeItem('calender_time_formats');
   };
 
   return (
     <StoreContext.Provider
       value={{
+        syncStatus,
         activeProfile,
         setActiveProfile,
         activeTab,

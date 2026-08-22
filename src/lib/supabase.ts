@@ -7,12 +7,26 @@ export const isSupabaseConfigured = () => {
   return (
     Boolean(supabaseUrl) &&
     Boolean(supabaseAnonKey) &&
+    supabaseUrl.startsWith('http') &&
     supabaseUrl !== 'https://your-supabase-project-url.supabase.co' &&
     supabaseAnonKey !== 'your-anon-key'
   );
 };
 
-// Create client with fallback values to prevent instant crash on unconfigured load
+export const getSupabaseConfigStatus = () => {
+  if (!isSupabaseConfigured()) {
+    return {
+      isConfigured: false,
+      message: 'VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY environment variables are missing or unconfigured.',
+    };
+  }
+  return {
+    isConfigured: true,
+    message: 'Supabase configured.',
+    url: supabaseUrl,
+  };
+};
+
 export const supabase = createClient(
   isSupabaseConfigured() ? supabaseUrl : 'https://placeholder.supabase.co',
   isSupabaseConfigured() ? supabaseAnonKey : 'placeholder-key',
@@ -24,3 +38,4 @@ export const supabase = createClient(
     },
   }
 );
+

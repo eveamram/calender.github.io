@@ -91,7 +91,9 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200/80 pb-4 gap-3">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">1-Week Habit Tracker</h1>
-          <p className="text-xs text-slate-500 font-medium">Track your weekly habits (Mon–Sun). Progress resets every week for a fresh start.</p>
+          <p className="text-xs text-slate-500 font-medium">
+            Track your weekly habits. Your habits stay saved forever — only the completion checkmarks reset every Monday morning!
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -105,6 +107,26 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
         </div>
       </div>
 
+      {/* Auto-Reset Explanation Banner */}
+      <div className="bg-slate-50/90 border border-slate-200/80 rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+            <RotateCcw className="w-4 h-4" />
+          </div>
+          <div>
+            <h4 className="text-xs font-semibold text-slate-800 flex items-center gap-2">
+              <span>Automatic Weekly Completion Reset</span>
+              <span className="text-[9px] font-medium bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                Active
+              </span>
+            </h4>
+            <p className="text-xs text-slate-500 font-normal mt-0.5">
+              Habit templates remain permanent. Checkmark progress clears every Monday so each new week begins clean.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Week Navigation & Weekly Reset Row */}
       <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -115,10 +137,10 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
           <button
             onClick={handleResetThisWeek}
             className="flex items-center gap-1 text-[11px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
-            title="Reset checkmarks for this week"
+            title="Manually reset checkmarks for this week"
           >
             <RotateCcw className="w-3 h-3" />
-            <span>Reset Week</span>
+            <span>Clear Current Week Checkmarks</span>
           </button>
         </div>
 

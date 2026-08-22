@@ -135,6 +135,8 @@ BEGIN
     ]) LOOP
         EXECUTE format('DROP POLICY IF EXISTS "Public access on %I" ON public.%I', tbl, tbl);
         EXECUTE format('CREATE POLICY "Public access on %I" ON public.%I FOR ALL USING (true) WITH CHECK (true)', tbl, tbl);
+        -- Enable FULL Replica Identity to ensure DELETE events carry complete payload (including id)
+        EXECUTE format('ALTER TABLE public.%I REPLICA IDENTITY FULL', tbl);
     END LOOP;
 END $$;
 
