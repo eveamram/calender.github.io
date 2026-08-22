@@ -366,6 +366,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const addHabit = async (hbt: Omit<HabitItem, 'id' | 'created_at' | 'updated_at'>): Promise<boolean> => {
     const newHabit: HabitItem = {
+      show_in_daily_schedule: false,
       ...hbt,
       id: `hbt-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
       created_at: new Date().toISOString(),

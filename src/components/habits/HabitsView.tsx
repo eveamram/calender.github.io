@@ -1,7 +1,7 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useStore, getTodayDateString } from '../../context/StoreContext';
 import { HabitItem } from '../../types';
-import { Plus, Check, Sparkles, Trash2, Pencil, Calendar as CalendarIcon, RotateCcw, Pin, EyeOff } from 'lucide-react';
+import { Plus, Check, Sparkles, Trash2, Pencil, Calendar as CalendarIcon, RotateCcw, Calendar } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 interface HabitsViewProps {
@@ -24,6 +24,7 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
     habitCompletions,
     toggleHabitCompletion,
     deleteHabit,
+    updateHabit,
     clearWeeklyHabitProgress,
     filterByProfile,
     activeProfile,
@@ -33,35 +34,12 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
 
   const [weekOffset, setWeekOffset] = useState<number>(0);
 
-  // Persistent state for which habits show on the calendar page
-  const [visibleHabitIds, setVisibleHabitIds] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('calender_visible_habit_ids');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error(e);
-    }
-    return habits.map((h) => h.id);
-  });
-
-  useEffect(() => {
-    if (!localStorage.getItem('calender_visible_habit_ids')) {
-      setVisibleHabitIds(habits.map((h) => h.id));
-    }
-  }, [habits]);
-
-  const toggleHabitCalendarVisibility = (habitId: string) => {
-    const isNowVisible = !visibleHabitIds.includes(habitId);
-    if (isNowVisible) {
+  const toggleHabitDailySchedule = async (h: HabitItem) => {
+    const isNowOn = !h.show_in_daily_schedule;
+    if (isNowOn) {
       confetti({ particleCount: 15, spread: 50, origin: { y: 0.8 } });
     }
-
-    setVisibleHabitIds((prev) => {
-      const updated = isNowVisible ? [...prev, habitId] : prev.filter((id) => id !== habitId);
-      localStorage.setItem('calender_visible_habit_ids', JSON.stringify(updated));
-      window.dispatchEvent(new Event('calender_visible_habits_changed'));
-      return updated;
-    });
+    await updateHabit(h.id, { show_in_daily_schedule: isNowOn });
   };
 
   // Compute date strings for selected week (Mon..Sun)
@@ -123,12 +101,12 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto px-4 md:px-8 py-6 pb-20">
-      {/* Header matching Calendar/Other tabs */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 pb-4 gap-3">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">Habit Tracker</h1>
           <p className="text-xs text-slate-500 font-medium mt-0.5">
-            Track your weekly habits and customize your schedule.
+            Track your weekly habits and choose which ones appear on your Daily Schedule.
           </p>
         </div>
 
@@ -152,7 +130,7 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
           <div>
             <h4 className="text-xs font-bold text-slate-900">Weekly Progress Refresh</h4>
             <p className="text-xs text-slate-500 font-medium mt-0.5">
-              Checkmarks refresh every Monday. Your saved habits remain stored permanently.
+              Checkmarks refresh every Monday. Toggle "Show in Daily Schedule" on any habit to see it on your calendar!
             </p>
           </div>
         </div>
@@ -196,7 +174,7 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
       {/* Habits List Header */}
       {filteredHabits.length > 0 && (
         <div className="hidden md:flex items-center justify-between px-4 text-xs font-bold text-slate-400">
-          <span>Habits</span>
+          <span>Habit Name & Daily Schedule Setting</span>
           <div className="flex items-center gap-2 pr-8">
             {currentWeekDates.map((w) => (
               <div key={w.dateStr} className="w-9 text-center">
@@ -225,7 +203,7 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
             const ownerName = h.profile || 'Eve';
             const badgeColor = profileColors[ownerName] || '#2563eb';
             const activeDays = h.active_days && h.active_days.length > 0 ? h.active_days : [1, 2, 3, 4, 5, 6, 7];
-            const isShownOnCalendar = visibleHabitIds.includes(h.id);
+            const isShownInDailySchedule = Boolean(h.show_in_daily_schedule);
 
             return (
               <div
@@ -260,27 +238,22 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
                         </span>
                       )}
 
-                      {/* SIMPLE CALENDAR VISIBILITY BADGE */}
+                      {/* PERSISTENT SUPABASE DAILY SCHEDULE TOGGLE BUTTON */}
                       <button
-                        onClick={() => toggleHabitCalendarVisibility(h.id)}
+                        onClick={() => toggleHabitDailySchedule(h)}
                         className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-lg transition-all cursor-pointer border min-h-[36px] ${
-                          isShownOnCalendar
-                            ? 'bg-slate-100 text-slate-900 border-slate-300 font-bold'
-                            : 'bg-slate-50 text-slate-400 border-slate-200'
+                          isShownInDailySchedule
+                            ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                            : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
                         }`}
-                        title={isShownOnCalendar ? 'Pinned to Daily Calendar. Click to hide.' : 'Hidden from Daily Calendar. Click to show.'}
+                        title={
+                          isShownInDailySchedule
+                            ? 'Showing in Daily Schedule. Click to hide.'
+                            : 'Hidden from Daily Schedule. Click to show.'
+                        }
                       >
-                        {isShownOnCalendar ? (
-                          <>
-                            <Pin className="w-3 h-3 text-slate-900" />
-                            <span>On Calendar</span>
-                          </>
-                        ) : (
-                          <>
-                            <EyeOff className="w-3 h-3 text-slate-400" />
-                            <span>Hidden</span>
-                          </>
-                        )}
+                        <Calendar className="w-3 h-3" />
+                        <span>Show in Daily Schedule {isShownInDailySchedule ? '✓' : '○'}</span>
                       </button>
                     </div>
 

@@ -81,9 +81,12 @@ CREATE TABLE IF NOT EXISTS public.habits (
   active_days INT[],
   color TEXT,
   profile TEXT DEFAULT 'Eve',
+  show_in_daily_schedule BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE public.habits ADD COLUMN IF NOT EXISTS show_in_daily_schedule BOOLEAN DEFAULT FALSE;
 
 -- 5. Habit Completions Table (snake_case)
 CREATE TABLE IF NOT EXISTS public.habit_completions (

@@ -139,6 +139,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   const [hbtQty, setHbtQty] = useState('');
   const [hbtDays, setHbtDays] = useState<number[]>([1, 2, 3, 4, 5, 6, 7]);
   const [hbtProfile, setHbtProfile] = useState<ProfilePersona>(defaultProfile);
+  const [hbtShowInDailySchedule, setHbtShowInDailySchedule] = useState<boolean>(false);
 
   useEffect(() => {
     if (modalType === 'habit') {
@@ -148,12 +149,14 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         setHbtQty(habitToEdit.target_quantity ? String(habitToEdit.target_quantity) : '');
         setHbtDays(habitToEdit.active_days && habitToEdit.active_days.length > 0 ? habitToEdit.active_days : [1, 2, 3, 4, 5, 6, 7]);
         setHbtProfile(habitToEdit.profile || defaultProfile);
+        setHbtShowInDailySchedule(habitToEdit.show_in_daily_schedule ?? false);
       } else {
         setHbtTitle('');
         setHbtEmoji('💧');
         setHbtQty('');
         setHbtDays([1, 2, 3, 4, 5, 6, 7]);
         setHbtProfile(defaultProfile);
+        setHbtShowInDailySchedule(false);
       }
     }
   }, [modalType, habitToEdit, defaultProfile]);
@@ -255,6 +258,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         target_quantity: hbtQty ? Number(hbtQty) : undefined,
         active_days: hbtDays,
         profile: hbtProfile,
+        show_in_daily_schedule: hbtShowInDailySchedule,
       });
     } else {
       await addHabit({
@@ -263,6 +267,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         target_quantity: hbtQty ? Number(hbtQty) : undefined,
         active_days: hbtDays,
         profile: hbtProfile,
+        show_in_daily_schedule: hbtShowInDailySchedule,
       });
     }
     onClose();

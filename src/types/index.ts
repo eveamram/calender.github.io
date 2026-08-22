@@ -73,6 +73,7 @@ export interface HabitItem {
   active_days?: number[]; // 1..7
   color?: string;
   profile?: ProfilePersona;
+  show_in_daily_schedule?: boolean;
   created_at?: string;
   updated_at?: string;
 }

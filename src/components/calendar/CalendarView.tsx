@@ -32,6 +32,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
     habits,
     habitCompletions,
     toggleHabitCompletion,
+    updateHabit,
     filterByProfile,
     activeProfile,
     profileColors,
@@ -59,40 +60,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
     }
     return [];
   });
-
-  // User preference from Habits tab for which habit IDs show on the daily calendar
-  const [visibleHabitIds, setVisibleHabitIds] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('calender_visible_habit_ids');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error(e);
-    }
-    return habits.map((h) => h.id);
-  });
-
-  useEffect(() => {
-    const syncVisibleHabits = () => {
-      try {
-        const saved = localStorage.getItem('calender_visible_habit_ids');
-        if (saved) {
-          setVisibleHabitIds(JSON.parse(saved));
-        } else {
-          setVisibleHabitIds(habits.map((h) => h.id));
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    };
-
-    syncVisibleHabits();
-    window.addEventListener('calender_visible_habits_changed', syncVisibleHabits);
-    window.addEventListener('storage', syncVisibleHabits);
-    return () => {
-      window.removeEventListener('calender_visible_habits_changed', syncVisibleHabits);
-      window.removeEventListener('storage', syncVisibleHabits);
-    };
-  }, [habits]);
 
   // Filter habits for current active profile
   const filteredHabits = useMemo(() => filterByProfile(habits), [habits, filterByProfile]);
@@ -187,9 +154,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
     let jsDay = dateObj.getDay(); // 0=Sun, 1=Mon...
     const dayOfWeekNum = jsDay === 0 ? 7 : jsDay; // 1..7 (Mon..Sun)
 
-    // Filter habits enabled via Habits tab that are active on this day of week
+    // Filter habits enabled via Habits tab setting show_in_daily_schedule
     const habitEvents: CalendarEvent[] = filteredHabits
-      .filter((h) => visibleHabitIds.includes(h.id))
+      .filter((h) => Boolean(h.show_in_daily_schedule))
       .filter((h) => {
         const activeDays = h.active_days && h.active_days.length > 0 ? h.active_days : [1, 2, 3, 4, 5, 6, 7];
         return activeDays.includes(dayOfWeekNum);
@@ -214,7 +181,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
 
     const combined = [...eventList, ...habitEvents];
     return combined.sort((a, b) => (a.start_time || '00:00').localeCompare(b.start_time || '00:00'));
-  }, [eventsByDate, selectedDate, filteredHabits, visibleHabitIds, habitCompletions]);
+  }, [eventsByDate, selectedDate, filteredHabits, habitCompletions]);
 
   const todayStr = useMemo(() => getTodayDateString(), []);
 
@@ -247,12 +214,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
 
   const handleDeleteAnyEvent = async (evt: any) => {
     if (evt.is_habit_item && evt.habit_original_id) {
-      // Hide habit from calendar
-      setVisibleHabitIds((prev) => {
-        const updated = prev.filter((id) => id !== evt.habit_original_id);
-        localStorage.setItem('calender_visible_habit_ids', JSON.stringify(updated));
-        return updated;
-      });
+      await updateHabit(evt.habit_original_id, { show_in_daily_schedule: false });
       return;
     }
 
