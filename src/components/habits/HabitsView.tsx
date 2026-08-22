@@ -283,11 +283,12 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
                           !isScheduledForDay
                             ? 'bg-slate-50 text-slate-200 border border-dashed border-slate-200 cursor-not-allowed'
                             : isCompleted
-                            ? 'bg-slate-900 text-white font-bold shadow-xs'
+                            ? 'text-white font-bold shadow-xs scale-105'
                             : w.isToday
                             ? 'bg-slate-50 text-slate-900 border-2 border-slate-400 font-bold'
                             : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                         }`}
+                        style={isCompleted ? { backgroundColor: badgeColor } : undefined}
                         title={`${w.label} ${w.dateStr}`}
                       >
                         {isCompleted ? (
