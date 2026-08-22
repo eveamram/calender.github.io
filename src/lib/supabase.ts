@@ -8,12 +8,20 @@ const getEnvOrStorage = (key: string, storageKey: string): string => {
   try {
     const saved = localStorage.getItem(storageKey);
     if (saved && typeof saved === 'string' && saved.length > 5) return saved;
-  } catch (e) {}
+  } catch (e) { }
   return '';
 };
 
-export const getSupabaseUrl = (): string => getEnvOrStorage('VITE_SUPABASE_URL', 'calender_supabase_url');
-export const getSupabaseAnonKey = (): string => getEnvOrStorage('VITE_SUPABASE_ANON_KEY', 'calender_supabase_key');
+export const getSupabaseUrl = (): string => {
+  const val = getEnvOrStorage('VITE_SUPABASE_URL', 'calender_supabase_url');
+  return val || 'https://zyrnsomlwrghjymdzzvt.supabase.co';
+};
+
+export const getSupabaseAnonKey = (): string => {
+  const val = getEnvOrStorage('VITE_SUPABASE_ANON_KEY', 'calender_supabase_key');
+  return val || 'sb_publishable_gDiT6Wk52sGIpO0i2twPJA_JRIyRm_B';
+};
+
 export const supabaseUrl = getSupabaseUrl();
 export const supabaseAnonKey = getSupabaseAnonKey();
 
