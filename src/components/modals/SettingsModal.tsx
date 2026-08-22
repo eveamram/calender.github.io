@@ -42,6 +42,10 @@ export const SettingsModal: React.FC = () => {
   const [customHex, setCustomHex] = useState<string>('#2563eb');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  const [confirmResetHolidays, setConfirmResetHolidays] = useState(false);
+  const [confirmResetEvents, setConfirmResetEvents] = useState(false);
+  const [confirmResetAllData, setConfirmResetAllData] = useState(false);
+
   if (!isSettingsOpen) return null;
 
   const showToast = (msg: string) => {
@@ -195,14 +199,22 @@ export const SettingsModal: React.FC = () => {
             </div>
             <button
               onClick={async () => {
-                if (window.confirm("Reset all stored holidays & anniversary custom entries?")) {
-                  await clearAnniversariesOnly();
-                  showToast("Holidays & Anniversaries reset to defaults!");
+                if (!confirmResetHolidays) {
+                  setConfirmResetHolidays(true);
+                  setTimeout(() => setConfirmResetHolidays(false), 4000);
+                  return;
                 }
+                await clearAnniversariesOnly();
+                setConfirmResetHolidays(false);
+                showToast("Holidays & Anniversaries reset to defaults!");
               }}
-              className="bg-purple-50 hover:bg-purple-100 text-purple-700 font-extrabold px-4 py-2 rounded-2xl text-xs transition-colors cursor-pointer shrink-0"
+              className={`font-extrabold px-4 py-2 rounded-2xl text-xs transition-all cursor-pointer shrink-0 shadow-xs ${
+                confirmResetHolidays
+                  ? 'bg-purple-600 text-white animate-pulse'
+                  : 'bg-purple-50 hover:bg-purple-100 text-purple-700'
+              }`}
             >
-              Reset Holidays 💕
+              {confirmResetHolidays ? '⚠️ Are you sure? Click to confirm' : 'Reset Holidays 💕'}
             </button>
           </div>
 
@@ -217,14 +229,22 @@ export const SettingsModal: React.FC = () => {
             </div>
             <button
               onClick={async () => {
-                if (window.confirm("Clear all calendar events except holidays & anniversaries?")) {
-                  await clearCalendarEventsExceptAnniversaries();
-                  showToast("Events cleared! Holidays & anniversaries preserved.");
+                if (!confirmResetEvents) {
+                  setConfirmResetEvents(true);
+                  setTimeout(() => setConfirmResetEvents(false), 4000);
+                  return;
                 }
+                await clearCalendarEventsExceptAnniversaries();
+                setConfirmResetEvents(false);
+                showToast("Events cleared! Holidays & anniversaries preserved.");
               }}
-              className="bg-amber-50 hover:bg-amber-100 text-amber-700 font-extrabold px-4 py-2 rounded-2xl text-xs transition-colors cursor-pointer shrink-0"
+              className={`font-extrabold px-4 py-2 rounded-2xl text-xs transition-all cursor-pointer shrink-0 shadow-xs ${
+                confirmResetEvents
+                  ? 'bg-amber-600 text-white animate-pulse'
+                  : 'bg-amber-50 hover:bg-amber-100 text-amber-700'
+              }`}
             >
-              Reset Except Holidays
+              {confirmResetEvents ? '⚠️ Are you sure? Click to confirm' : 'Reset Except Holidays'}
             </button>
           </div>
 
@@ -239,14 +259,22 @@ export const SettingsModal: React.FC = () => {
             </div>
             <button
               onClick={async () => {
-                if (window.confirm("Are you sure you want to reset all app calendar data and restore defaults?")) {
-                  await factoryResetAllData();
-                  showToast("App data has been reset to defaults!");
+                if (!confirmResetAllData) {
+                  setConfirmResetAllData(true);
+                  setTimeout(() => setConfirmResetAllData(false), 4000);
+                  return;
                 }
+                await factoryResetAllData();
+                setConfirmResetAllData(false);
+                showToast("App data has been reset to defaults!");
               }}
-              className="bg-rose-50 hover:bg-rose-100 text-rose-600 font-extrabold px-4 py-2 rounded-2xl text-xs transition-colors cursor-pointer shrink-0"
+              className={`font-extrabold px-4 py-2 rounded-2xl text-xs transition-all cursor-pointer shrink-0 shadow-xs ${
+                confirmResetAllData
+                  ? 'bg-rose-600 text-white animate-pulse'
+                  : 'bg-rose-50 hover:bg-rose-100 text-rose-600'
+              }`}
             >
-              Reset All Data
+              {confirmResetAllData ? '⚠️ Are you sure? Click to confirm' : 'Reset All Data'}
             </button>
           </div>
         </div>

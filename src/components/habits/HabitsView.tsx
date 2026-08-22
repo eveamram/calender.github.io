@@ -69,6 +69,8 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
     return filterByProfile(habits);
   }, [habits, filterByProfile]);
 
+  const [confirmResetWeek, setConfirmResetWeek] = useState(false);
+
   const handleToggleCheck = async (habit: HabitItem, dateStr: string, isCompleted: boolean) => {
     if (!isCompleted) {
       confetti({ particleCount: 25, spread: 50, origin: { y: 0.8 } });
@@ -77,10 +79,15 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
   };
 
   const handleResetThisWeek = async () => {
-    const activeDates = currentWeekDates.map((w) => w.dateStr);
-    if (window.confirm("Reset habit checkmarks for this week? (Habit templates will remain unchanged)")) {
-      await clearWeeklyHabitProgress(activeDates);
+    if (!confirmResetWeek) {
+      setConfirmResetWeek(true);
+      setTimeout(() => setConfirmResetWeek(false), 4000);
+      return;
     }
+
+    const activeDates = currentWeekDates.map((w) => w.dateStr);
+    await clearWeeklyHabitProgress(activeDates);
+    setConfirmResetWeek(false);
   };
 
 
@@ -136,11 +143,17 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
           </div>
           <button
             onClick={handleResetThisWeek}
-            className="flex items-center gap-1 text-[11px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+            className={`flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-xl transition-all cursor-pointer shadow-xs ${
+              confirmResetWeek
+                ? 'bg-rose-600 text-white animate-pulse'
+                : 'text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200/60'
+            }`}
             title="Manually reset checkmarks for this week"
           >
-            <RotateCcw className="w-3 h-3" />
-            <span>Clear Current Week Checkmarks</span>
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>
+              {confirmResetWeek ? '⚠️ Are you sure? Click again to confirm reset' : 'Clear Current Week Checkmarks'}
+            </span>
           </button>
         </div>
 
