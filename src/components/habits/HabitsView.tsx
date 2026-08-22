@@ -201,7 +201,7 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
         <div className="space-y-3">
           {filteredHabits.map((h) => {
             const ownerName = h.profile || 'Eve';
-            const badgeColor = profileColors[ownerName] || '#2563eb';
+            const badgeColor = profileColors[ownerName] || (ownerName === 'Both' ? '#059669' : '#2563eb');
             const activeDays = h.active_days && h.active_days.length > 0 ? h.active_days : [1, 2, 3, 4, 5, 6, 7];
             const isShownInDailySchedule = Boolean(h.show_in_daily_schedule);
 

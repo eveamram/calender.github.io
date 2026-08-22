@@ -132,7 +132,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Persona Colors Configuration (Server-Synced via profile_colors table)
   const [profileColors, setProfileColors] = useState<Record<ProfilePersona, string>>({
     Eve: '#2563eb',
-    Abbie: '#7c3aed',
+    Abbie: '#2563eb',
     Both: '#059669',
   });
 
