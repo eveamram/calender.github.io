@@ -75,7 +75,8 @@ interface StoreContextType {
   deleteTask: (id: string) => Promise<boolean>;
   clearTasks: (onlyCompleted?: boolean) => Promise<void>;
 
-  addHabit: (hbt: Omit<HabitItem, 'id' | 'created_at' | 'updated_at'>) => Promise<boolean>;
+  addHabit: (habit: Omit<HabitItem, 'id' | 'created_at' | 'updated_at'>) => Promise<boolean>;
+  updateHabit: (id: string, updates: Partial<HabitItem>) => Promise<boolean>;
   toggleHabitCompletion: (habitId: string, date: string, quantity?: number) => Promise<boolean>;
   deleteHabit: (id: string) => Promise<boolean>;
   clearWeeklyHabitProgress: (dateStrs?: string[]) => Promise<void>;
@@ -372,6 +373,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return await syncEngine.upsertItem('habits', newHabit);
   };
 
+  const updateHabit = async (id: string, updates: Partial<HabitItem>): Promise<boolean> => {
+    const existing = habits.find((h) => h.id === id);
+    if (!existing) return false;
+    const updated = { ...existing, ...updates, updated_at: new Date().toISOString() };
+    return await syncEngine.upsertItem('habits', updated);
+  };
+
   const toggleHabitCompletion = async (habitId: string, date: string, quantity?: number): Promise<boolean> => {
     const existingIndex = habitCompletions.findIndex((hc) => hc.habit_id === habitId && hc.date === date);
     if (existingIndex >= 0) {
@@ -562,6 +570,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         deleteTask,
         clearTasks,
         addHabit,
+        updateHabit,
         toggleHabitCompletion,
         deleteHabit,
         clearWeeklyHabitProgress,

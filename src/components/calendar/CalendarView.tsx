@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useStore, getTodayDateString } from '../../context/StoreContext';
-import { CalendarEvent, CATEGORY_METAS, EventType, HabitItem } from '../../types';
+import { CalendarEvent, CATEGORY_METAS, EventType, ProfilePersona } from '../../types';
 import { getAnniversaryEvent, getCommonHolidayEvent } from '../../utils/holidays';
 import {
   ChevronLeft,
@@ -13,10 +13,7 @@ import {
   Calendar as CalendarIcon,
   Pencil,
   Trash2,
-  Settings,
   Sparkles,
-  Check,
-  X,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -29,7 +26,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
     events,
     selectedDate,
     setSelectedDate,
-    toggleTaskComplete,
     toggleEventComplete,
     deleteEvent,
     tasks,
@@ -42,7 +38,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
   } = useStore();
 
   const [currentMonthDate, setCurrentMonthDate] = useState(() => new Date());
-  const [showHabitSelectorModal, setShowHabitSelectorModal] = useState(false);
 
   // Hidden and Completed IDs for auto-generated holidays & events
   const [hiddenEventIds, setHiddenEventIds] = useState<string[]>(() => {
@@ -65,10 +60,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
     return [];
   });
 
-  // Filter habits for current active profile
-  const filteredHabits = useMemo(() => filterByProfile(habits), [habits, filterByProfile]);
-
-  // Persistent user preference for which habit IDs are enabled on calendar
+  // User preference from Habits tab for which habit IDs show on the daily calendar
   const [visibleHabitIds, setVisibleHabitIds] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('calender_visible_habit_ids');
@@ -80,22 +72,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
   });
 
   useEffect(() => {
-    if (!localStorage.getItem('calender_visible_habit_ids')) {
-      setVisibleHabitIds(habits.map((h) => h.id));
+    try {
+      const saved = localStorage.getItem('calender_visible_habit_ids');
+      if (saved) {
+        setVisibleHabitIds(JSON.parse(saved));
+      } else {
+        setVisibleHabitIds(habits.map((h) => h.id));
+      }
+    } catch (e) {
+      console.error(e);
     }
   }, [habits]);
 
-  const toggleHabitVisibility = (habitId: string) => {
-    setVisibleHabitIds((prev) => {
-      const updated = prev.includes(habitId) ? prev.filter((id) => id !== habitId) : [...prev, habitId];
-      localStorage.setItem('calender_visible_habit_ids', JSON.stringify(updated));
-      return updated;
-    });
-  };
-
-  const selectedCalendarHabits = useMemo(() => {
-    return filteredHabits.filter((h) => visibleHabitIds.includes(h.id));
-  }, [filteredHabits, visibleHabitIds]);
+  // Filter habits for current active profile
+  const filteredHabits = useMemo(() => filterByProfile(habits), [habits, filterByProfile]);
 
   const year = currentMonthDate.getFullYear();
   const month = currentMonthDate.getMonth();
@@ -181,10 +171,41 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
     return map;
   }, [filteredEvents, calendarDays, hiddenEventIds, completedEventIds]);
 
-  const selectedDayEvents = useMemo(() => {
-    const list = eventsByDate.get(selectedDate) || [];
-    return [...list].sort((a, b) => (a.start_time || '00:00').localeCompare(b.start_time || '00:00'));
-  }, [eventsByDate, selectedDate]);
+  // Combine regular events and enabled habits scheduled for the selected day directly into the Daily Schedule
+  const selectedDayItems = useMemo(() => {
+    const eventList = eventsByDate.get(selectedDate) || [];
+    const dateObj = new Date(selectedDate + 'T00:00:00');
+    let jsDay = dateObj.getDay(); // 0=Sun, 1=Mon...
+    const dayOfWeekNum = jsDay === 0 ? 7 : jsDay; // 1..7 (Mon..Sun)
+
+    // Filter habits enabled via Habits tab that are active on this day of week
+    const habitEvents: CalendarEvent[] = filteredHabits
+      .filter((h) => visibleHabitIds.includes(h.id))
+      .filter((h) => {
+        const activeDays = h.active_days && h.active_days.length > 0 ? h.active_days : [1, 2, 3, 4, 5, 6, 7];
+        return activeDays.includes(dayOfWeekNum);
+      })
+      .map((h) => {
+        const isDone = habitCompletions.some(
+          (hc) => hc.habit_id === h.id && hc.date === selectedDate && hc.completed
+        );
+        return {
+          id: `habit-evt-${h.id}`,
+          title: `${h.emoji || '✨'} ${h.title}`,
+          event_type: 'personal',
+          event_date: selectedDate,
+          start_time: 'Habit',
+          color: h.color || '#8b5cf6',
+          profile: h.profile || 'Both',
+          is_completed: isDone,
+          is_habit_item: true,
+          habit_original_id: h.id,
+        } as CalendarEvent & { is_habit_item?: boolean; habit_original_id?: string };
+      });
+
+    const combined = [...eventList, ...habitEvents];
+    return combined.sort((a, b) => (a.start_time || '00:00').localeCompare(b.start_time || '00:00'));
+  }, [eventsByDate, selectedDate, filteredHabits, visibleHabitIds, habitCompletions]);
 
   const todayStr = useMemo(() => getTodayDateString(), []);
 
@@ -215,12 +236,17 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
     return d.toLocaleDateString('default', { weekday: 'long', month: 'short', day: 'numeric' });
   }, [selectedDate]);
 
-  const handleToggleHabitOnCalendar = async (habitId: string) => {
-    confetti({ particleCount: 25, spread: 50, origin: { y: 0.8 } });
-    await toggleHabitCompletion(habitId, selectedDate);
-  };
+  const handleDeleteAnyEvent = async (evt: any) => {
+    if (evt.is_habit_item && evt.habit_original_id) {
+      // Hide habit from calendar
+      setVisibleHabitIds((prev) => {
+        const updated = prev.filter((id) => id !== evt.habit_original_id);
+        localStorage.setItem('calender_visible_habit_ids', JSON.stringify(updated));
+        return updated;
+      });
+      return;
+    }
 
-  const handleDeleteAnyEvent = async (evt: CalendarEvent) => {
     setHiddenEventIds((prev) => {
       const updated = [...prev, evt.id];
       localStorage.setItem('calender_hidden_event_ids', JSON.stringify(updated));
@@ -232,7 +258,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
     }
   };
 
-  const handleToggleAnyEventComplete = async (evt: CalendarEvent) => {
+  const handleToggleAnyEventComplete = async (evt: any) => {
+    if (evt.is_habit_item && evt.habit_original_id) {
+      if (!evt.is_completed) {
+        confetti({ particleCount: 25, spread: 50, origin: { y: 0.8 } });
+      }
+      await toggleHabitCompletion(evt.habit_original_id, selectedDate);
+      return;
+    }
+
     const isCurrentlyDone = evt.is_completed || completedEventIds.includes(evt.id);
 
     setCompletedEventIds((prev) => {
@@ -248,74 +282,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
 
   return (
     <div className="min-h-screen bg-[#faf9f6] text-slate-800 px-3 sm:px-6 md:px-8 py-4 sm:py-6 relative pb-20">
-      {/* HABIT SELECTOR CONFIG MODAL */}
-      {showHabitSelectorModal && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-md w-full border border-slate-200 shadow-xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <Settings className="w-5 h-5 text-purple-600" />
-                <h3 className="text-lg font-extrabold text-slate-900">Choose Calendar Habits</h3>
-              </div>
-              <button
-                onClick={() => setShowHabitSelectorModal(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-xl"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-500 font-medium">
-              Select which habits appear directly on your daily calendar schedule:
-            </p>
-
-            {filteredHabits.length === 0 ? (
-              <div className="py-6 text-center text-xs font-semibold text-slate-400 bg-slate-50 rounded-2xl">
-                No habits created yet. Go to Habits tab to create one!
-              </div>
-            ) : (
-              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                {filteredHabits.map((h) => {
-                  const isChecked = visibleHabitIds.includes(h.id);
-                  return (
-                    <label
-                      key={h.id}
-                      onClick={() => toggleHabitVisibility(h.id)}
-                      className={`flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer ${
-                        isChecked
-                          ? 'bg-purple-50/80 border-purple-300 text-purple-950 font-bold'
-                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 text-xs">
-                        <span className="text-base">{h.emoji || '✨'}</span>
-                        <span>{h.title}</span>
-                      </div>
-                      <div
-                        className={`w-5 h-5 rounded-lg flex items-center justify-center border transition-all ${
-                          isChecked
-                            ? 'bg-purple-600 border-purple-600 text-white'
-                            : 'border-slate-300 bg-white'
-                        }`}
-                      >
-                        {isChecked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
-            )}
-
-            <button
-              onClick={() => setShowHabitSelectorModal(false)}
-              className="w-full py-2.5 rounded-2xl bg-purple-950 text-white font-extrabold text-xs shadow-xs hover:bg-purple-900 cursor-pointer"
-            >
-              Save Preference
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* MOBILE LAYOUT (< lg screens) */}
       <div className="lg:hidden space-y-5">
         {/* 1. SELECTED DAY SCHEDULE FIRST */}
@@ -344,68 +310,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
             </button>
           </div>
 
-          {/* Calendar Habits Section */}
-          <div className="bg-purple-50/50 rounded-2xl p-3 border border-purple-100 space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-xs font-extrabold text-purple-950">
-                <Sparkles className="w-3.5 h-3.5 text-purple-600" />
-                <span>Calendar Habits</span>
-                <span className="text-[10px] text-purple-600 bg-purple-100 px-1.5 py-0.2 rounded-full">
-                  {selectedCalendarHabits.length}
-                </span>
-              </div>
-
-              <button
-                onClick={() => setShowHabitSelectorModal(true)}
-                className="flex items-center gap-1 text-[10px] font-extrabold text-purple-800 hover:text-purple-950 bg-white/80 px-2 py-1 rounded-xl border border-purple-200 cursor-pointer"
-              >
-                <Settings className="w-3 h-3" />
-                <span>Choose Habits</span>
-              </button>
-            </div>
-
-            {selectedCalendarHabits.length === 0 ? (
-              <p className="text-[11px] text-purple-600 italic py-1">
-                No habits chosen for calendar. Click "Choose Habits" to enable them!
-              </p>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                {selectedCalendarHabits.map((h) => {
-                  const isDone = habitCompletions.some(
-                    (hc) => hc.habit_id === h.id && hc.date === selectedDate && hc.completed
-                  );
-
-                  return (
-                    <div
-                      key={h.id}
-                      onClick={() => handleToggleHabitOnCalendar(h.id)}
-                      className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer ${
-                        isDone
-                          ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950'
-                          : 'bg-white border-purple-100 hover:border-purple-300 text-slate-800'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 text-xs font-bold min-w-0">
-                        <span className="text-sm">{h.emoji || '✨'}</span>
-                        <span className={`truncate ${isDone ? 'line-through opacity-70' : ''}`}>{h.title}</span>
-                      </div>
-
-                      <button className="p-0.5 shrink-0">
-                        {isDone ? (
-                          <CheckCircle className="w-4 h-4 text-emerald-600 fill-emerald-100" />
-                        ) : (
-                          <Circle className="w-4 h-4 text-purple-300" />
-                        )}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
           {/* Agenda Vertical Timeline */}
-          {selectedDayEvents.length === 0 ? (
+          {selectedDayItems.length === 0 ? (
             <div className="py-8 text-center space-y-2">
               <p className="text-xs font-semibold text-slate-400">Your day is clear.</p>
               <button
@@ -417,18 +323,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
             </div>
           ) : (
             <div className="space-y-3 pt-1">
-              {selectedDayEvents.map((evt) => {
+              {selectedDayItems.map((evt: any) => {
                 const meta = CATEGORY_METAS[evt.event_type as EventType] || CATEGORY_METAS.personal;
                 const evtColor = evt.color || meta.color || '#3b82f6';
                 const task = evt.task_id ? tasks.find((t) => t.id === evt.task_id) : null;
-                const ownerName = evt.profile || 'Eve';
+                const ownerName = (evt.profile || 'Eve') as ProfilePersona;
                 const badgeColor = profileColors[ownerName] || '#2563eb';
                 const isCompleted = evt.is_completed || task?.is_completed || completedEventIds.includes(evt.id);
 
                 return (
                   <div
                     key={evt.id}
-                    onClick={() => onOpenAddModal(evt.event_date, evt)}
+                    onClick={() => {
+                      if (!evt.is_habit_item) onOpenAddModal(evt.event_date, evt);
+                    }}
                     className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50/70 border border-slate-100 hover:bg-slate-100/80 transition-all cursor-pointer group"
                   >
                     {/* Time Column */}
@@ -483,16 +391,18 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
 
                     {/* ALWAYS VISIBLE ACTION BUTTONS */}
                     <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onOpenAddModal(evt.event_date, evt);
-                        }}
-                        className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
-                        title="Edit Event"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
+                      {!evt.is_habit_item && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenAddModal(evt.event_date, evt);
+                          }}
+                          className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
+                          title="Edit Event"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                      )}
 
                       <button
                         onClick={(e) => {
@@ -500,7 +410,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                           handleDeleteAnyEvent(evt);
                         }}
                         className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                        title="Delete Event"
+                        title={evt.is_habit_item ? 'Remove habit from daily calendar' : 'Delete Event'}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -771,7 +681,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-400 font-medium mt-0.5">Daily Schedule & Habits</p>
+              <p className="text-xs text-slate-400 font-medium mt-0.5">Daily Schedule</p>
             </div>
 
             <button
@@ -783,68 +693,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
             </button>
           </div>
 
-          {/* Desktop Calendar Habits Widget */}
-          <div className="bg-purple-50/60 rounded-2xl p-3.5 border border-purple-100 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-xs font-extrabold text-purple-950">
-                <Sparkles className="w-3.5 h-3.5 text-purple-600" />
-                <span>Calendar Habits</span>
-                <span className="text-[10px] text-purple-700 bg-purple-100 font-black px-2 py-0.2 rounded-full">
-                  {selectedCalendarHabits.length}
-                </span>
-              </div>
-
-              <button
-                onClick={() => setShowHabitSelectorModal(true)}
-                className="flex items-center gap-1 text-[10px] font-extrabold text-purple-800 hover:text-purple-950 bg-white/90 px-2.5 py-1 rounded-xl border border-purple-200 shadow-2xs cursor-pointer transition-all hover:scale-105"
-              >
-                <Settings className="w-3 h-3" />
-                <span>Choose Habits</span>
-              </button>
-            </div>
-
-            {selectedCalendarHabits.length === 0 ? (
-              <p className="text-[11px] text-purple-600 italic py-1">
-                No habits chosen for calendar. Click "Choose Habits" to select which habits show up!
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {selectedCalendarHabits.map((h) => {
-                  const isDone = habitCompletions.some(
-                    (hc) => hc.habit_id === h.id && hc.date === selectedDate && hc.completed
-                  );
-
-                  return (
-                    <div
-                      key={h.id}
-                      onClick={() => handleToggleHabitOnCalendar(h.id)}
-                      className={`flex items-center justify-between p-2.5 rounded-2xl border transition-all cursor-pointer ${
-                        isDone
-                          ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950 shadow-2xs'
-                          : 'bg-white border-purple-100 hover:border-purple-300 text-slate-800'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 text-xs font-bold min-w-0">
-                        <span className="text-sm">{h.emoji || '✨'}</span>
-                        <span className={`truncate ${isDone ? 'line-through opacity-70' : ''}`}>{h.title}</span>
-                      </div>
-
-                      <button className="p-0.5 shrink-0">
-                        {isDone ? (
-                          <CheckCircle className="w-4 h-4 text-emerald-600 fill-emerald-100" />
-                        ) : (
-                          <Circle className="w-4 h-4 text-purple-300" />
-                        )}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
           {/* Agenda Timeline List */}
-          {selectedDayEvents.length === 0 ? (
+          {selectedDayItems.length === 0 ? (
             <div className="py-12 text-center space-y-2">
               <p className="text-xs font-semibold text-slate-400">Your day is clear.</p>
               <button
@@ -856,11 +706,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
             </div>
           ) : (
             <div className="space-y-3 pt-1">
-              {selectedDayEvents.map((evt) => {
+              {selectedDayItems.map((evt: any) => {
                 const meta = CATEGORY_METAS[evt.event_type as EventType] || CATEGORY_METAS.personal;
                 const evtColor = evt.color || meta.color || '#3b82f6';
                 const task = evt.task_id ? tasks.find((t) => t.id === evt.task_id) : null;
-                const ownerName = evt.profile || 'Eve';
+                const ownerName = (evt.profile || 'Eve') as ProfilePersona;
                 const badgeColor = profileColors[ownerName] || '#2563eb';
                 const isCompleted = evt.is_completed || task?.is_completed || completedEventIds.includes(evt.id);
 
@@ -869,9 +719,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                     key={evt.id}
                     onDoubleClick={(e) => {
                       e.stopPropagation();
-                      onOpenAddModal(evt.event_date, evt);
+                      if (!evt.is_habit_item) onOpenAddModal(evt.event_date, evt);
                     }}
-                    onClick={() => onOpenAddModal(evt.event_date, evt)}
+                    onClick={() => {
+                      if (!evt.is_habit_item) onOpenAddModal(evt.event_date, evt);
+                    }}
                     className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50/70 border border-slate-100 hover:bg-slate-100/80 transition-all cursor-pointer group"
                   >
                     {/* Time Column */}
@@ -926,16 +778,18 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
 
                     {/* ALWAYS VISIBLE ACTION BUTTONS */}
                     <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onOpenAddModal(evt.event_date, evt);
-                        }}
-                        className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
-                        title="Edit Event"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
+                      {!evt.is_habit_item && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenAddModal(evt.event_date, evt);
+                          }}
+                          className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
+                          title="Edit Event"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                      )}
 
                       <button
                         onClick={(e) => {
@@ -943,7 +797,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                           handleDeleteAnyEvent(evt);
                         }}
                         className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                        title="Delete Event"
+                        title={evt.is_habit_item ? 'Remove habit from daily schedule' : 'Delete Event'}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

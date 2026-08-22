@@ -52,6 +52,27 @@ function getLastDayOfWeek(year: number, month: number, targetDayOfWeek: number):
   return new Date(year, month - 1, dayOfMonth);
 }
 
+/**
+ * Meeus/Jones/Butcher algorithm for Easter Sunday
+ */
+function getEasterSunday(year: number): Date {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month - 1, day);
+}
+
 export function getAnniversaryEvent(dateStr: string): CalendarEvent | null {
   const parts = dateStr.split('-');
   if (parts.length !== 3) return null;
@@ -87,7 +108,7 @@ export function getAnniversaryEvent(dateStr: string): CalendarEvent | null {
 }
 
 /**
- * Computes non-religious secular holidays & long weekends dynamically.
+ * Computes common secular & user-requested holidays (Rosh Hashanah, Easter, Yom Kippur, Hanukkah).
  */
 export function getCommonHolidayEvent(dateStr: string): CalendarEvent | null {
   const parts = dateStr.split('-');
@@ -108,6 +129,7 @@ export function getCommonHolidayEvent(dateStr: string): CalendarEvent | null {
     '07-04': 'Independence Day 🎆',
     '10-31': 'Halloween 🎃',
     '11-11': 'Veterans Day 🎖️',
+    '12-25': 'Christmas Day 🎄',
     '12-31': "New Year's Eve 🥂",
   };
 
@@ -125,53 +147,72 @@ export function getCommonHolidayEvent(dateStr: string): CalendarEvent | null {
     };
   }
 
-  // 2. Dynamic Secular Movable Holidays & Long Weekends
+  // 2. Dynamic Secular & Requested Holidays (Easter, Rosh Hashanah, Yom Kippur, Hanukkah)
   const dynamicMap: Record<string, string> = {};
 
-  // A. MLK Day
+  // A. Easter Sunday
+  const easterSunday = getEasterSunday(year);
+  dynamicMap[formatDateKey(easterSunday)] = 'Easter Sunday 🐣';
+
+  // B. MLK Day
   const mlkDay = getNthDayOfWeek(year, 1, 1, 3);
   dynamicMap[formatDateKey(addDays(mlkDay, -2))] = 'MLK Long Weekend (Sat) 🏖️';
   dynamicMap[formatDateKey(addDays(mlkDay, -1))] = 'MLK Long Weekend (Sun) 🏖️';
   dynamicMap[formatDateKey(mlkDay)] = 'Martin Luther King Jr. Day ✊ (Long Weekend)';
 
-  // B. Presidents' Day
+  // C. Presidents' Day
   const presDay = getNthDayOfWeek(year, 2, 1, 3);
   dynamicMap[formatDateKey(addDays(presDay, -2))] = "Presidents' Long Weekend (Sat) 🏖️";
   dynamicMap[formatDateKey(addDays(presDay, -1))] = "Presidents' Long Weekend (Sun) 🏖️";
   dynamicMap[formatDateKey(presDay)] = "Presidents' Day 🇺🇸 (Long Weekend)";
 
-  // C. Mother's Day
+  // D. Mother's Day
   const mothersDay = getNthDayOfWeek(year, 5, 7, 2);
   dynamicMap[formatDateKey(mothersDay)] = "Mother's Day 💐";
 
-  // D. Memorial Day
+  // E. Memorial Day
   const memorialDay = getLastDayOfWeek(year, 5, 1);
   dynamicMap[formatDateKey(addDays(memorialDay, -2))] = 'Memorial Day Long Weekend (Sat) 🏖️';
   dynamicMap[formatDateKey(addDays(memorialDay, -1))] = 'Memorial Day Long Weekend (Sun) 🏖️';
   dynamicMap[formatDateKey(memorialDay)] = 'Memorial Day 🎖️ (Long Weekend)';
 
-  // E. Father's Day
+  // F. Father's Day
   const fathersDay = getNthDayOfWeek(year, 6, 7, 3);
   dynamicMap[formatDateKey(fathersDay)] = "Father's Day 👔";
 
-  // F. Labor Day
+  // G. Labor Day
   const laborDay = getNthDayOfWeek(year, 9, 1, 1);
   dynamicMap[formatDateKey(addDays(laborDay, -2))] = 'Labor Day Long Weekend (Sat) 🏖️';
   dynamicMap[formatDateKey(addDays(laborDay, -1))] = 'Labor Day Long Weekend (Sun) 🏖️';
   dynamicMap[formatDateKey(laborDay)] = 'Labor Day 🛠️ (Long Weekend)';
 
-  // G. Columbus Day / Indigenous Peoples' Day
+  // H. Columbus Day / Indigenous Peoples' Day
   const columbusDay = getNthDayOfWeek(year, 10, 1, 2);
   dynamicMap[formatDateKey(addDays(columbusDay, -2))] = 'Indigenous Peoples Long Weekend (Sat) 🏖️';
   dynamicMap[formatDateKey(addDays(columbusDay, -1))] = 'Indigenous Peoples Long Weekend (Sun) 🏖️';
   dynamicMap[formatDateKey(columbusDay)] = "Indigenous Peoples' / Columbus Day 🌎 (Long Weekend)";
 
-  // H. Thanksgiving Day
+  // I. Thanksgiving Day
   const thanksgiving = getNthDayOfWeek(year, 11, 4, 4);
   dynamicMap[formatDateKey(thanksgiving)] = 'Thanksgiving Day 🦃 (Long Weekend)';
   dynamicMap[formatDateKey(addDays(thanksgiving, 1))] = 'Black Friday 🛍️ (Thanksgiving Long Weekend)';
   dynamicMap[formatDateKey(addDays(thanksgiving, 2))] = 'Thanksgiving Long Weekend (Sat) 🏖️';
   dynamicMap[formatDateKey(addDays(thanksgiving, 3))] = 'Thanksgiving Long Weekend (Sun) 🏖️';
+
+  // J. Jewish Holidays: Rosh Hashanah, Yom Kippur, Hanukkah
+  if (year === 2025) {
+    dynamicMap['2025-09-23'] = 'Rosh Hashanah 🍎🍯';
+    dynamicMap['2025-10-02'] = 'Yom Kippur ✡️';
+    dynamicMap['2025-12-15'] = 'Hanukkah 🕎';
+  } else if (year === 2026) {
+    dynamicMap['2026-09-12'] = 'Rosh Hashanah 🍎🍯';
+    dynamicMap['2026-09-21'] = 'Yom Kippur ✡️';
+    dynamicMap['2026-12-05'] = 'Hanukkah 🕎';
+  } else if (year === 2027) {
+    dynamicMap['2027-10-02'] = 'Rosh Hashanah 🍎🍯';
+    dynamicMap['2027-10-11'] = 'Yom Kippur ✡️';
+    dynamicMap['2027-12-25'] = 'Hanukkah 🕎';
+  }
 
   if (dynamicMap[dateStr]) {
     return {

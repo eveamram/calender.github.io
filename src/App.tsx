@@ -13,8 +13,7 @@ import { MealsView } from './components/meals/MealsView';
 import { BooksView } from './components/books/BooksView';
 import { CreationModalContainer } from './components/modals/CreationModalContainer';
 import { SettingsModal } from './components/modals/SettingsModal';
-import { MealType, CalendarEvent, BookItem } from './types';
-
+import { MealType, CalendarEvent, BookItem, HabitItem } from './types';
 
 const MainAppContent: React.FC = () => {
   const { activeTab, syncStatus } = useStore();
@@ -26,12 +25,14 @@ const MainAppContent: React.FC = () => {
   const [initialModalDate, setInitialModalDate] = useState<string | undefined>(undefined);
   const [eventToEdit, setEventToEdit] = useState<CalendarEvent | null>(null);
   const [bookToEdit, setBookToEdit] = useState<BookItem | null>(null);
+  const [habitToEdit, setHabitToEdit] = useState<HabitItem | null>(null);
   const [initialMealDay, setInitialMealDay] = useState<number | undefined>(undefined);
   const [initialMealType, setInitialMealType] = useState<MealType | undefined>(undefined);
 
   const handleOpenAddForTab = () => {
     setEventToEdit(null);
     setBookToEdit(null);
+    setHabitToEdit(null);
     switch (activeTab) {
       case 'calendar':
         setActiveModal('event');
@@ -58,7 +59,6 @@ const MainAppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans pb-safe-bottom">
-
       {/* Header with Centered Top Add Button & Settings */}
       <Header onOpenAddModal={handleOpenAddForTab} />
 
@@ -83,7 +83,12 @@ const MainAppContent: React.FC = () => {
           <TodoView onOpenAddModal={() => setActiveModal('task')} />
         )}
         {activeTab === 'habits' && (
-          <HabitsView onOpenAddModal={() => setActiveModal('habit')} />
+          <HabitsView
+            onOpenAddModal={(habit) => {
+              setHabitToEdit(habit || null);
+              setActiveModal('habit');
+            }}
+          />
         )}
         {activeTab === 'meals' && (
           <MealsView
@@ -118,12 +123,14 @@ const MainAppContent: React.FC = () => {
           setInitialModalDate(undefined);
           setEventToEdit(null);
           setBookToEdit(null);
+          setHabitToEdit(null);
           setInitialMealDay(undefined);
           setInitialMealType(undefined);
         }}
         initialDate={initialModalDate}
         eventToEdit={eventToEdit}
         bookToEdit={bookToEdit}
+        habitToEdit={habitToEdit}
         initialMealDay={initialMealDay}
         initialMealType={initialMealType}
       />
@@ -142,4 +149,3 @@ export const App: React.FC = () => {
 };
 
 export default App;
-
