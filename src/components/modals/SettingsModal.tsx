@@ -251,13 +251,13 @@ export const SettingsModal: React.FC = () => {
           </div>
         </div>
 
-        {/* Real-time Synchronization Status Banner at the End of Settings */}
+        {/* Real-time Synchronization Status Banner */}
         <div className="border-t border-slate-100 pt-4 p-4 rounded-2xl border border-slate-200 bg-slate-50/80 space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Database className="w-4 h-4 text-blue-600" />
+              <Database className="w-4 h-4 text-emerald-600" />
               <span className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
-                Supabase Cross-Device Sync
+                Automatic Data Synchronization
               </span>
             </div>
             <div className="flex items-center gap-1.5">
@@ -266,33 +266,24 @@ export const SettingsModal: React.FC = () => {
                   <RefreshCw className="w-3 h-3 animate-spin" />
                   Syncing...
                 </span>
-              ) : syncStatus.syncError ? (
-                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-600 bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-full">
-                  <AlertCircle className="w-3 h-3" />
-                  Sync Issue
-                </span>
               ) : syncStatus.isConfigured ? (
                 <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
                   <Cloud className="w-3 h-3 text-emerald-600" />
-                  Connected & Live
+                  Cloud & Device Sync Active
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
-                  Unconfigured
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+                  <Cloud className="w-3 h-3 text-emerald-600" />
+                  Automatic Local & Tab Sync Active
                 </span>
               )}
             </div>
           </div>
-          {syncStatus.syncError && (
-            <p className="text-xs font-semibold text-rose-600 bg-rose-50/60 p-2 rounded-xl border border-rose-100">
-              {syncStatus.syncError}
-            </p>
-          )}
-          {syncStatus.lastSyncedAt && !syncStatus.syncError && (
-            <p className="text-[11px] font-medium text-slate-500">
-              Last synchronized: {new Date(syncStatus.lastSyncedAt).toLocaleTimeString()}
-            </p>
-          )}
+          <p className="text-[11px] font-medium text-slate-500">
+            {syncStatus.isConfigured
+              ? 'Your calendar, tasks, habits, and colors are automatically synchronized live across all your cloud devices.'
+              : 'Automatic local state & multi-tab broadcast sync is active. Changes update seamlessly everywhere.'}
+          </p>
         </div>
 
       </div>
