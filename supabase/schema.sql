@@ -1,163 +1,147 @@
--- ====================================================================
--- Shared Student Calendar - Complete Supabase Database Schema
--- Execute this script in your Supabase SQL Editor (https://app.supabase.com)
--- ====================================================================
+-- Supabase PostgreSQL Schema for calender.github.io
+-- Run this in your Supabase SQL Editor (https://supabase.com/dashboard/project/_/sql)
 
--- 1. Create Tables with TEXT Primary Keys for real-time synchronization
-
+-- 1. Events Table
 CREATE TABLE IF NOT EXISTS public.events (
-    id TEXT PRIMARY KEY,
-    title TEXT NOT NULL,
-    event_type TEXT NOT NULL DEFAULT 'personal',
-    event_date DATE NOT NULL,
-    start_time TEXT,
-    end_time TEXT,
-    location TEXT DEFAULT '',
-    notes TEXT DEFAULT '',
-    color TEXT DEFAULT '#3b82f6',
-    profile TEXT DEFAULT 'Eve',
-    task_id TEXT,
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  event_type TEXT NOT NULL,
+  event_date TEXT NOT NULL,
+  start_time TEXT,
+  end_time TEXT,
+  location TEXT,
+  color TEXT,
+  task_id TEXT,
+  profile TEXT DEFAULT 'Eve',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 2. Classes Table
 CREATE TABLE IF NOT EXISTS public.classes (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    instructor TEXT DEFAULT '',
-    room TEXT DEFAULT '',
-    days_of_week JSONB DEFAULT '[]'::jsonb,
-    start_time TEXT NOT NULL DEFAULT '09:00',
-    end_time TEXT NOT NULL DEFAULT '10:00',
-    color TEXT DEFAULT '#2563eb',
-    profile TEXT DEFAULT 'Eve',
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  instructor TEXT,
+  room TEXT,
+  start_time TEXT NOT NULL,
+  end_time TEXT NOT NULL,
+  days_of_week INT[] NOT NULL,
+  color TEXT,
+  profile TEXT DEFAULT 'Eve',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 3. Tasks Table
 CREATE TABLE IF NOT EXISTS public.tasks (
-    id TEXT PRIMARY KEY,
-    title TEXT NOT NULL,
-    is_completed BOOLEAN NOT NULL DEFAULT false,
-    due_date DATE,
-    due_time TEXT,
-    category TEXT DEFAULT 'school',
-    profile TEXT DEFAULT 'Eve',
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  is_completed BOOLEAN DEFAULT FALSE,
+  due_date TEXT,
+  due_time TEXT,
+  priority TEXT DEFAULT 'normal',
+  profile TEXT DEFAULT 'Eve',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 4. Habits Table
 CREATE TABLE IF NOT EXISTS public.habits (
-    id TEXT PRIMARY KEY,
-    title TEXT NOT NULL,
-    frequency TEXT DEFAULT 'daily',
-    target_count INTEGER DEFAULT 1,
-    unit TEXT DEFAULT 'times',
-    color TEXT DEFAULT '#8b5cf6',
-    profile TEXT DEFAULT 'Eve',
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  emoji TEXT,
+  target_quantity INT DEFAULT 1,
+  target_unit TEXT,
+  active_days INT[],
+  color TEXT,
+  profile TEXT DEFAULT 'Eve',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS public."habitCompletions" (
-    id TEXT PRIMARY KEY,
-    habit_id TEXT NOT NULL,
-    date DATE NOT NULL,
-    completed BOOLEAN NOT NULL DEFAULT true,
-    current_quantity INTEGER DEFAULT 1,
-    created_at TIMESTAMPTZ DEFAULT now()
+-- 5. Habit Completions Table
+CREATE TABLE IF NOT EXISTS public.habitCompletions (
+  id TEXT PRIMARY KEY,
+  habit_id TEXT NOT NULL,
+  date TEXT NOT NULL,
+  completed BOOLEAN DEFAULT TRUE,
+  current_quantity INT DEFAULT 1,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS public."groceryItems" (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    category TEXT DEFAULT 'general',
-    is_completed BOOLEAN NOT NULL DEFAULT false,
-    quantity TEXT DEFAULT '1',
-    profile TEXT DEFAULT 'Eve',
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
+-- 6. Grocery Items Table
+CREATE TABLE IF NOT EXISTS public.groceryItems (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  quantity TEXT,
+  category TEXT DEFAULT 'Other',
+  is_completed BOOLEAN DEFAULT FALSE,
+  profile TEXT DEFAULT 'Eve',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS public."mealItems" (
-    id TEXT PRIMARY KEY,
-    date DATE NOT NULL,
-    meal_type TEXT NOT NULL, -- breakfast, lunch, dinner, snack
-    title TEXT NOT NULL,
-    notes TEXT DEFAULT '',
-    profile TEXT DEFAULT 'Eve',
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
+-- 7. Meal Items Table
+CREATE TABLE IF NOT EXISTS public.mealItems (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  day_of_week INT NOT NULL,
+  meal_type TEXT NOT NULL,
+  notes TEXT,
+  profile TEXT DEFAULT 'Eve',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS public."bookItems" (
-    id TEXT PRIMARY KEY,
-    title TEXT NOT NULL,
-    author TEXT DEFAULT '',
-    status TEXT DEFAULT 'want-to-read', -- want-to-read, reading, completed
-    rating INTEGER DEFAULT 0,
-    notes TEXT DEFAULT '',
-    profile TEXT DEFAULT 'Eve',
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ DEFAULT now()
+-- 8. Book Items Table
+CREATE TABLE IF NOT EXISTS public.bookItems (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  author TEXT NOT NULL,
+  status TEXT DEFAULT 'reading',
+  current_page INT DEFAULT 0,
+  total_pages INT DEFAULT 300,
+  eve_page INT DEFAULT 0,
+  abbie_page INT DEFAULT 0,
+  rating INT DEFAULT 0,
+  genre TEXT,
+  profile TEXT DEFAULT 'Eve',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS public."profileColors" (
-    id TEXT PRIMARY KEY,
-    color TEXT NOT NULL
+-- 9. Profile Colors Table
+CREATE TABLE IF NOT EXISTS public.profileColors (
+  id TEXT PRIMARY KEY,
+  color TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS public."dateColors" (
-    id TEXT PRIMARY KEY,
-    color TEXT NOT NULL
+-- 10. Date Colors Table
+CREATE TABLE IF NOT EXISTS public.dateColors (
+  id TEXT PRIMARY KEY,
+  color TEXT NOT NULL
 );
 
--- 2. Row Level Security (RLS) - Public Read & Write Access for App Realtime
-ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.classes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.habits ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public."habitCompletions" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public."groceryItems" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public."mealItems" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public."bookItems" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public."profileColors" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public."dateColors" ENABLE ROW LEVEL SECURITY;
+-- Disable Row Level Security (RLS) or enable public read/write policies for anonymous access
+ALTER TABLE public.events DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.classes DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tasks DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.habits DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.habitCompletions DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.groceryItems DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.mealItems DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.bookItems DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.profileColors DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.dateColors DISABLE ROW LEVEL SECURITY;
 
--- Allow anonymous & authenticated access for public app operation
-DO $$
-DECLARE
-    tbl text;
-BEGIN
-    FOR tbl IN SELECT unnest(ARRAY[
-        'events', 'classes', 'tasks', 'habits', 'habitCompletions',
-        'groceryItems', 'mealItems', 'bookItems', 'profileColors', 'dateColors'
-    ]) LOOP
-        EXECUTE format('DROP POLICY IF EXISTS "Public access on %I" ON public.%I', tbl, tbl);
-        EXECUTE format('CREATE POLICY "Public access on %I" ON public.%I FOR ALL USING (true) WITH CHECK (true)', tbl, tbl);
-        -- Enable FULL Replica Identity to ensure DELETE events carry complete payload (including id)
-        EXECUTE format('ALTER TABLE public.%I REPLICA IDENTITY FULL', tbl);
-    END LOOP;
-END $$;
-
--- 3. Enable Realtime Publications for Postgres Changes Listener
-BEGIN;
-  DO $$
-  DECLARE
-      tbl text;
-  BEGIN
-      IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
-          FOR tbl IN SELECT unnest(ARRAY[
-              'events', 'classes', 'tasks', 'habits', 'habitCompletions',
-              'groceryItems', 'mealItems', 'bookItems', 'profileColors', 'dateColors'
-          ]) LOOP
-              BEGIN
-                  EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE public.%I', tbl);
-              EXCEPTION WHEN OTHERS THEN
-                  -- Table already in publication
-                  NULL;
-              END;
-          END LOOP;
-      END IF;
-  END $$;
-COMMIT;
+-- Enable Realtime replication for all tables
+ALTER PUBLICATION supabase_realtime ADD TABLE public.events;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.classes;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.tasks;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.habits;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.habitCompletions;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.groceryItems;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.mealItems;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.bookItems;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.profileColors;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.dateColors;

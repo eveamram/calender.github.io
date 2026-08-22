@@ -1,9 +1,31 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// Read from Environment Variables or LocalStorage Override
+const getEnvOrStorage = (key: string, storageKey: string): string => {
+  const envVal = import.meta.env[key];
+  if (envVal && typeof envVal === 'string' && envVal.length > 5 && !envVal.includes('your_')) {
+    return envVal;
+  }
+  try {
+    const saved = localStorage.getItem(storageKey);
+    if (saved) return saved;
+  } catch (e) {}
+  return '';
+};
 
-export const isSupabaseConfigured = () => {
+export let supabaseUrl = getEnvOrStorage('VITE_SUPABASE_URL', 'calender_supabase_url');
+export let supabaseAnonKey = getEnvOrStorage('VITE_SUPABASE_ANON_KEY', 'calender_supabase_key');
+
+export const setSupabaseCredentials = (url: string, key: string) => {
+  supabaseUrl = url;
+  supabaseAnonKey = key;
+  try {
+    localStorage.setItem('calender_supabase_url', url);
+    localStorage.setItem('calender_supabase_key', key);
+  } catch (e) {}
+};
+
+export const isSupabaseConfigured = (): boolean => {
   return (
     Boolean(supabaseUrl) &&
     Boolean(supabaseAnonKey) &&
@@ -17,12 +39,12 @@ export const getSupabaseConfigStatus = () => {
   if (!isSupabaseConfigured()) {
     return {
       isConfigured: false,
-      message: 'VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY environment variables are missing or unconfigured.',
+      message: 'Supabase credentials missing. Data is currently saved to local storage.',
     };
   }
   return {
     isConfigured: true,
-    message: 'Supabase configured.',
+    message: 'Connected to Supabase Cloud Database.',
     url: supabaseUrl,
   };
 };
@@ -38,4 +60,3 @@ export const supabase = createClient(
     },
   }
 );
-
