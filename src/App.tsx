@@ -15,8 +15,6 @@ import { CreationModalContainer } from './components/modals/CreationModalContain
 import { SettingsModal } from './components/modals/SettingsModal';
 import { MealType, CalendarEvent, BookItem } from './types';
 
-import { ConnectionErrorBanner } from './components/ui/ConnectionErrorBanner';
-import { syncEngine } from './lib/syncEngine';
 
 const MainAppContent: React.FC = () => {
   const { activeTab, syncStatus } = useStore();
