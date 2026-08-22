@@ -42,9 +42,6 @@ const MainAppContent: React.FC = () => {
       case 'habits':
         setActiveModal('habit');
         break;
-      case 'grocery':
-        setActiveModal('event');
-        break;
       case 'meals':
         setActiveModal('meal');
         break;
@@ -84,7 +81,6 @@ const MainAppContent: React.FC = () => {
         {activeTab === 'habits' && (
           <HabitsView onOpenAddModal={() => setActiveModal('habit')} />
         )}
-        {activeTab === 'grocery' && <GroceryView />}
         {activeTab === 'meals' && (
           <MealsView
             onOpenAddMealModal={(day, type) => {

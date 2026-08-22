@@ -34,7 +34,6 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onOpenAddModal
   ];
 
   const secondaryTabs: { tab: AppTab; label: string; desc: string; icon: React.ReactNode }[] = [
-    { tab: 'grocery', label: 'Grocery', desc: 'Shared store checklist', icon: <ShoppingBag className="w-5 h-5 text-emerald-500" /> },
     { tab: 'meals', label: 'Meals', desc: 'Weekly meal planner', icon: <Utensils className="w-5 h-5 text-amber-500" /> },
     { tab: 'books', label: 'Books', desc: 'Reading & wishlist tracker', icon: <BookMarked className="w-5 h-5 text-indigo-500" /> },
   ];
