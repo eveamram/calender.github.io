@@ -13,7 +13,7 @@ import { MealsView } from './components/meals/MealsView';
 import { BooksView } from './components/books/BooksView';
 import { CreationModalContainer } from './components/modals/CreationModalContainer';
 import { SettingsModal } from './components/modals/SettingsModal';
-import { MealType, CalendarEvent } from './types';
+import { MealType, CalendarEvent, BookItem } from './types';
 
 const MainAppContent: React.FC = () => {
   const { activeTab } = useStore();
@@ -24,11 +24,13 @@ const MainAppContent: React.FC = () => {
 
   const [initialModalDate, setInitialModalDate] = useState<string | undefined>(undefined);
   const [eventToEdit, setEventToEdit] = useState<CalendarEvent | null>(null);
+  const [bookToEdit, setBookToEdit] = useState<BookItem | null>(null);
   const [initialMealDay, setInitialMealDay] = useState<number | undefined>(undefined);
   const [initialMealType, setInitialMealType] = useState<MealType | undefined>(undefined);
 
   const handleOpenAddForTab = () => {
     setEventToEdit(null);
+    setBookToEdit(null);
     switch (activeTab) {
       case 'calendar':
         setActiveModal('event');
@@ -91,7 +93,12 @@ const MainAppContent: React.FC = () => {
           />
         )}
         {activeTab === 'books' && (
-          <BooksView onOpenAddBookModal={() => setActiveModal('book')} />
+          <BooksView
+            onOpenAddBookModal={(book) => {
+              setBookToEdit(book || null);
+              setActiveModal('book');
+            }}
+          />
         )}
       </main>
 
@@ -108,11 +115,13 @@ const MainAppContent: React.FC = () => {
           setActiveModal(null);
           setInitialModalDate(undefined);
           setEventToEdit(null);
+          setBookToEdit(null);
           setInitialMealDay(undefined);
           setInitialMealType(undefined);
         }}
         initialDate={initialModalDate}
         eventToEdit={eventToEdit}
+        bookToEdit={bookToEdit}
         initialMealDay={initialMealDay}
         initialMealType={initialMealType}
       />

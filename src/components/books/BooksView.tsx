@@ -1,38 +1,267 @@
 import React, { useState, useMemo } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { BookItem, BookStatus } from '../../types';
+import { PersonaAvatar } from '../ui/PersonaAvatar';
 import {
   Plus,
-  BookOpen,
   Star,
   Trash2,
-  Sparkles,
-  Flame,
-  CheckCircle,
-  Bookmark,
   Search,
-  Filter,
-  ArrowRightLeft,
+  X,
   Edit3,
   Check,
-  X,
-  BookMarked,
+  Sparkles,
+  BookOpen,
+  Coffee,
+  Heart,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 interface BooksViewProps {
-  onOpenAddBookModal: () => void;
+  onOpenAddBookModal: (bookToEdit?: BookItem | null) => void;
 }
 
+// 8 Playful & Fun Local CSS Cover Themes (No External Images or APIs)
+const COVER_THEMES = [
+  // 1. Red Rising / Sunset Mountain (Crimson & Gold)
+  {
+    key: 'red_rising',
+    matchTitle: 'red rising',
+    bg: 'from-[#6b0f1a] via-[#b91c1c] to-[#f59e0b]',
+    titleColor: 'text-amber-100',
+    spine: 'bg-amber-300/30',
+    art: (
+      <div className="absolute inset-0 flex flex-col justify-end p-2 pointer-events-none overflow-hidden">
+        {/* Sun & Mountains */}
+        <div className="w-12 h-12 rounded-full bg-amber-300/40 blur-xs mx-auto -mb-4 shadow-lg" />
+        <div className="w-full h-10 bg-gradient-to-t from-purple-950/90 via-rose-950/80 to-transparent rounded-t-full" />
+        <div className="absolute top-3 right-3 text-amber-200/80 text-[10px] animate-pulse">✦ ✨</div>
+      </div>
+    ),
+  },
+  // 2. The Midnight Library (Navy & Stars)
+  {
+    key: 'midnight',
+    matchTitle: 'midnight library',
+    bg: 'from-[#0f172a] via-[#1e1b4b] to-[#312e81]',
+    titleColor: 'text-indigo-100',
+    spine: 'bg-indigo-300/30',
+    art: (
+      <div className="absolute inset-0 p-2 pointer-events-none">
+        <div className="absolute top-3 right-3 text-amber-200 text-sm">🌙</div>
+        <div className="absolute top-8 left-4 text-indigo-200/60 text-[9px]">✨</div>
+        <div className="absolute bottom-6 right-5 text-indigo-200/70 text-[10px]">✦</div>
+        <div className="absolute bottom-2 left-2 right-2 h-8 border-t border-indigo-400/20 rounded-t-2xl bg-indigo-950/40" />
+      </div>
+    ),
+  },
+  // 3. Lessons in Chemistry (Coral & Beaker)
+  {
+    key: 'chemistry',
+    matchTitle: 'chemistry',
+    bg: 'from-[#ea580c] via-[#f97316] to-[#fb923c]',
+    titleColor: 'text-amber-50',
+    spine: 'bg-amber-200/30',
+    art: (
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-40">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-14 h-14 text-white stroke-[1.5]">
+          <path d="M10 2v7.5L4.5 18A2 2 0 006 21h12a2 2 0 001.5-3L14 9.5V2" />
+          <path d="M8.5 2h7" />
+          <path d="M7 16h10" />
+        </svg>
+      </div>
+    ),
+  },
+  // 4. The Seven Husbands (Emerald & Gold)
+  {
+    key: 'seven_husbands',
+    matchTitle: 'evelyn hugo',
+    bg: 'from-[#064e3b] via-[#047857] to-[#0d9488]',
+    titleColor: 'text-emerald-100',
+    spine: 'bg-emerald-300/30',
+    art: (
+      <div className="absolute inset-2 border-2 border-amber-300/40 rounded-xl pointer-events-none flex flex-col justify-between p-1.5">
+        <div className="text-[10px] text-amber-300/70 text-center">👑</div>
+        <div className="text-[10px] text-amber-300/70 text-center">✦</div>
+      </div>
+    ),
+  },
+  // 5. Celestial Dreams (Violet & Pink)
+  {
+    key: 'celestial',
+    matchTitle: '',
+    bg: 'from-[#4c1d95] via-[#7e22ce] to-[#db2777]',
+    titleColor: 'text-pink-100',
+    spine: 'bg-pink-300/30',
+    art: (
+      <div className="absolute inset-0 p-2 pointer-events-none opacity-80">
+        <div className="absolute top-2 left-3 text-pink-200 text-xs">✨</div>
+        <div className="absolute bottom-4 right-3 text-amber-200 text-xs">💫</div>
+      </div>
+    ),
+  },
+  // 6. Botanical Sanctuary (Sage & Forest)
+  {
+    key: 'botanical',
+    matchTitle: '',
+    bg: 'from-[#14532d] via-[#15803d] to-[#4d7c0f]',
+    titleColor: 'text-lime-100',
+    spine: 'bg-lime-200/30',
+    art: (
+      <div className="absolute inset-0 p-2 pointer-events-none opacity-60 flex items-end justify-center">
+        <span className="text-2xl mb-1">🌿</span>
+      </div>
+    ),
+  },
+  // 7. Golden Sunshine (Ochre & Honey)
+  {
+    key: 'golden',
+    matchTitle: '',
+    bg: 'from-[#78350f] via-[#b45309] to-[#d97706]',
+    titleColor: 'text-amber-100',
+    spine: 'bg-amber-200/30',
+    art: (
+      <div className="absolute inset-0 p-2 pointer-events-none opacity-70 flex items-center justify-center">
+        <span className="text-3xl">☀️</span>
+      </div>
+    ),
+  },
+  // 8. Ocean Waves (Teal & Cyan)
+  {
+    key: 'ocean',
+    matchTitle: '',
+    bg: 'from-[#134e4a] via-[#0e7490] to-[#0284c7]',
+    titleColor: 'text-cyan-100',
+    spine: 'bg-cyan-200/30',
+    art: (
+      <div className="absolute inset-0 p-2 pointer-events-none opacity-60 flex items-end justify-center">
+        <span className="text-xl mb-2">🌊</span>
+      </div>
+    ),
+  },
+];
 
+const getCoverTheme = (book: BookItem) => {
+  const t = book.title.toLowerCase();
+  const matched = COVER_THEMES.find((ct) => ct.matchTitle && t.includes(ct.matchTitle));
+  if (matched) return matched;
+
+  let hash = 0;
+  const str = book.id + book.title;
+  for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  return COVER_THEMES[Math.abs(hash) % COVER_THEMES.length];
+};
 
 export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
-  const { bookItems, updateBookItem, deleteBookItem, filterByProfile, activeProfile, profileColors } = useStore();
+  const { bookItems, updateBookItem, deleteBookItem, filterByProfile, profileColors } = useStore();
   const [activeStatusTab, setActiveStatusTab] = useState<BookStatus | 'all'>('reading');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedBookId, setSelectedBookId] = useState<string | null>(null);
+
   const [editingPersonPage, setEditingPersonPage] = useState<{ bookId: string; person: 'Eve' | 'Abbie' } | null>(null);
   const [editingPageBookId, setEditingPageBookId] = useState<string | null>(null);
   const [customPageInput, setCustomPageInput] = useState<string>('');
+  const [deletingBookId, setDeletingBookId] = useState<string | null>(null);
+
+  const filteredByPersona = useMemo(() => {
+    return filterByProfile(bookItems);
+  }, [bookItems, filterByProfile]);
+
+  const filteredBooks = useMemo(() => {
+    return filteredByPersona.filter((b) => {
+      const matchesStatus = activeStatusTab === 'all' || b.status === activeStatusTab;
+      const matchesSearch =
+        !searchQuery ||
+        b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        b.author.toLowerCase().includes(searchQuery.toLowerCase());
+
+      return matchesStatus && matchesSearch;
+    });
+  }, [filteredByPersona, activeStatusTab, searchQuery]);
+
+  // Selected Featured Book (defaults to first item in list)
+  const featuredBook = useMemo(() => {
+    if (selectedBookId) {
+      const found = filteredBooks.find((b) => b.id === selectedBookId);
+      if (found) return found;
+    }
+    return filteredBooks[0] || null;
+  }, [selectedBookId, filteredBooks]);
+
+  // Statistics
+  const totalPagesRead = useMemo(() => {
+    return filteredByPersona.reduce((acc, b) => {
+      if (b.status === 'completed' && b.total_pages) return acc + b.total_pages;
+      if (b.status === 'reading' && b.current_page) return acc + b.current_page;
+      return acc;
+    }, 0);
+  }, [filteredByPersona]);
+
+  const readingCount = useMemo(() => {
+    return filteredByPersona.filter((b) => b.status === 'reading').length;
+  }, [filteredByPersona]);
+
+  const completedCount = useMemo(() => {
+    return filteredByPersona.filter((b) => b.status === 'completed').length;
+  }, [filteredByPersona]);
+
+  const wantToReadCount = useMemo(() => {
+    return filteredByPersona.filter((b) => b.status === 'want_to_read').length;
+  }, [filteredByPersona]);
+
+  const tabs: {
+    status: BookStatus | 'all';
+    label: string;
+    count: number;
+    emoji: string;
+    activeStyle: string;
+  }[] = [
+    {
+      status: 'reading',
+      label: 'Reading',
+      count: readingCount,
+      emoji: '📖',
+      activeStyle: 'bg-purple-100/90 text-purple-950 border-purple-300 shadow-2xs',
+    },
+    {
+      status: 'want_to_read',
+      label: 'Want to Read',
+      count: wantToReadCount,
+      emoji: '📝',
+      activeStyle: 'bg-rose-100/90 text-rose-950 border-rose-300 shadow-2xs',
+    },
+    {
+      status: 'completed',
+      label: 'Finished',
+      count: completedCount,
+      emoji: '🎉',
+      activeStyle: 'bg-emerald-100/90 text-emerald-950 border-emerald-300 shadow-2xs',
+    },
+    {
+      status: 'all',
+      label: 'All Books',
+      count: filteredByPersona.length,
+      emoji: '📚',
+      activeStyle: 'bg-amber-100/90 text-amber-950 border-amber-300 shadow-2xs',
+    },
+  ];
+
+  const handleUpdateRating = async (book: BookItem, newRating: number) => {
+    confetti({ particleCount: 20, spread: 40, origin: { y: 0.8 } });
+    await updateBookItem(book.id, { rating: newRating });
+  };
+
+  const handleIncrementPage = async (book: BookItem, pgs = 15) => {
+    const nextPg = Math.min(book.total_pages || 9999, (book.current_page || 0) + pgs);
+    const updates: Partial<BookItem> = { current_page: nextPg };
+
+    if (book.total_pages && nextPg >= book.total_pages) {
+      updates.status = 'completed';
+      confetti({ particleCount: 50, spread: 80, origin: { y: 0.7 } });
+    }
+
+    await updateBookItem(book.id, updates);
+  };
 
   const handleIncrementPersonPage = async (book: BookItem, person: 'Eve' | 'Abbie', pgs = 15) => {
     const currentP = person === 'Eve' ? (book.eve_page ?? book.current_page ?? 0) : (book.abbie_page ?? book.current_page ?? 0);
@@ -52,75 +281,6 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
     setCustomPageInput('');
   };
 
-  const filteredByPersona = useMemo(() => {
-    return filterByProfile(bookItems);
-  }, [bookItems, filterByProfile]);
-
-  const filteredBooks = useMemo(() => {
-    return filteredByPersona.filter((b) => {
-      const matchesStatus = activeStatusTab === 'all' || b.status === activeStatusTab;
-      const matchesSearch =
-        !searchQuery ||
-        b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        b.author.toLowerCase().includes(searchQuery.toLowerCase());
-
-      return matchesStatus && matchesSearch;
-    });
-  }, [filteredByPersona, activeStatusTab, searchQuery]);
-
-  const totalPagesRead = useMemo(() => {
-    return filteredByPersona.reduce((acc, b) => {
-      if (b.status === 'completed' && b.total_pages) return acc + b.total_pages;
-      if (b.status === 'reading' && b.current_page) return acc + b.current_page;
-      return acc;
-    }, 0);
-  }, [filteredByPersona]);
-
-  const completedCount = useMemo(() => {
-    return filteredByPersona.filter((b) => b.status === 'completed').length;
-  }, [filteredByPersona]);
-
-  const readingCount = useMemo(() => {
-    return filteredByPersona.filter((b) => b.status === 'reading').length;
-  }, [filteredByPersona]);
-
-  const wantToReadCount = useMemo(() => {
-    return filteredByPersona.filter((b) => b.status === 'want_to_read').length;
-  }, [filteredByPersona]);
-
-  const tabs: { status: BookStatus | 'all'; label: string; count: number; icon: string }[] = [
-    { status: 'reading', label: 'Currently Reading', count: readingCount, icon: '📖' },
-    { status: 'want_to_read', label: 'Want to Read', count: wantToReadCount, icon: '🔖' },
-    { status: 'completed', label: 'Finished Library', count: completedCount, icon: '🎉' },
-    { status: 'all', label: 'All Books', count: filteredByPersona.length, icon: '📚' },
-  ];
-
-  const handleUpdateRating = async (book: BookItem, newRating: number) => {
-    confetti({ particleCount: 20, spread: 40, origin: { y: 0.8 } });
-    await updateBookItem(book.id, { rating: newRating });
-  };
-
-  const handleIncrementPage = async (book: BookItem, pgs = 20) => {
-    const nextPg = Math.min(book.total_pages || 9999, (book.current_page || 0) + pgs);
-    const updates: Partial<BookItem> = { current_page: nextPg };
-
-    if (book.total_pages && nextPg >= book.total_pages) {
-      updates.status = 'completed';
-      confetti({ particleCount: 50, spread: 80, origin: { y: 0.7 } });
-    }
-
-    await updateBookItem(book.id, updates);
-  };
-
-  const handleStatusChange = async (book: BookItem, newStatus: BookStatus) => {
-    const updates: Partial<BookItem> = { status: newStatus };
-    if (newStatus === 'completed') {
-      confetti({ particleCount: 40, spread: 70, origin: { y: 0.7 } });
-      if (book.total_pages) updates.current_page = book.total_pages;
-    }
-    await updateBookItem(book.id, updates);
-  };
-
   const handleSaveCustomPage = async (book: BookItem) => {
     const parsed = parseInt(customPageInput, 10);
     if (!isNaN(parsed) && parsed >= 0) {
@@ -136,446 +296,491 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
     setCustomPageInput('');
   };
 
+  const handleStatusChange = async (book: BookItem, newStatus: BookStatus) => {
+    const updates: Partial<BookItem> = { status: newStatus };
+    if (newStatus === 'completed') {
+      confetti({ particleCount: 40, spread: 70, origin: { y: 0.7 } });
+      if (book.total_pages) updates.current_page = book.total_pages;
+    }
+    await updateBookItem(book.id, updates);
+  };
+
+  const handleDeleteBook = async (bookId: string) => {
+    if (deletingBookId === bookId) {
+      await deleteBookItem(bookId);
+      setDeletingBookId(null);
+    } else {
+      setDeletingBookId(bookId);
+      setTimeout(() => setDeletingBookId(null), 4000);
+    }
+  };
+
   return (
-    <div className="space-y-6 max-w-5xl mx-auto px-4 md:px-8 py-6">
-      {/* Colorful Header Banner */}
-      <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 rounded-3xl p-6 text-white shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative overflow-hidden">
-        <div className="absolute top-0 right-0 -mt-8 -mr-8 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-        <div className="space-y-2 z-10">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="bg-white/20 backdrop-blur-md text-white border border-white/30 px-3 py-1 rounded-full text-xs font-extrabold flex items-center gap-1.5 shadow-xs">
-              <Sparkles className="w-3.5 h-3.5 text-yellow-300 fill-yellow-300" /> Book Sanctuary 📚
-            </span>
-            <span className="bg-white/20 backdrop-blur-md text-white border border-white/30 px-3 py-1 rounded-full text-xs font-extrabold flex items-center gap-1.5 shadow-xs">
-              <Flame className="w-3.5 h-3.5 text-orange-300 fill-orange-300" /> {totalPagesRead} Pages Read
-            </span>
-            <span className="bg-white/20 backdrop-blur-md text-white border border-white/30 px-3 py-1 rounded-full text-xs font-extrabold flex items-center gap-1.5 shadow-xs">
-              <CheckCircle className="w-3.5 h-3.5 text-emerald-300" /> {completedCount} Finished
-            </span>
+    <div className="bg-[#F7F2EA] min-h-screen py-6 px-4 md:px-8 font-sans -mx-4 md:-mx-8 -my-6 transition-colors">
+      <div className="space-y-6 max-w-6xl mx-auto">
+        {/* Rich Warm & Dreamy Header Banner (Lavender -> Pink -> Peach -> Warm Yellow) */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-purple-200/90 via-pink-200/85 via-amber-100/90 to-yellow-100/90 p-6 sm:p-8 border border-amber-200/80 shadow-xs">
+          {/* Soft Blurred Ambient Glows */}
+          <div className="absolute -top-12 -left-12 w-48 h-48 bg-purple-300/40 rounded-full blur-2xl pointer-events-none" />
+          <div className="absolute -bottom-12 right-12 w-56 h-56 bg-amber-200/50 rounded-full blur-2xl pointer-events-none" />
+
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-1.5 text-xs font-bold text-purple-900 bg-white/60 backdrop-blur-md px-3 py-1 rounded-full border border-purple-300/50 shadow-2xs">
+                <Sparkles className="w-3.5 h-3.5 text-purple-700" />
+                <span>Personal Reading Journal</span>
+                <Coffee className="w-3.5 h-3.5 text-amber-700 ml-1" />
+              </div>
+
+              <h1 className="text-3xl sm:text-4xl font-serif font-bold text-stone-900 tracking-tight flex items-center gap-2">
+                <span>Your Reading Shelf</span>
+                <span className="text-rose-500 font-sans font-normal">♡</span>
+              </h1>
+
+              <p className="text-xs sm:text-sm text-stone-700 font-medium italic opacity-90">
+                “A reader lives a thousand lives before he dies.” — George R.R. Martin
+              </p>
+
+              {/* Stats Badges */}
+              <div className="flex items-center gap-2 sm:gap-3 pt-3 flex-wrap">
+                <div className="flex items-center gap-2 bg-[#FFFDF9]/90 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-amber-200/60 shadow-2xs">
+                  <div className="w-7 h-7 rounded-xl bg-purple-700 text-white flex items-center justify-center text-xs font-bold">
+                    📖
+                  </div>
+                  <div className="text-xs">
+                    <span className="font-extrabold text-stone-900 block leading-tight">{totalPagesRead}</span>
+                    <span className="text-[10px] text-stone-500 font-semibold">Pages Read</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 bg-[#FFFDF9]/90 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-amber-200/60 shadow-2xs">
+                  <div className="w-7 h-7 rounded-xl bg-rose-500 text-white flex items-center justify-center text-xs font-bold">
+                    📚
+                  </div>
+                  <div className="text-xs">
+                    <span className="font-extrabold text-stone-900 block leading-tight">{readingCount}</span>
+                    <span className="text-[10px] text-stone-500 font-semibold">Reading</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 bg-[#FFFDF9]/90 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-amber-200/60 shadow-2xs">
+                  <div className="w-7 h-7 rounded-xl bg-amber-500 text-white flex items-center justify-center text-xs font-bold">
+                    ⭐
+                  </div>
+                  <div className="text-xs">
+                    <span className="font-extrabold text-stone-900 block leading-tight">{completedCount}</span>
+                    <span className="text-[10px] text-stone-500 font-semibold">Finished</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => onOpenAddBookModal(null)}
+              className="flex items-center gap-2 bg-purple-950 hover:bg-purple-900 active:scale-95 text-white font-extrabold px-5 py-3 rounded-2xl text-xs shadow-md transition-all cursor-pointer shrink-0 self-start md:self-center"
+            >
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span>Add Book</span>
+            </button>
           </div>
-          <h1 className="text-3xl font-black tracking-tight drop-shadow-xs">Your Reading Shelf</h1>
-          <p className="text-xs text-purple-100 font-semibold opacity-95">“A reader lives a thousand lives before he dies.” — George R.R. Martin</p>
         </div>
 
-        <button
-          onClick={onOpenAddBookModal}
-          className="z-10 flex items-center gap-2 bg-white text-purple-700 hover:bg-purple-50 active:scale-95 font-extrabold px-5 py-2.5 rounded-2xl text-xs shadow-md transition-all cursor-pointer"
-        >
-          <Plus className="w-4 h-4 stroke-[3]" />
-          <span>Add New Book</span>
-        </button>
-      </div>
-
-      {/* Colorful Filter & Search Bar */}
-      <div className="bg-gradient-to-r from-purple-50/80 via-pink-50/80 to-blue-50/80 rounded-2xl p-4 border border-purple-100 shadow-xs space-y-3">
+        {/* Filter Tabs & Search Bar */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-          {/* Search Input */}
+          {/* Soft Search Input */}
           <div className="relative w-full sm:w-72">
-            <Search className="w-4 h-4 text-purple-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search title, author, or genre..."
+              placeholder="Search books..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 rounded-xl bg-white border border-purple-200/80 text-xs font-medium focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all shadow-xs"
+              className="w-full pl-9 pr-8 py-2 rounded-2xl bg-[#FFFDF9] border border-stone-300/70 text-xs font-semibold text-stone-800 placeholder:text-stone-400 focus:outline-none focus:border-purple-400 shadow-2xs"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
-        </div>
 
-        {/* Shelf Tabs */}
-        <div className="flex items-center gap-2 border-t border-purple-100/60 pt-3 overflow-x-auto">
-          {tabs.map((tab) => {
-            const isActive = activeStatusTab === tab.status;
-            return (
-              <button
-                key={tab.status}
-                onClick={() => setActiveStatusTab(tab.status)}
-                className={`flex items-center gap-2 py-2 px-3.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                  isActive
-                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-500/20'
-                    : 'bg-white/90 text-purple-900 hover:bg-white border border-purple-100 shadow-2xs'
-                }`}
-              >
-                <span>{tab.icon}</span>
-                <span>{tab.label}</span>
-                <span
-                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                    isActive ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-800'
+          {/* Soft Tinted Filter Tabs */}
+          <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto py-1">
+            {tabs.map((tab) => {
+              const isActive = activeStatusTab === tab.status;
+              return (
+                <button
+                  key={tab.status}
+                  onClick={() => setActiveStatusTab(tab.status)}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-2xl text-xs font-extrabold border transition-all cursor-pointer shrink-0 ${
+                    isActive
+                      ? tab.activeStyle
+                      : 'bg-[#FFFDF9] text-stone-600 border-stone-200/80 hover:bg-stone-100/60'
                   }`}
                 >
-                  {tab.count}
-                </span>
-              </button>
-            );
-          })}
+                  <span>{tab.emoji}</span>
+                  <span>{tab.label}</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                      isActive ? 'bg-black/10 text-slate-900' : 'bg-stone-200/60 text-stone-600'
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
 
-      {/* Books Display Grid */}
-      {filteredBooks.length === 0 ? (
-        <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-3xl p-12 border border-purple-100 text-center space-y-3 shadow-xs">
-          <BookOpen className="w-12 h-12 mx-auto text-purple-300 stroke-[1.5]" />
-          <p className="text-base font-bold text-purple-900">No books found</p>
-          <p className="text-xs text-purple-500 font-medium">Add a new book or change your search/filter parameters.</p>
-          <button
-            onClick={onOpenAddBookModal}
-            className="text-xs font-black text-purple-700 hover:underline pt-2 cursor-pointer"
-          >
-            + Add a book to your shelf
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredBooks.map((book, idx) => {
-            const hasPages = Boolean(book.total_pages && book.total_pages > 0);
-            const progressPercent = hasPages
-              ? Math.min(100, Math.round(((book.current_page || 0) / (book.total_pages || 1)) * 100))
-              : 0;
-            const ownerName = book.profile || 'Eve';
-            const badgeColor = profileColors[ownerName] || '#2563eb';
-            const isEditingThisPage = editingPageBookId === book.id;
-
-            const BOOK_PALETTES = [
-              { cover: 'from-rose-500 via-pink-500 to-rose-600 border-rose-300/50', card: 'bg-gradient-to-br from-rose-50/70 via-pink-50/40 to-white border-rose-200/80' },
-              { cover: 'from-blue-500 via-indigo-500 to-violet-600 border-blue-300/50', card: 'bg-gradient-to-br from-blue-50/70 via-indigo-50/40 to-white border-blue-200/80' },
-              { cover: 'from-emerald-500 via-teal-500 to-cyan-600 border-emerald-300/50', card: 'bg-gradient-to-br from-emerald-50/70 via-teal-50/40 to-white border-emerald-200/80' },
-              { cover: 'from-purple-500 via-fuchsia-500 to-pink-600 border-purple-300/50', card: 'bg-gradient-to-br from-purple-50/70 via-fuchsia-50/40 to-white border-purple-200/80' },
-              { cover: 'from-violet-600 via-indigo-600 to-purple-700 border-indigo-300/50', card: 'bg-gradient-to-br from-indigo-50/70 via-violet-50/40 to-white border-indigo-200/80' },
-              { cover: 'from-cyan-500 via-sky-500 to-blue-600 border-cyan-300/50', card: 'bg-gradient-to-br from-cyan-50/70 via-sky-50/40 to-white border-cyan-200/80' },
-            ];
-            const palette = BOOK_PALETTES[idx % BOOK_PALETTES.length];
-
-            return (
-              <div
-                key={book.id}
-                className={`${palette.card} rounded-3xl p-5 border shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-4 group relative`}
-              >
-                {/* Book Header Card */}
+        {/* Main Two-Column Layout (35% Selected Book | 65% Your Books) */}
+        {filteredBooks.length === 0 ? (
+          <div className="bg-[#FFFDF9] rounded-3xl p-12 border border-stone-200/80 text-center space-y-3 shadow-2xs">
+            <BookOpen className="w-10 h-10 mx-auto text-stone-300 stroke-[1.5]" />
+            <p className="text-sm font-bold text-stone-800">No books found in your library</p>
+            <p className="text-xs text-stone-500">Add a new book or change your search filter.</p>
+            <button
+              onClick={() => onOpenAddBookModal(null)}
+              className="text-xs font-bold text-purple-900 hover:underline pt-2 cursor-pointer inline-block"
+            >
+              + Add a book to your shelf
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Left Column: Selected Featured Book Panel (35% Width = lg:col-span-5) */}
+            {featuredBook && (
+              <div className="lg:col-span-5 bg-[#FBF7F2] rounded-3xl p-5 border border-stone-300/60 shadow-2xs space-y-5">
                 <div className="flex items-start gap-4">
-                  <div className={`w-20 h-28 rounded-2xl bg-gradient-to-br ${palette.cover} flex flex-col items-center justify-between p-2.5 text-white shadow-md shrink-0 border-r-4 transform group-hover:scale-105 transition-transform duration-300 relative overflow-hidden`}>
-                    <div className="absolute top-0 left-0 w-1.5 h-full bg-white/20" />
-                    <Bookmark className="w-5 h-5 text-yellow-200 fill-yellow-200/30" />
-                    <span className="text-[10px] font-black tracking-widest uppercase text-white/90">BOOK</span>
-                  </div>
+                  {/* Artistic CSS Book Cover */}
+                  {(() => {
+                    const theme = getCoverTheme(featuredBook);
+                    return (
+                      <div
+                        className={`w-28 h-40 rounded-2xl bg-gradient-to-br ${theme.bg} p-3 flex flex-col justify-between text-white shadow-md relative overflow-hidden shrink-0 border border-white/20`}
+                      >
+                        {/* Spine Crease */}
+                        <div className={`absolute top-0 left-0 w-1.5 h-full ${theme.spine}`} />
+                        {/* Ribbon */}
+                        <div className="absolute top-0 right-3 w-4 h-6 bg-white/25 backdrop-blur-md rounded-b-sm flex items-center justify-center">
+                          <span className="text-[9px] text-white">🔖</span>
+                        </div>
 
-                  <div className="flex-1 min-w-0 pt-0.5">
+                        {theme.art}
+                        <div className="text-[9px] uppercase tracking-widest text-white/70 pl-2">✦</div>
+
+                        <div className="space-y-0.5 z-10 pl-2">
+                          <h3 className={`text-xs font-serif font-bold leading-tight line-clamp-3 ${theme.titleColor}`}>
+                            {featuredBook.title}
+                          </h3>
+                          <p className="text-[9px] text-white/80 truncate font-sans">{featuredBook.author}</p>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Info & Controls */}
+                  <div className="space-y-2.5 flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-1">
-                      <h3 className="text-lg font-black text-slate-900 truncate leading-snug tracking-tight group-hover:text-indigo-600 transition-colors">
-                        {book.title}
-                      </h3>
-                      <button
-                        onClick={() => deleteBookItem(book.id)}
-                        className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-500 transition-opacity p-1 cursor-pointer"
-                        title="Delete book"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                    <p className="text-xs font-bold text-slate-500 truncate mt-0.5">by {book.author}</p>
+                      <div>
+                        <h2 className="text-xl font-serif font-bold text-stone-900 truncate leading-snug">
+                          {featuredBook.title}
+                        </h2>
+                        <p className="text-xs text-stone-500 font-semibold truncate">by {featuredBook.author}</p>
+                      </div>
 
-                    {/* Interactive Rating Stars */}
-                    <div className="flex items-center gap-1 mt-1.5">
-                      {[1, 2, 3, 4, 5].map((starNum) => {
-                        const isFilled = starNum <= (book.rating || 0);
-                        return (
-                          <button
-                            key={starNum}
-                            onClick={() => handleUpdateRating(book, starNum)}
-                            className="p-0.5 text-yellow-400 hover:scale-125 transition-transform cursor-pointer"
-                            title={`Rate ${starNum} Stars`}
-                          >
-                            <Star
-                              className={`w-3.5 h-3.5 ${
-                                isFilled ? 'fill-yellow-400 text-yellow-400' : 'text-slate-300 fill-slate-100'
-                              }`}
-                            />
-                          </button>
-                        );
-                      })}
+                      {/* Edit & Delete Action Buttons */}
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => onOpenAddBookModal(featuredBook)}
+                          className="text-stone-400 hover:text-purple-900 p-1.5 rounded-xl hover:bg-stone-200/50 transition-colors cursor-pointer"
+                          title="Edit Book"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteBook(featuredBook.id)}
+                          className={`p-1.5 rounded-xl transition-all cursor-pointer ${
+                            deletingBookId === featuredBook.id
+                              ? 'bg-rose-600 text-white font-bold text-[10px] px-2'
+                              : 'text-stone-400 hover:text-rose-600 hover:bg-rose-50'
+                          }`}
+                          title="Delete Book"
+                        >
+                          {deletingBookId === featuredBook.id ? 'Confirm?' : <Trash2 className="w-4 h-4" />}
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                    {/* Profile Badge with Avatar */}
+                    <div className="flex items-center gap-1.5">
+                      <PersonaAvatar person={featuredBook.profile || 'Eve'} size="sm" />
                       <span
-                        className="text-[10px] font-extrabold text-white px-2 py-0.5 rounded-md shadow-2xs"
-                        style={{ backgroundColor: badgeColor }}
+                        className="text-[10px] font-extrabold text-white px-2.5 py-1 rounded-full inline-block shadow-2xs"
+                        style={{
+                          backgroundColor:
+                            profileColors[featuredBook.profile || 'Eve'] || '#2563eb',
+                        }}
                       >
-                        {ownerName === 'Both' ? 'Both (Eve & Abbie)' : ownerName}
+                        {featuredBook.profile === 'Both' ? 'Both (Eve & Abbie)' : featuredBook.profile || 'Eve'}
                       </span>
                     </div>
-                  </div>
-                </div>
 
-                {/* Status Quick Switcher */}
-                <div className="flex items-center justify-between bg-slate-50 p-1.5 rounded-xl border border-slate-200/60">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider pl-1">
-                    Status:
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => handleStatusChange(book, 'reading')}
-                      className={`px-2 py-1 rounded-lg text-[10px] font-extrabold transition-all ${
-                        book.status === 'reading'
-                          ? 'bg-blue-600 text-white shadow-xs'
-                          : 'text-slate-600 hover:bg-slate-200'
-                      }`}
-                    >
-                      Reading
-                    </button>
-                    <button
-                      onClick={() => handleStatusChange(book, 'want_to_read')}
-                      className={`px-2 py-1 rounded-lg text-[10px] font-extrabold transition-all ${
-                        book.status === 'want_to_read'
-                          ? 'bg-purple-600 text-white shadow-xs'
-                          : 'text-slate-600 hover:bg-slate-200'
-                      }`}
-                    >
-                      Wishlist
-                    </button>
-                    <button
-                      onClick={() => handleStatusChange(book, 'completed')}
-                      className={`px-2 py-1 rounded-lg text-[10px] font-extrabold transition-all ${
-                        book.status === 'completed'
-                          ? 'bg-emerald-600 text-white shadow-xs'
-                          : 'text-slate-600 hover:bg-slate-200'
-                      }`}
-                    >
-                      Finished
-                    </button>
-                  </div>
-                </div>
+                    {/* Star Rating */}
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((starNum) => (
+                        <button
+                          key={starNum}
+                          onClick={() => handleUpdateRating(featuredBook, starNum)}
+                          className="hover:scale-110 transition-transform cursor-pointer"
+                        >
+                          <Star
+                            className={`w-4 h-4 ${
+                              starNum <= (featuredBook.rating || 0)
+                                ? 'fill-amber-400 text-amber-400'
+                                : 'text-stone-300 fill-stone-100'
+                            }`}
+                          />
+                        </button>
+                      ))}
+                    </div>
 
-                {/* Progress Bar & Page Controls */}
-                {book.status === 'reading' && (
-                  <div className="space-y-2 pt-1 border-t border-slate-100">
-                    {book.profile === 'Both' ? (
-                      <div className="space-y-2.5 bg-slate-50/80 p-3 rounded-2xl border border-slate-200/70">
-                        <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
-                          Shared Book Progression 📚
-                        </h5>
-                        
-                        {(['Eve', 'Abbie'] as const).map((person) => {
-                          const personColor = profileColors[person] || (person === 'Eve' ? '#2563eb' : '#ec4899');
-                          const personPage = person === 'Eve' ? (book.eve_page ?? book.current_page ?? 0) : (book.abbie_page ?? book.current_page ?? 0);
-                          const totalP = book.total_pages || 1;
-                          const pPercent = Math.min(100, Math.round((personPage / totalP) * 100));
-                          const isEditing = editingPersonPage?.bookId === book.id && editingPersonPage?.person === person;
-
-                          return (
-                            <div key={person} className="space-y-1.5 bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-2xs">
-                              <div className="flex items-center justify-between text-xs font-bold text-slate-800">
-                                <span className="flex items-center gap-1.5">
-                                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: personColor }} />
-                                  <span>{person}'s Progress</span>
-                                </span>
-                                <div className="flex items-center gap-1">
-                                  <span className="text-[11px] font-extrabold text-slate-600">
-                                    {personPage} / {book.total_pages || '?'} pgs ({pPercent}%)
-                                  </span>
-                                  <button
-                                    onClick={() => {
-                                      setEditingPersonPage({ bookId: book.id, person });
-                                      setCustomPageInput(String(personPage));
-                                    }}
-                                    className="text-slate-400 hover:text-blue-600 p-0.5 cursor-pointer"
-                                    title={`Set ${person}'s current page`}
-                                  >
-                                    <Edit3 className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                              </div>
-
-                              {isEditing ? (
-                                <div className="flex items-center gap-1.5 pt-1">
-                                  <input
-                                    type="number"
-                                    value={customPageInput}
-                                    onChange={(e) => setCustomPageInput(e.target.value)}
-                                    placeholder="Page #"
-                                    className="w-full px-2.5 py-1 rounded-xl bg-slate-100 border border-blue-400 text-xs font-bold focus:outline-none"
-                                  />
-                                  <button
-                                    onClick={() => handleSaveCustomPersonPage(book, person)}
-                                    className="p-1.5 rounded-xl text-white hover:opacity-90 cursor-pointer"
-                                    style={{ backgroundColor: personColor }}
-                                  >
-                                    <Check className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button
-                                    onClick={() => setEditingPersonPage(null)}
-                                    className="p-1.5 rounded-xl bg-slate-200 text-slate-600 hover:bg-slate-300 cursor-pointer"
-                                  >
-                                    <X className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                              ) : (
-                                <>
-                                  <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden p-0.5">
-                                    <div
-                                      className="h-full rounded-full transition-all duration-300"
-                                      style={{ width: `${pPercent}%`, backgroundColor: personColor }}
-                                    />
-                                  </div>
-                                  <div className="grid grid-cols-3 gap-1 pt-0.5">
-                                    <button
-                                      onClick={() => {
-                                        handleIncrementPersonPage(book, person, 5);
-                                        confetti({ particleCount: 15, spread: 40, origin: { y: 0.8 } });
-                                      }}
-                                      className="py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold text-[10px] transition-all cursor-pointer"
-                                    >
-                                      +5 pgs 📖
-                                    </button>
-                                    <button
-                                      onClick={() => {
-                                        handleIncrementPersonPage(book, person, 15);
-                                        confetti({ particleCount: 25, spread: 60, origin: { y: 0.8 } });
-                                      }}
-                                      className="py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-extrabold text-[10px] transition-all cursor-pointer"
-                                    >
-                                      +15 pgs ⚡
-                                    </button>
-                                    <button
-                                      onClick={() => {
-                                        handleIncrementPersonPage(book, person, 30);
-                                        confetti({ particleCount: 35, spread: 70, origin: { y: 0.8 } });
-                                      }}
-                                      className="py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 font-extrabold text-[10px] transition-all cursor-pointer"
-                                    >
-                                      +30 pgs 🚀
-                                    </button>
-                                  </div>
-                                </>
-                              )}
-                            </div>
-                          );
-                        })}
+                    {/* Status Toggle */}
+                    <div>
+                      <span className="text-[9px] font-extrabold text-stone-400 uppercase tracking-wider block mb-1">
+                        STATUS
+                      </span>
+                      <div className="flex items-center gap-1 bg-stone-200/60 p-1 rounded-xl">
+                        {(['reading', 'want_to_read', 'completed'] as const).map((st) => (
+                          <button
+                            key={st}
+                            onClick={() => handleStatusChange(featuredBook, st)}
+                            className={`flex-1 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                              featuredBook.status === st
+                                ? 'bg-[#FFFDF9] text-stone-900 shadow-2xs font-extrabold'
+                                : 'text-stone-500 hover:text-stone-800'
+                            }`}
+                          >
+                            {st === 'reading' ? 'Reading' : st === 'want_to_read' ? 'Want to Read' : 'Finished'}
+                          </button>
+                        ))}
                       </div>
-                    ) : (
-                      <>
-                        <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                          <span>Reading Progress</span>
-                          <div className="flex items-center gap-1">
-                            <span>
-                              {book.current_page || 0} / {book.total_pages || '?'} pgs ({progressPercent}%)
+                    </div>
+                  </div>
+                </div>
+
+                {/* OUR PROGRESS Section */}
+                <div className="border-t border-stone-200/60 pt-4 space-y-4">
+                  <h4 className="text-xs font-extrabold text-stone-400 uppercase tracking-wider flex items-center gap-1">
+                    <span>OUR PROGRESS</span>
+                    <Heart className="w-3 h-3 text-rose-400 fill-rose-300" />
+                  </h4>
+
+                  {(['Eve', 'Abbie'] as const).map((person) => {
+                    const personColor = profileColors[person] || (person === 'Eve' ? '#2563eb' : '#ec4899');
+                    const personPage = person === 'Eve' ? (featuredBook.eve_page ?? featuredBook.current_page ?? 0) : (featuredBook.abbie_page ?? featuredBook.current_page ?? 0);
+                    const totalP = featuredBook.total_pages || 300;
+                    const pPercent = Math.min(100, Math.round((personPage / totalP) * 100));
+                    const isEditing = editingPersonPage?.bookId === featuredBook.id && editingPersonPage?.person === person;
+
+                    return (
+                      <div key={person} className="space-y-2 bg-[#FFFDF9] p-3 rounded-2xl border border-stone-200/80 shadow-2xs">
+                        <div className="flex items-center justify-between text-xs font-bold text-stone-800">
+                          <div className="flex items-center gap-2">
+                            <PersonaAvatar person={person} size="md" />
+                            <span className="font-serif font-extrabold">{person}</span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-stone-600">
+                              {personPage} / {totalP} pages · {pPercent}%
                             </span>
                             <button
                               onClick={() => {
-                                setEditingPageBookId(book.id);
-                                setCustomPageInput(String(book.current_page || 0));
+                                setEditingPersonPage({ bookId: featuredBook.id, person });
+                                setCustomPageInput(String(personPage));
                               }}
-                              className="text-slate-400 hover:text-blue-600 p-0.5"
-                              title="Set current page"
+                              className="text-stone-400 hover:text-purple-900 p-0.5 cursor-pointer"
                             >
                               <Edit3 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </div>
 
-                        {isEditingThisPage ? (
+                        {isEditing ? (
                           <div className="flex items-center gap-1.5 pt-1">
                             <input
                               type="number"
                               value={customPageInput}
                               onChange={(e) => setCustomPageInput(e.target.value)}
-                              placeholder="Current Page"
-                              className="w-full px-2.5 py-1 rounded-xl bg-slate-100 border border-blue-400 text-xs font-bold focus:outline-none"
+                              placeholder="Page #"
+                              className="w-full px-3 py-1 rounded-xl bg-stone-100 border border-purple-400 text-xs font-bold focus:outline-none"
                             />
                             <button
-                              onClick={() => handleSaveCustomPage(book)}
-                              className="p-1.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700"
+                              onClick={() => handleSaveCustomPersonPage(featuredBook, person)}
+                              className="p-1.5 rounded-xl text-white cursor-pointer"
+                              style={{ backgroundColor: personColor }}
                             >
                               <Check className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => setEditingPageBookId(null)}
-                              className="p-1.5 rounded-xl bg-slate-200 text-slate-600 hover:bg-slate-300"
-                            >
-                              <X className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         ) : (
                           <>
-                            <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden p-0.5">
+                            {/* Colorful Gradient Progress Bar */}
+                            <div className="w-full h-2.5 bg-stone-200/80 rounded-full overflow-hidden p-0.5">
                               <div
-                                className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all duration-300"
-                                style={{ width: `${progressPercent}%` }}
+                                className="h-full rounded-full transition-all duration-300"
+                                style={{ width: `${pPercent}%`, backgroundColor: personColor }}
                               />
                             </div>
 
-                            <div className="grid grid-cols-3 gap-1.5 pt-1">
+                            {/* Increments */}
+                            <div className="grid grid-cols-3 gap-2 pt-1">
                               <button
-                                onClick={() => {
-                                  handleIncrementPage(book, 5);
-                                  confetti({ particleCount: 15, spread: 40, origin: { y: 0.8 } });
-                                }}
-                                className="py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold text-[11px] transition-all active:scale-95 cursor-pointer"
+                                onClick={() => handleIncrementPersonPage(featuredBook, person, 5)}
+                                className="py-1 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-[11px] transition-colors cursor-pointer text-center"
                               >
-                                +5 pgs 📖
+                                +5 pages
                               </button>
                               <button
-                                onClick={() => {
-                                  handleIncrementPage(book, 15);
-                                  confetti({ particleCount: 25, spread: 60, origin: { y: 0.8 } });
-                                }}
-                                className="py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-extrabold text-[11px] transition-all active:scale-95 cursor-pointer"
+                                onClick={() => handleIncrementPersonPage(featuredBook, person, 15)}
+                                className="py-1 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-[11px] transition-colors cursor-pointer text-center"
                               >
-                                +15 pgs ⚡
+                                +15 pages
                               </button>
                               <button
-                                onClick={() => {
-                                  handleIncrementPage(book, 30);
-                                  confetti({ particleCount: 40, spread: 80, origin: { y: 0.8 } });
-                                }}
-                                className="py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 font-extrabold text-[11px] transition-all active:scale-95 cursor-pointer"
+                                onClick={() => handleIncrementPersonPage(featuredBook, person, 30)}
+                                className="py-1 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-[11px] transition-colors cursor-pointer text-center"
                               >
-                                +30 pgs 🚀
+                                +30 pages
                               </button>
                             </div>
                           </>
                         )}
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {/* Rating if completed */}
-                {book.status === 'completed' && (
-                  <div className="space-y-1.5 pt-1 border-t border-slate-100">
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                      Your Rating
-                    </span>
-                    <div className="flex items-center gap-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          onClick={() => handleUpdateRating(book, star)}
-                          className="hover:scale-125 transition-transform"
-                        >
-                          <Star
-                            className={`w-5 h-5 ${
-                              star <= (book.rating || 5)
-                                ? 'text-amber-400 fill-amber-400'
-                                : 'text-slate-200'
-                            }`}
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            );
-          })}
-        </div>
-      )}
+            )}
+
+            {/* Right Column: Your Books Shelf (65% Width = lg:col-span-7) */}
+            <div className="lg:col-span-7 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-serif font-bold text-stone-900 flex items-center gap-1.5">
+                  <span className="text-rose-500">♡</span>
+                  <span>Your Books</span>
+                </h3>
+              </div>
+
+              {/* Grid of Bookshelf Items */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                {filteredBooks.map((book) => {
+                  const theme = getCoverTheme(book);
+                  const isSelected = featuredBook?.id === book.id;
+                  const hasPages = Boolean(book.total_pages && book.total_pages > 0);
+                  const progressPercent = hasPages
+                    ? Math.min(100, Math.round(((book.current_page || 0) / (book.total_pages || 1)) * 100))
+                    : 0;
+
+                  return (
+                    <div
+                      key={book.id}
+                      onClick={() => setSelectedBookId(book.id)}
+                      className={`bg-[#FFFDF9] rounded-3xl p-3 border transition-all cursor-pointer flex flex-col justify-between space-y-3 group ${
+                        isSelected
+                          ? 'border-purple-500 ring-2 ring-purple-300/50 shadow-md scale-[1.02]'
+                          : 'border-stone-200/80 hover:border-stone-300 hover:shadow-xs'
+                      }`}
+                    >
+                      {/* Tall Book Cover Proportions */}
+                      <div
+                        className={`w-full aspect-[2/3] rounded-2xl bg-gradient-to-br ${theme.bg} p-3 flex flex-col justify-between text-white shadow-sm relative overflow-hidden border border-white/20`}
+                      >
+                        {/* Spine Crease */}
+                        <div className={`absolute top-0 left-0 w-1.5 h-full ${theme.spine}`} />
+                        {/* Ribbon */}
+                        <div className="absolute top-0 right-3 w-3.5 h-5 bg-white/25 backdrop-blur-md rounded-b-sm flex items-center justify-center">
+                          <span className="text-[8px] text-white">🔖</span>
+                        </div>
+
+                        {theme.art}
+                        <div className="text-[8px] uppercase tracking-widest text-white/70 pl-2">✦</div>
+
+                        <div className="space-y-1 z-10 pl-2">
+                          <h4 className={`text-xs sm:text-sm font-serif font-bold leading-tight line-clamp-3 ${theme.titleColor}`}>
+                            {book.title}
+                          </h4>
+                          <p className="text-[10px] text-white/80 truncate font-sans">{book.author}</p>
+                        </div>
+                      </div>
+
+                      {/* Book Metadata below cover */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-start justify-between gap-1">
+                          <h4 className="text-xs font-bold text-stone-900 truncate leading-tight group-hover:text-purple-900">
+                            {book.title}
+                          </h4>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteBook(book.id);
+                            }}
+                            className="opacity-0 group-hover:opacity-100 text-stone-300 hover:text-rose-600 transition-opacity p-0.5"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <p className="text-[11px] text-stone-500 truncate">by {book.author}</p>
+
+                        {/* Status Tag */}
+                        <div>
+                          <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-md bg-purple-50 text-purple-900 inline-block">
+                            {book.status === 'reading' ? 'Reading' : book.status === 'want_to_read' ? 'Want to Read' : 'Finished'}
+                          </span>
+                        </div>
+
+                        {/* Progress Bar */}
+                        {book.status === 'reading' && (
+                          <div className="space-y-1 pt-1">
+                            <div className="flex items-center justify-between text-[10px] font-bold text-stone-500">
+                              <span>{book.current_page || 0} / {book.total_pages || 300}</span>
+                              <span>{progressPercent}%</span>
+                            </div>
+                            <div className="w-full h-1.5 bg-stone-200/80 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-purple-800 rounded-full"
+                                style={{ width: `${progressPercent}%` }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Cozy Warm Add New Book Card */}
+                <button
+                  onClick={() => onOpenAddBookModal(null)}
+                  className="w-full aspect-[2/3] rounded-3xl border-2 border-dashed border-purple-300/70 hover:border-purple-500 bg-purple-50/40 hover:bg-purple-50/80 flex flex-col items-center justify-center gap-2 p-4 transition-all cursor-pointer group shadow-2xs"
+                >
+                  <div className="w-10 h-10 rounded-2xl bg-purple-200/60 text-purple-900 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Plus className="w-5 h-5 stroke-[2.5]" />
+                  </div>
+                  <span className="text-xs font-extrabold text-purple-900">Add a Book</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
+
+export default BooksView;

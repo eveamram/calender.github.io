@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useStore, getTodayDateString } from '../../context/StoreContext';
 import { BottomSheet } from '../ui/BottomSheet';
-import { EventType, ProfilePersona, MealType, BookStatus, CalendarEvent, CATEGORY_METAS } from '../../types';
+import { EventType, ProfilePersona, MealType, BookStatus, CalendarEvent, BookItem, CATEGORY_METAS } from '../../types';
 import { ChevronDown, ChevronUp, Palette } from 'lucide-react';
 
 interface CreationModalContainerProps {
@@ -9,6 +9,7 @@ interface CreationModalContainerProps {
   onClose: () => void;
   initialDate?: string;
   eventToEdit?: CalendarEvent | null;
+  bookToEdit?: BookItem | null;
   initialMealDay?: number;
   initialMealType?: MealType;
 }
@@ -31,6 +32,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   onClose,
   initialDate,
   eventToEdit,
+  bookToEdit,
   initialMealDay,
   initialMealType,
 }) => {
@@ -42,6 +44,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
     addHabit,
     addMealItem,
     addBookItem,
+    updateBookItem,
     activeProfile,
     profileColors,
   } = useStore();
@@ -83,6 +86,34 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
     }
   }, [modalType, initialDate, eventToEdit, defaultProfile]);
 
+  // Book Form State
+  const [bokTitle, setBokTitle] = useState('');
+  const [bokAuthor, setBokAuthor] = useState('');
+  const [bokStatus, setBokStatus] = useState<BookStatus>('reading');
+  const [bokTotalPages, setBokTotalPages] = useState('');
+  const [bokGenre, setBokGenre] = useState('');
+  const [bokProfile, setBokProfile] = useState<ProfilePersona>(defaultProfile);
+
+  useEffect(() => {
+    if (modalType === 'book') {
+      if (bookToEdit) {
+        setBokTitle(bookToEdit.title);
+        setBokAuthor(bookToEdit.author);
+        setBokStatus(bookToEdit.status);
+        setBokTotalPages(bookToEdit.total_pages ? String(bookToEdit.total_pages) : '');
+        setBokGenre(bookToEdit.genre || '');
+        setBokProfile(bookToEdit.profile || defaultProfile);
+      } else {
+        setBokTitle('');
+        setBokAuthor('');
+        setBokStatus('reading');
+        setBokTotalPages('');
+        setBokGenre('');
+        setBokProfile(defaultProfile);
+      }
+    }
+  }, [modalType, bookToEdit, defaultProfile]);
+
   // Class Form State
   const [clsName, setClsName] = useState('');
   const [clsInstructor, setClsInstructor] = useState('');
@@ -112,14 +143,6 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   const [melType, setMelType] = useState<MealType>(initialMealType || 'lunch');
   const [melNotes, setMelNotes] = useState('');
   const [melProfile, setMelProfile] = useState<ProfilePersona>(defaultProfile);
-
-  // Book Form State
-  const [bokTitle, setBokTitle] = useState('');
-  const [bokAuthor, setBokAuthor] = useState('');
-  const [bokStatus, setBokStatus] = useState<BookStatus>('reading');
-  const [bokTotalPages, setBokTotalPages] = useState('');
-  const [bokGenre, setBokGenre] = useState('');
-  const [bokProfile, setBokProfile] = useState<ProfilePersona>(defaultProfile);
 
   if (!modalType) return null;
 
@@ -219,15 +242,27 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   const handleBokSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!bokTitle.trim()) return;
-    await addBookItem({
-      title: bokTitle.trim(),
-      author: bokAuthor.trim() || 'Unknown Author',
-      status: bokStatus,
-      total_pages: bokTotalPages ? Number(bokTotalPages) : undefined,
-      current_page: 0,
-      genre: bokGenre.trim() || undefined,
-      profile: bokProfile,
-    });
+
+    if (bookToEdit) {
+      await updateBookItem(bookToEdit.id, {
+        title: bokTitle.trim(),
+        author: bokAuthor.trim() || 'Unknown Author',
+        status: bokStatus,
+        total_pages: bokTotalPages ? Number(bokTotalPages) : undefined,
+        genre: bokGenre.trim() || undefined,
+        profile: bokProfile,
+      });
+    } else {
+      await addBookItem({
+        title: bokTitle.trim(),
+        author: bokAuthor.trim() || 'Unknown Author',
+        status: bokStatus,
+        total_pages: bokTotalPages ? Number(bokTotalPages) : undefined,
+        current_page: 0,
+        genre: bokGenre.trim() || undefined,
+        profile: bokProfile,
+      });
+    }
     onClose();
   };
 
@@ -247,7 +282,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
     <BottomSheet
       isOpen={Boolean(modalType)}
       onClose={onClose}
-      title={eventToEdit ? 'Edit Event' : `Create New ${modalType}`}
+      title={eventToEdit ? 'Edit Event' : bookToEdit ? 'Edit Book' : `Create New ${modalType}`}
     >
       {/* Streamlined Event Form */}
       {modalType === 'event' && (
