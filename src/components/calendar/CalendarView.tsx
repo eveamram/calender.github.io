@@ -445,9 +445,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (window.confirm('Delete this event?')) {
-                            deleteEvent(evt.id);
-                          }
+                          deleteEvent(evt.id);
                         }}
                         className="p-1 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
                         title="Delete Event"
@@ -887,9 +885,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (window.confirm('Delete this event?')) {
-                            deleteEvent(evt.id);
-                          }
+                          deleteEvent(evt.id);
                         }}
                         className="p-1 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
                         title="Delete Event"
