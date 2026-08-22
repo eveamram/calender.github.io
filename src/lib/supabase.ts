@@ -14,7 +14,7 @@ const getEnvOrStorage = (key: string, storageKey: string): string => {
 
 export const getSupabaseUrl = (): string => {
   const val = getEnvOrStorage('VITE_SUPABASE_URL', 'calender_supabase_url');
-  return val || 'https://zyrnsomlwrghjymdzzvt.supabase.co';
+  return val || 'https://rfvhqhlfrpaswgexrjqz.supabase.co';
 };
 
 export const getSupabaseAnonKey = (): string => {
