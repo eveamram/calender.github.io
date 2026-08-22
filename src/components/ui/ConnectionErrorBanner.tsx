@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AlertTriangle, RefreshCw, CloudOff, Database, Check } from 'lucide-react';
-import { getSupabaseConfigStatus, supabaseUrl as currentUrl, supabaseAnonKey as currentKey } from '../../lib/supabase';
+import { getSupabaseConfigStatus, getSupabaseUrl, getSupabaseAnonKey } from '../../lib/supabase';
 
 interface ConnectionErrorBannerProps {
   errorDetails?: string;
@@ -12,8 +12,8 @@ export const ConnectionErrorBanner: React.FC<ConnectionErrorBannerProps> = ({
   onRetry,
 }) => {
   const status = getSupabaseConfigStatus();
-  const [url, setUrl] = useState(currentUrl || '');
-  const [key, setKey] = useState(currentKey || 'sb_publishable_gDiT6Wk52sGIpO0i2twPJA_JRIyRm_B');
+  const [url, setUrl] = useState(getSupabaseUrl() || '');
+  const [key, setKey] = useState(getSupabaseAnonKey() || '');
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   const handleSaveCredentials = (e: React.FormEvent) => {

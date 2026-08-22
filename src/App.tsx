@@ -72,7 +72,7 @@ const MainAppContent: React.FC = () => {
       <Header onOpenAddModal={handleOpenAddForTab} />
 
       {/* Main Content Area */}
-      <main className="flex-1">
+      <main className="flex-1 pb-40 lg:pb-8">
         {activeTab === 'calendar' && (
           <CalendarView
             onOpenAddModal={(date, evtToEdit) => {

@@ -137,8 +137,19 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   const [hbtDays, setHbtDays] = useState<number[]>([1, 2, 3, 4, 5, 6, 7]);
   const [hbtProfile, setHbtProfile] = useState<ProfilePersona>(defaultProfile);
 
+const getDayOfWeekFromDateStr = (dateStr: string): number => {
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    const day = d.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+    return day === 0 ? 7 : day;
+  }
+  return 1;
+};
+
   // Meal Form State
   const [melTitle, setMelTitle] = useState('');
+  const [melDate, setMelDate] = useState<string>(initialDate || getTodayDateString());
   const [melDay, setMelDay] = useState<number>(initialMealDay || 1);
   const [melType, setMelType] = useState<MealType>(initialMealType || 'lunch');
   const [melNotes, setMelNotes] = useState('');
@@ -229,9 +240,11 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   const handleMelSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!melTitle.trim()) return;
+    const computedDay = melDate ? getDayOfWeekFromDateStr(melDate) : melDay;
     await addMealItem({
       title: melTitle.trim(),
-      day_of_week: melDay,
+      day_of_week: computedDay,
+      meal_date: melDate || getTodayDateString(),
       meal_type: melType,
       notes: melNotes.trim() || undefined,
       profile: melProfile,
@@ -766,6 +779,19 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               onChange={(e) => setMelTitle(e.target.value)}
               placeholder="e.g. Grilled Chicken Bowl"
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-900"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Meal Date</label>
+            <input
+              type="date"
+              value={melDate}
+              onChange={(e) => {
+                setMelDate(e.target.value);
+                if (e.target.value) setMelDay(getDayOfWeekFromDateStr(e.target.value));
+              }}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900"
             />
           </div>
 

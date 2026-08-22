@@ -34,8 +34,9 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onOpenAddModal
   ];
 
   const secondaryTabs: { tab: AppTab; label: string; desc: string; icon: React.ReactNode }[] = [
-    { tab: 'meals', label: 'Meals', desc: 'Weekly meal planner', icon: <Utensils className="w-5 h-5 text-amber-500" /> },
-    { tab: 'books', label: 'Books', desc: 'Reading & wishlist tracker', icon: <BookMarked className="w-5 h-5 text-indigo-500" /> },
+    { tab: 'habits', label: 'Habits', desc: 'Daily habit tracker & progress', icon: <Sparkles className="w-5 h-5 text-purple-500" /> },
+    { tab: 'meals', label: 'Meals', desc: 'Weekly meal planner & recipes', icon: <Utensils className="w-5 h-5 text-amber-500" /> },
+    { tab: 'books', label: 'Books', desc: 'Reading sanctuary & wishlist', icon: <BookMarked className="w-5 h-5 text-indigo-500" /> },
   ];
 
   const isSecondaryActive = secondaryTabs.some((t) => t.tab === activeTab);
@@ -43,7 +44,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ onOpenAddModal
   return (
     <>
       {/* Fixed Bottom Bar on Mobile/Tablet */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-3 py-1.5 shadow-lg pb-safe-bottom">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200/80 px-4 pt-3 pb-8 sm:pb-10 shadow-2xl">
         <div className="flex items-center justify-between max-w-md mx-auto relative">
           {/* Left 2 Tabs */}
           <div className="flex items-center justify-around flex-1">

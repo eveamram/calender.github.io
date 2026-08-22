@@ -11,7 +11,7 @@ import {
   MealItem,
   BookItem,
 } from '../types';
-import { syncEngine, SyncStatus } from '../lib/syncEngine';
+import { syncEngine, SyncStatus, TABLE_MAP } from '../lib/syncEngine';
 
 interface StoreContextType {
   // Sync Status Feedback
@@ -127,13 +127,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [selectedDate, setSelectedDate] = useState<string>(getTodayDateString());
   const [syncStatus, setSyncStatus] = useState<SyncStatus>(() => syncEngine.getSyncStatus());
 
-  // Persona Colors Configuration (Server-Synced with Local Fallback)
-  const [profileColors, setProfileColors] = useState<Record<ProfilePersona, string>>(() => {
-    try {
-      const saved = localStorage.getItem('calender_profile_colors');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
-    return { Eve: '#2563eb', Abbie: '#7c3aed', Both: '#059669' };
+  // Persona Colors Configuration (Server-Synced via profile_colors table)
+  const [profileColors, setProfileColors] = useState<Record<ProfilePersona, string>>({
+    Eve: '#2563eb',
+    Abbie: '#7c3aed',
+    Both: '#059669',
   });
 
   // Clock Format Preference map per profile (Eve, Abbie, Both)
@@ -152,14 +150,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem('calender_time_formats', JSON.stringify(updated));
   };
 
-  // Date Highlight Colors map (Server-Synced with Local Fallback)
-  const [dateColors, setDateColors] = useState<Record<string, string>>(() => {
-    try {
-      const saved = localStorage.getItem('calender_date_colors');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
-    return {};
-  });
+  // Date Highlight Colors map (Server-Synced via date_colors table)
+  const [dateColors, setDateColors] = useState<Record<string, string>>({});
 
   // Reactive State Collections
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -493,10 +485,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const factoryResetAllData = async () => {
-    const tables = ['events', 'classes', 'tasks', 'habits', 'habitCompletions', 'groceryItems', 'mealItems', 'bookItems', 'profileColors', 'dateColors'];
+    const tables: (keyof typeof TABLE_MAP)[] = [
+      'events',
+      'classes',
+      'tasks',
+      'habits',
+      'habitCompletions',
+      'groceryItems',
+      'mealItems',
+      'bookItems',
+      'profileColors',
+      'dateColors',
+    ];
     for (const table of tables) {
       await syncEngine.clearTable(table);
-      localStorage.removeItem(`calender_sync_${table}`);
     }
     localStorage.removeItem('calender_profile');
     localStorage.removeItem('calender_tab');

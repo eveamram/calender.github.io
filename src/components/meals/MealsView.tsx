@@ -30,10 +30,23 @@ export const MealsView: React.FC<MealsViewProps> = ({ onOpenAddMealModal }) => {
 
   const handleDuplicateToNextDay = async (meal: MealItem) => {
     const nextDay = meal.day_of_week === 7 ? 1 : meal.day_of_week + 1;
+    let nextDate: string | undefined = undefined;
+    if (meal.meal_date) {
+      const parts = meal.meal_date.split('-');
+      if (parts.length === 3) {
+        const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        d.setDate(d.getDate() + 1);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        nextDate = `${yyyy}-${mm}-${dd}`;
+      }
+    }
     await addMealItem({
       title: meal.title,
       meal_type: meal.meal_type,
       day_of_week: nextDay,
+      meal_date: nextDate,
       notes: meal.notes,
       profile: meal.profile,
     });

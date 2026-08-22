@@ -572,14 +572,24 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
                   </div>
                 </div>
 
-                {/* OUR PROGRESS Section */}
+                {/* PROGRESS Section */}
                 <div className="border-t border-stone-200/60 pt-4 space-y-4">
                   <h4 className="text-xs font-extrabold text-stone-400 uppercase tracking-wider flex items-center gap-1">
-                    <span>OUR PROGRESS</span>
+                    <span>
+                      {featuredBook.profile === 'Both'
+                        ? 'OUR PROGRESS'
+                        : `${(featuredBook.profile || 'Eve').toUpperCase()}'S PROGRESS`}
+                    </span>
                     <Heart className="w-3 h-3 text-rose-400 fill-rose-300" />
                   </h4>
 
-                  {(['Eve', 'Abbie'] as const).map((person) => {
+                  {(
+                    featuredBook.profile === 'Eve'
+                      ? (['Eve'] as const)
+                      : featuredBook.profile === 'Abbie'
+                      ? (['Abbie'] as const)
+                      : (['Eve', 'Abbie'] as const)
+                  ).map((person) => {
                     const personColor = profileColors[person] || (person === 'Eve' ? '#2563eb' : '#ec4899');
                     const personPage = person === 'Eve' ? (featuredBook.eve_page ?? featuredBook.current_page ?? 0) : (featuredBook.abbie_page ?? featuredBook.current_page ?? 0);
                     const totalP = featuredBook.total_pages || 300;

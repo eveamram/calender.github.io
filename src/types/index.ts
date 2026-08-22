@@ -110,6 +110,7 @@ export interface MealItem {
   id: string;
   title: string;
   day_of_week: number; // 1=Mon, ..., 7=Sun
+  meal_date?: string; // YYYY-MM-DD
   meal_type: MealType;
   notes?: string;
   profile?: ProfilePersona;

@@ -1,6 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// Retrieve Supabase environment configuration
 const getEnvOrStorage = (key: string, storageKey: string): string => {
   const envVal = import.meta.env[key];
   if (envVal && typeof envVal === 'string' && envVal.length > 5 && !envVal.includes('your_')) {
@@ -13,44 +12,74 @@ const getEnvOrStorage = (key: string, storageKey: string): string => {
   return '';
 };
 
-export const supabaseUrl = getEnvOrStorage('VITE_SUPABASE_URL', 'calender_supabase_url');
-export const supabaseAnonKey =
-  getEnvOrStorage('VITE_SUPABASE_ANON_KEY', 'calender_supabase_key') ||
-  'sb_publishable_gDiT6Wk52sGIpO0i2twPJA_JRIyRm_B';
+export const getSupabaseUrl = (): string => getEnvOrStorage('VITE_SUPABASE_URL', 'calender_supabase_url');
+export const getSupabaseAnonKey = (): string => getEnvOrStorage('VITE_SUPABASE_ANON_KEY', 'calender_supabase_key');
+export const supabaseUrl = getSupabaseUrl();
+export const supabaseAnonKey = getSupabaseAnonKey();
 
 export const isSupabaseConfigured = (): boolean => {
+  const url = getSupabaseUrl();
+  const key = getSupabaseAnonKey();
   return (
-    Boolean(supabaseUrl) &&
-    Boolean(supabaseAnonKey) &&
-    supabaseUrl.startsWith('http') &&
-    supabaseUrl !== 'https://your-supabase-project-url.supabase.co' &&
-    supabaseAnonKey !== 'your-anon-key'
+    Boolean(url) &&
+    Boolean(key) &&
+    url.startsWith('http') &&
+    url !== 'https://your-supabase-project-url.supabase.co' &&
+    key !== 'your-anon-key'
   );
 };
 
 export const getSupabaseConfigStatus = () => {
-  if (!isSupabaseConfigured()) {
+  const configured = isSupabaseConfigured();
+  const url = getSupabaseUrl();
+  if (!configured) {
     return {
       isConfigured: false,
-      message: 'Supabase Cloud database connection missing or unconfigured. Please verify environment credentials.',
-      url: supabaseUrl || 'Unset',
+      message: 'Unable to connect to shared data. Supabase Cloud database connection missing or unconfigured.',
+      url: url || 'Unset',
     };
   }
   return {
     isConfigured: true,
     message: 'Connected to shared Supabase Cloud database.',
-    url: supabaseUrl,
+    url,
   };
 };
 
-export const supabase = createClient(
-  isSupabaseConfigured() ? supabaseUrl : 'https://placeholder.supabase.co',
-  isSupabaseConfigured() ? supabaseAnonKey : 'placeholder-key',
-  {
+let currentClient: SupabaseClient | null = null;
+let currentClientUrl = '';
+let currentClientKey = '';
+
+export const getSupabaseClient = (): SupabaseClient => {
+  const url = getSupabaseUrl();
+  const key = getSupabaseAnonKey();
+
+  if (currentClient && currentClientUrl === url && currentClientKey === key) {
+    return currentClient;
+  }
+
+  currentClientUrl = url;
+  currentClientKey = key;
+
+  const validUrl = isSupabaseConfigured() ? url : 'https://placeholder.supabase.co';
+  const validKey = isSupabaseConfigured() ? key : 'placeholder-key';
+
+  currentClient = createClient(validUrl, validKey, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
     },
-  }
-);
+  });
+
+  return currentClient;
+};
+
+// Proxied export ensuring calls to supabase methods always use the latest initialized client
+export const supabase: SupabaseClient = new Proxy({} as SupabaseClient, {
+  get(_target, prop) {
+    const instance = getSupabaseClient();
+    const value = (instance as any)[prop];
+    return typeof value === 'function' ? value.bind(instance) : value;
+  },
+});
