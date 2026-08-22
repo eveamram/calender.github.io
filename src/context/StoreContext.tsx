@@ -182,24 +182,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const setProfileColor = async (profile: ProfilePersona, color: string) => {
-    setProfileColors((prev) => {
-      const updated = { ...prev, [profile]: color };
-      try {
-        localStorage.setItem('calender_profile_colors', JSON.stringify(updated));
-      } catch (e) {}
-      return updated;
-    });
+    setProfileColors((prev) => ({ ...prev, [profile]: color }));
     return await syncEngine.upsertItem('profileColors', { id: profile, color });
   };
 
   const setDateColor = async (dateStr: string, color: string) => {
-    setDateColors((prev) => {
-      const updated = { ...prev, [dateStr]: color };
-      try {
-        localStorage.setItem('calender_date_colors', JSON.stringify(updated));
-      } catch (e) {}
-      return updated;
-    });
+    setDateColors((prev) => ({ ...prev, [dateStr]: color }));
     return await syncEngine.upsertItem('dateColors', { id: dateStr, color });
   };
 

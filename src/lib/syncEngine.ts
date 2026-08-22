@@ -37,7 +37,7 @@ export const APP_TO_SUPABASE_TABLE_MAP: Record<string, string> = {
   dateColors: 'dateColors',
 };
 
-// Reverse Mapping: Supabase PostgreSQL Table Name (camelCase or snake_case) -> Logical App Table Key
+// Reverse Mapping: Supabase PostgreSQL Table Name -> Logical App Table Key
 export const SUPABASE_TO_APP_TABLE_MAP: Record<string, string> = {
   events: 'events',
   classes: 'classes',
@@ -49,7 +49,7 @@ export const SUPABASE_TO_APP_TABLE_MAP: Record<string, string> = {
   bookItems: 'bookItems',
   profileColors: 'profileColors',
   dateColors: 'dateColors',
-  // PostgreSQL snake_case aliases
+  // PostgreSQL snake_case aliases for backwards compatibility
   habit_completions: 'habitCompletions',
   grocery_items: 'groceryItems',
   meal_items: 'mealItems',
@@ -58,7 +58,7 @@ export const SUPABASE_TO_APP_TABLE_MAP: Record<string, string> = {
   date_colors: 'dateColors',
 };
 
-const SYNC_CHANNEL_NAME = 'calender_live_sync_v3';
+const SYNC_CHANNEL_NAME = 'calender_live_sync_v4';
 const broadcastChannel =
   typeof window !== 'undefined' && 'BroadcastChannel' in window
     ? new BroadcastChannel(SYNC_CHANNEL_NAME)
@@ -80,7 +80,9 @@ const syncStatusListeners = new Set<SyncStatusListener>();
 let currentSyncStatus: SyncStatus = {
   isConfigured: isSupabaseConfigured(),
   isSyncing: false,
-  syncError: isSupabaseConfigured() ? null : 'Supabase credentials missing or unconfigured',
+  syncError: isSupabaseConfigured()
+    ? null
+    : 'Supabase credentials missing or unconfigured. Please connect to shared Supabase Cloud database.',
   lastSyncedAt: null,
 };
 
@@ -95,47 +97,10 @@ function updateSyncStatus(updates: Partial<SyncStatus>) {
   });
 }
 
-// Server-Authoritative In-Memory Store: Map<appTable, Map<itemId, itemObject>>
+// Server-Authoritative In-Memory Store ONLY: Map<appTable, Map<itemId, itemObject>>
+// No local storage content fallback is used. Supabase Cloud DB is the single source of truth.
 const memoryStore = new Map<string, Map<string, any>>();
 APP_TABLES.forEach((tbl) => memoryStore.set(tbl, new Map()));
-
-function loadInitialCacheFromLocalStorage() {
-  if (typeof window === 'undefined') return;
-  APP_TABLES.forEach((table) => {
-    try {
-      const raw = localStorage.getItem(`calender_sync_${table}`);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          const map = memoryStore.get(table)!;
-          map.clear();
-          parsed.forEach((item) => {
-            if (item && item.id) map.set(item.id, item);
-          });
-        }
-      }
-    } catch (err) {
-      console.warn(`Initial LocalStorage cache load failed for ${table}:`, err);
-    }
-  });
-}
-
-loadInitialCacheFromLocalStorage();
-
-function saveSnapshotToLocalStorage(table: string) {
-  if (typeof window === 'undefined') return;
-  try {
-    const map = memoryStore.get(table);
-    if (map && map.size > 0) {
-      const arr = Array.from(map.values());
-      localStorage.setItem(`calender_sync_${table}`, JSON.stringify(arr));
-    } else {
-      localStorage.removeItem(`calender_sync_${table}`);
-    }
-  } catch (err) {
-    console.warn(`LocalStorage save snapshot failed for ${table}:`, err);
-  }
-}
 
 function getStoreSnapshot(): Record<string, any[]> {
   const result: Record<string, any[]> = {};
@@ -174,11 +139,9 @@ function applyMemoryMutation(event: SyncPayload) {
   } else if (event.type === 'RESET') {
     tableMap.clear();
   }
-
-  saveSnapshotToLocalStorage(table);
 }
 
-// Multi-tab broadcast listener
+// Multi-tab BroadcastChannel listener for tabs on the same origin
 if (broadcastChannel) {
   broadcastChannel.onmessage = (msg: MessageEvent<SyncPayload>) => {
     if (msg?.data) {
@@ -188,7 +151,7 @@ if (broadcastChannel) {
   };
 }
 
-// Supabase Realtime Listener
+// Supabase Realtime Listener (Global WebSockets across all devices)
 if (isSupabaseConfigured()) {
   try {
     supabase
@@ -252,11 +215,14 @@ export const syncEngine = {
   isConfigured: () => isSupabaseConfigured(),
 
   /**
-   * SERVER-AUTHORITATIVE FETCH ALL
+   * SERVER-AUTHORITATIVE FETCH ALL (Supabase is single source of truth)
    */
   fetchAll: async (): Promise<Record<string, any[]>> => {
     if (!isSupabaseConfigured()) {
-      updateSyncStatus({ isSyncing: false, syncError: 'Supabase unconfigured' });
+      updateSyncStatus({
+        isSyncing: false,
+        syncError: 'Supabase credentials missing or unconfigured.',
+      });
       notifyGlobalListeners();
       return getStoreSnapshot();
     }
@@ -277,7 +243,6 @@ export const syncEngine = {
                 tableMap.set(item.id, item);
               }
             });
-            saveSnapshotToLocalStorage(appTable);
           } else if (error) {
             const errMsg = `Fetch failed for ${appTable} (${dbTable}): ${error.message}`;
             console.error(errMsg, error);
@@ -309,9 +274,14 @@ export const syncEngine = {
   },
 
   /**
-   * Item-level upsert mutation with automatic optimistic state rollback on server rejection.
+   * Item-level upsert mutation with server rollback on failure.
    */
   upsertItem: async <T extends { id: string }>(appTable: string, item: T): Promise<boolean> => {
+    if (!isSupabaseConfigured()) {
+      updateSyncStatus({ syncError: 'Cannot write: Supabase unconfigured.' });
+      return false;
+    }
+
     const tableMap = memoryStore.get(appTable);
     const previousItem = tableMap ? tableMap.get(item.id) : undefined;
     const isNewItem = previousItem === undefined;
@@ -324,45 +294,41 @@ export const syncEngine = {
       timestamp: Date.now(),
     };
 
-    // Optimistic update
+    // Optimistic memory mutation
     applyMemoryMutation(syncPayload);
     notifyGlobalListeners();
     if (broadcastChannel) broadcastChannel.postMessage(syncPayload);
 
-    if (isSupabaseConfigured()) {
-      const dbTable = APP_TO_SUPABASE_TABLE_MAP[appTable] || appTable;
-      try {
-        const { error } = await supabase.from(dbTable).upsert([item]);
-        if (error) {
-          console.error(`Supabase upsert error [${appTable} -> ${dbTable}]:`, error.message, error);
-          // ROLLBACK OPTIMISTIC UPDATE
-          if (tableMap) {
-            if (isNewItem) {
-              tableMap.delete(item.id);
-            } else {
-              tableMap.set(item.id, previousItem);
-            }
-            saveSnapshotToLocalStorage(appTable);
-            notifyGlobalListeners();
-          }
-          updateSyncStatus({ syncError: `Upsert failed for ${appTable}: ${error.message}` });
-          return false;
-        }
-      } catch (err: any) {
-        console.error(`Supabase upsert exception [${appTable} -> ${dbTable}]:`, err);
-        // ROLLBACK OPTIMISTIC UPDATE
+    const dbTable = APP_TO_SUPABASE_TABLE_MAP[appTable] || appTable;
+    try {
+      const { error } = await supabase.from(dbTable).upsert([item]);
+      if (error) {
+        console.error(`Supabase upsert error [${appTable} -> ${dbTable}]:`, error.message, error);
+        // ROLLBACK OPTIMISTIC UPDATE ON SERVER REJECTION
         if (tableMap) {
           if (isNewItem) {
             tableMap.delete(item.id);
           } else {
             tableMap.set(item.id, previousItem);
           }
-          saveSnapshotToLocalStorage(appTable);
           notifyGlobalListeners();
         }
-        updateSyncStatus({ syncError: `Upsert exception for ${appTable}: ${err?.message || err}` });
+        updateSyncStatus({ syncError: `Write rejected by server [${appTable}]: ${error.message}` });
         return false;
       }
+    } catch (err: any) {
+      console.error(`Supabase upsert exception [${appTable} -> ${dbTable}]:`, err);
+      // ROLLBACK OPTIMISTIC UPDATE ON EXCEPTION
+      if (tableMap) {
+        if (isNewItem) {
+          tableMap.delete(item.id);
+        } else {
+          tableMap.set(item.id, previousItem);
+        }
+        notifyGlobalListeners();
+      }
+      updateSyncStatus({ syncError: `Write exception [${appTable}]: ${err?.message || err}` });
+      return false;
     }
 
     updateSyncStatus({ lastSyncedAt: Date.now(), syncError: null });
@@ -370,13 +336,18 @@ export const syncEngine = {
   },
 
   /**
-   * Item-level delete mutation with automatic optimistic rollback on server rejection.
+   * Item-level delete mutation with server rollback on failure.
    */
   deleteItem: async (appTable: string, id: string): Promise<boolean> => {
+    if (!isSupabaseConfigured()) {
+      updateSyncStatus({ syncError: 'Cannot delete: Supabase unconfigured.' });
+      return false;
+    }
+
     const tableMap = memoryStore.get(appTable);
     const previousItem = tableMap ? tableMap.get(id) : undefined;
     if (!previousItem && !tableMap?.has(id)) {
-      return true; // Already deleted or nonexistent
+      return true;
     }
 
     const syncPayload: SyncPayload = {
@@ -386,37 +357,33 @@ export const syncEngine = {
       timestamp: Date.now(),
     };
 
-    // Optimistic deletion
+    // Optimistic memory deletion
     applyMemoryMutation(syncPayload);
     notifyGlobalListeners();
     if (broadcastChannel) broadcastChannel.postMessage(syncPayload);
 
-    if (isSupabaseConfigured()) {
-      const dbTable = APP_TO_SUPABASE_TABLE_MAP[appTable] || appTable;
-      try {
-        const { error } = await supabase.from(dbTable).delete().eq('id', id);
-        if (error) {
-          console.error(`Supabase delete error [${appTable} -> ${dbTable}]:`, error.message, error);
-          // ROLLBACK OPTIMISTIC DELETION
-          if (tableMap && previousItem !== undefined) {
-            tableMap.set(id, previousItem);
-            saveSnapshotToLocalStorage(appTable);
-            notifyGlobalListeners();
-          }
-          updateSyncStatus({ syncError: `Delete failed for ${appTable}: ${error.message}` });
-          return false;
-        }
-      } catch (err: any) {
-        console.error(`Supabase delete exception [${appTable} -> ${dbTable}]:`, err);
-        // ROLLBACK OPTIMISTIC DELETION
+    const dbTable = APP_TO_SUPABASE_TABLE_MAP[appTable] || appTable;
+    try {
+      const { error } = await supabase.from(dbTable).delete().eq('id', id);
+      if (error) {
+        console.error(`Supabase delete error [${appTable} -> ${dbTable}]:`, error.message, error);
+        // ROLLBACK OPTIMISTIC DELETION ON SERVER REJECTION
         if (tableMap && previousItem !== undefined) {
           tableMap.set(id, previousItem);
-          saveSnapshotToLocalStorage(appTable);
           notifyGlobalListeners();
         }
-        updateSyncStatus({ syncError: `Delete exception for ${appTable}: ${err?.message || err}` });
+        updateSyncStatus({ syncError: `Delete rejected by server [${appTable}]: ${error.message}` });
         return false;
       }
+    } catch (err: any) {
+      console.error(`Supabase delete exception [${appTable} -> ${dbTable}]:`, err);
+      // ROLLBACK OPTIMISTIC DELETION ON EXCEPTION
+      if (tableMap && previousItem !== undefined) {
+        tableMap.set(id, previousItem);
+        notifyGlobalListeners();
+      }
+      updateSyncStatus({ syncError: `Delete exception [${appTable}]: ${err?.message || err}` });
+      return false;
     }
 
     updateSyncStatus({ lastSyncedAt: Date.now(), syncError: null });
@@ -424,9 +391,14 @@ export const syncEngine = {
   },
 
   /**
-   * Table-level clear operation with automatic optimistic rollback on server rejection.
+   * Table-level clear mutation with server rollback on failure.
    */
   clearTable: async (appTable: string): Promise<boolean> => {
+    if (!isSupabaseConfigured()) {
+      updateSyncStatus({ syncError: 'Cannot clear: Supabase unconfigured.' });
+      return false;
+    }
+
     const tableMap = memoryStore.get(appTable);
     const previousSnapshot = tableMap ? new Map(tableMap) : new Map();
 
@@ -436,41 +408,36 @@ export const syncEngine = {
       timestamp: Date.now(),
     };
 
-    // Optimistic table clear
+    // Optimistic memory clear
     applyMemoryMutation(syncPayload);
     notifyGlobalListeners();
     if (broadcastChannel) broadcastChannel.postMessage(syncPayload);
 
-    if (isSupabaseConfigured()) {
-      const dbTable = APP_TO_SUPABASE_TABLE_MAP[appTable] || appTable;
-      try {
-        const { error } = await supabase.from(dbTable).delete().neq('id', '___impossible_id___');
-        if (error) {
-          console.error(`Supabase clear table error [${appTable} -> ${dbTable}]:`, error.message, error);
-          // ROLLBACK OPTIMISTIC CLEAR
-          if (tableMap) {
-            previousSnapshot.forEach((val, key) => tableMap.set(key, val));
-            saveSnapshotToLocalStorage(appTable);
-            notifyGlobalListeners();
-          }
-          updateSyncStatus({ syncError: `Clear table failed for ${appTable}: ${error.message}` });
-          return false;
-        }
-      } catch (err: any) {
-        console.error(`Supabase clear table exception [${appTable} -> ${dbTable}]:`, err);
-        // ROLLBACK OPTIMISTIC CLEAR
+    const dbTable = APP_TO_SUPABASE_TABLE_MAP[appTable] || appTable;
+    try {
+      const { error } = await supabase.from(dbTable).delete().neq('id', '___impossible_id___');
+      if (error) {
+        console.error(`Supabase clear table error [${appTable} -> ${dbTable}]:`, error.message, error);
+        // ROLLBACK OPTIMISTIC CLEAR ON SERVER REJECTION
         if (tableMap) {
           previousSnapshot.forEach((val, key) => tableMap.set(key, val));
-          saveSnapshotToLocalStorage(appTable);
           notifyGlobalListeners();
         }
-        updateSyncStatus({ syncError: `Clear table exception for ${appTable}: ${err?.message || err}` });
+        updateSyncStatus({ syncError: `Clear table rejected [${appTable}]: ${error.message}` });
         return false;
       }
+    } catch (err: any) {
+      console.error(`Supabase clear table exception [${appTable} -> ${dbTable}]:`, err);
+      // ROLLBACK OPTIMISTIC CLEAR ON EXCEPTION
+      if (tableMap) {
+        previousSnapshot.forEach((val, key) => tableMap.set(key, val));
+        notifyGlobalListeners();
+      }
+      updateSyncStatus({ syncError: `Clear table exception [${appTable}]: ${err?.message || err}` });
+      return false;
     }
 
     updateSyncStatus({ lastSyncedAt: Date.now(), syncError: null });
     return true;
   },
 };
-

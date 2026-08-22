@@ -15,8 +15,11 @@ import { CreationModalContainer } from './components/modals/CreationModalContain
 import { SettingsModal } from './components/modals/SettingsModal';
 import { MealType, CalendarEvent, BookItem } from './types';
 
+import { ConnectionErrorBanner } from './components/ui/ConnectionErrorBanner';
+import { syncEngine } from './lib/syncEngine';
+
 const MainAppContent: React.FC = () => {
-  const { activeTab } = useStore();
+  const { activeTab, syncStatus } = useStore();
 
   const [activeModal, setActiveModal] = useState<
     'event' | 'class' | 'task' | 'habit' | 'meal' | 'book' | null
@@ -57,6 +60,14 @@ const MainAppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans pb-safe-bottom">
+      {/* Show connection error overlay if Supabase is unconfigured */}
+      {!syncStatus.isConfigured && (
+        <ConnectionErrorBanner
+          errorDetails={syncStatus.syncError || undefined}
+          onRetry={() => syncEngine.fetchAll()}
+        />
+      )}
+
       {/* Header with Centered Top Add Button & Settings */}
       <Header onOpenAddModal={handleOpenAddForTab} />
 
