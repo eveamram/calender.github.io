@@ -60,13 +60,6 @@ const MainAppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans pb-safe-bottom">
-      {/* Show connection error overlay if Supabase is unconfigured */}
-      {!syncStatus.isConfigured && (
-        <ConnectionErrorBanner
-          errorDetails={syncStatus.syncError || undefined}
-          onRetry={() => syncEngine.fetchAll()}
-        />
-      )}
 
       {/* Header with Centered Top Add Button & Settings */}
       <Header onOpenAddModal={handleOpenAddForTab} />
