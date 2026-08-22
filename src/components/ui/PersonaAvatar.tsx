@@ -45,8 +45,6 @@ export const PersonaAvatar: React.FC<PersonaAvatarProps> = ({ person, size = 'md
           <circle cx="12" cy="10" r="5" fill="#3D2314" />
           <circle cx="18" cy="9" r="5.5" fill="#3D2314" />
           <circle cx="24" cy="10" r="5" fill="#3D2314" />
-          <circle cx="14" cy="13" r="3" fill="#3D2314" />
-          <circle cx="22" cy="13" r="3" fill="#3D2314" />
 
           {/* Eyes */}
           <circle cx="14.5" cy="18" r="1.2" fill="#2E1C0C" />
@@ -63,27 +61,27 @@ export const PersonaAvatar: React.FC<PersonaAvatarProps> = ({ person, size = 'md
     );
   }
 
-  // Abbie: White girl with gorgeous long straight light brown hair
+  // Abbie: White girl with long straight light brown hair, NO BANGS (clear forehead, center part)
   if (isAbbie) {
     return (
       <div
         className={`rounded-full bg-rose-100/90 border border-rose-300 shadow-2xs overflow-hidden flex items-center justify-center shrink-0 ${sizeClasses} ${className}`}
-        title="Abbie (Long Straight Light Brown Hair)"
+        title="Abbie (Long Straight Light Brown Hair, No Bangs)"
       >
         <svg viewBox="0 0 36 36" fill="none" className="w-full h-full">
           {/* Background */}
           <circle cx="18" cy="18" r="18" fill="#FFE4E6" />
 
-          {/* Full Back & Side Hair Flowing Way Past Shoulders */}
+          {/* Full Back Hair Flowing Down Past Shoulders */}
           <path d="M6 14 C6 4, 30 4, 30 14 L31 36 L23 36 L23 18 L13 18 L13 36 L5 36 Z" fill="#8C6239" />
 
-          {/* Face Skin */}
+          {/* Face Skin (Full Clear Forehead) */}
           <circle cx="18" cy="18" r="9.5" fill="#FDE2D4" />
 
-          {/* Complete Top Crown & Straight Side Bangs */}
-          <path d="M6 14 C6 5, 30 5, 30 14 C27 9, 21 8, 18 12 C15 8, 9 9, 6 14 Z" fill="#8C6239" />
-          <path d="M10 14 C12 9, 18 8, 18 13 L11 16 Z" fill="#75502C" />
-          <path d="M26 14 C24 9, 18 8, 18 13 L25 16 Z" fill="#75502C" />
+          {/* Top Hair Crown Parted In Middle, Framing Sides of Face (NO BANGS) */}
+          <path d="M6 14 C6 5, 18 4, 18 8 C18 4, 30 5, 30 14 C27 12, 25 12, 24 16 L24 36 L30 36 L30 14 C30 5, 6 5, 6 14 Z" fill="#8C6239" />
+          <path d="M6 14 C6 5, 30 5, 30 14 C28 10, 24 10, 24 14 L12 14 C12 10, 8 10, 6 14 Z" fill="#8C6239" />
+          <path d="M12 14 C12 10, 18 9, 18 11 Z" fill="#75502C" />
 
           {/* Eyes */}
           <circle cx="14.5" cy="18" r="1.2" fill="#2E1C0C" />
