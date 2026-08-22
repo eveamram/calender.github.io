@@ -72,16 +72,26 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
   });
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('calender_visible_habit_ids');
-      if (saved) {
-        setVisibleHabitIds(JSON.parse(saved));
-      } else {
-        setVisibleHabitIds(habits.map((h) => h.id));
+    const syncVisibleHabits = () => {
+      try {
+        const saved = localStorage.getItem('calender_visible_habit_ids');
+        if (saved) {
+          setVisibleHabitIds(JSON.parse(saved));
+        } else {
+          setVisibleHabitIds(habits.map((h) => h.id));
+        }
+      } catch (e) {
+        console.error(e);
       }
-    } catch (e) {
-      console.error(e);
-    }
+    };
+
+    syncVisibleHabits();
+    window.addEventListener('calender_visible_habits_changed', syncVisibleHabits);
+    window.addEventListener('storage', syncVisibleHabits);
+    return () => {
+      window.removeEventListener('calender_visible_habits_changed', syncVisibleHabits);
+      window.removeEventListener('storage', syncVisibleHabits);
+    };
   }, [habits]);
 
   // Filter habits for current active profile
@@ -173,8 +183,38 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
 
   const selectedDayItems = useMemo(() => {
     const eventList = eventsByDate.get(selectedDate) || [];
-    return [...eventList].sort((a, b) => (a.start_time || '00:00').localeCompare(b.start_time || '00:00'));
-  }, [eventsByDate, selectedDate]);
+    const dateObj = new Date(selectedDate + 'T00:00:00');
+    let jsDay = dateObj.getDay(); // 0=Sun, 1=Mon...
+    const dayOfWeekNum = jsDay === 0 ? 7 : jsDay; // 1..7 (Mon..Sun)
+
+    // Filter habits enabled via Habits tab that are active on this day of week
+    const habitEvents: CalendarEvent[] = filteredHabits
+      .filter((h) => visibleHabitIds.includes(h.id))
+      .filter((h) => {
+        const activeDays = h.active_days && h.active_days.length > 0 ? h.active_days : [1, 2, 3, 4, 5, 6, 7];
+        return activeDays.includes(dayOfWeekNum);
+      })
+      .map((h) => {
+        const isDone = habitCompletions.some(
+          (hc) => hc.habit_id === h.id && hc.date === selectedDate && hc.completed
+        );
+        return {
+          id: `habit-evt-${h.id}`,
+          title: `${h.emoji || '✨'} ${h.title}`,
+          event_type: 'personal',
+          event_date: selectedDate,
+          start_time: 'Habit',
+          color: h.color || '#3b82f6',
+          profile: h.profile || 'Both',
+          is_completed: isDone,
+          is_habit_item: true,
+          habit_original_id: h.id,
+        } as CalendarEvent & { is_habit_item?: boolean; habit_original_id?: string };
+      });
+
+    const combined = [...eventList, ...habitEvents];
+    return combined.sort((a, b) => (a.start_time || '00:00').localeCompare(b.start_time || '00:00'));
+  }, [eventsByDate, selectedDate, filteredHabits, visibleHabitIds, habitCompletions]);
 
   const todayStr = useMemo(() => getTodayDateString(), []);
 
