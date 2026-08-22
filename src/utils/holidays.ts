@@ -199,20 +199,39 @@ export function getCommonHolidayEvent(dateStr: string): CalendarEvent | null {
   dynamicMap[formatDateKey(addDays(thanksgiving, 2))] = 'Thanksgiving Long Weekend (Sat) 🏖️';
   dynamicMap[formatDateKey(addDays(thanksgiving, 3))] = 'Thanksgiving Long Weekend (Sun) 🏖️';
 
-  // J. Jewish Holidays: Rosh Hashanah, Yom Kippur, Hanukkah
-  if (year === 2025) {
-    dynamicMap['2025-09-23'] = 'Rosh Hashanah 🍎🍯';
-    dynamicMap['2025-10-02'] = 'Yom Kippur ✡️';
-    dynamicMap['2025-12-15'] = 'Hanukkah 🕎';
-  } else if (year === 2026) {
-    dynamicMap['2026-09-12'] = 'Rosh Hashanah 🍎🍯';
-    dynamicMap['2026-09-21'] = 'Yom Kippur ✡️';
-    dynamicMap['2026-12-05'] = 'Hanukkah 🕎';
-  } else if (year === 2027) {
-    dynamicMap['2027-10-02'] = 'Rosh Hashanah 🍎🍯';
-    dynamicMap['2027-10-11'] = 'Yom Kippur ✡️';
-    dynamicMap['2027-12-25'] = 'Hanukkah 🕎';
-  }
+  // J. Jewish Holidays: Rosh Hashanah, Yom Kippur, Hanukkah (2024 - 2030)
+  const jewishHolidaysMap: Record<string, string> = {
+    // 2024
+    '2024-10-03': 'Rosh Hashanah 🍎🍯',
+    '2024-10-12': 'Yom Kippur ✡️',
+    '2024-12-26': 'Hanukkah 🕎',
+    // 2025
+    '2025-09-23': 'Rosh Hashanah 🍎🍯',
+    '2025-10-02': 'Yom Kippur ✡️',
+    '2025-12-15': 'Hanukkah 🕎',
+    // 2026
+    '2026-09-12': 'Rosh Hashanah 🍎🍯',
+    '2026-09-21': 'Yom Kippur ✡️',
+    '2026-12-05': 'Hanukkah 🕎',
+    // 2027
+    '2027-10-02': 'Rosh Hashanah 🍎🍯',
+    '2027-10-11': 'Yom Kippur ✡️',
+    '2027-12-25': 'Hanukkah 🕎',
+    // 2028
+    '2028-09-21': 'Rosh Hashanah 🍎🍯',
+    '2028-09-30': 'Yom Kippur ✡️',
+    '2028-12-13': 'Hanukkah 🕎',
+    // 2029
+    '2029-09-10': 'Rosh Hashanah 🍎🍯',
+    '2029-09-19': 'Yom Kippur ✡️',
+    '2029-12-02': 'Hanukkah 🕎',
+    // 2030
+    '2030-09-28': 'Rosh Hashanah 🍎🍯',
+    '2030-10-07': 'Yom Kippur ✡️',
+    '2030-12-21': 'Hanukkah 🕎',
+  };
+
+  Object.assign(dynamicMap, jewishHolidaysMap);
 
   if (dynamicMap[dateStr]) {
     return {
