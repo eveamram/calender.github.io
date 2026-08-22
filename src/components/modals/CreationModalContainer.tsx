@@ -566,8 +566,8 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
     return `Add ${modalType.charAt(0).toUpperCase() + modalType.slice(1)}`;
   };
 
-  const renderFooterButtons = (onSaveSubmit: (e: any) => void, saveLabel = 'Save') => (
-    <div className="flex items-center gap-3">
+  const renderFooterButtons = (saveLabel = 'Save') => (
+    <div className="flex items-center gap-3 pt-2">
       <button
         type="button"
         onClick={onClose}
@@ -577,8 +577,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         Cancel
       </button>
       <button
-        type="button"
-        onClick={onSaveSubmit}
+        type="submit"
         disabled={isSaving}
         className="flex-1 min-h-[48px] py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-extrabold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
       >
@@ -692,7 +691,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             )}
           </div>
 
-          {renderFooterButtons(handleEvtSubmit, eventToEdit ? 'Save Changes' : 'Add Event')}
+          {renderFooterButtons(eventToEdit ? 'Save Changes' : 'Add Event')}
         </form>
       )}
 
@@ -776,7 +775,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             )}
           </div>
 
-          {renderFooterButtons(handleClsSubmit, 'Add Class')}
+          {renderFooterButtons('Add Class')}
         </form>
       )}
 
@@ -855,7 +854,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             )}
           </div>
 
-          {renderFooterButtons(handleHbtSubmit, habitToEdit ? 'Save Habit' : 'Add Habit')}
+          {renderFooterButtons(habitToEdit ? 'Save Habit' : 'Add Habit')}
         </form>
       )}
 
@@ -932,7 +931,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             )}
           </div>
 
-          {renderFooterButtons(handleTskSubmit, 'Add Task')}
+          {renderFooterButtons('Add Task')}
         </form>
       )}
 
@@ -995,7 +994,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             )}
           </div>
 
-          {renderFooterButtons(handleGrcSubmit, 'Add Grocery Item')}
+          {renderFooterButtons('Add Grocery Item')}
         </form>
       )}
 
@@ -1069,7 +1068,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             )}
           </div>
 
-          {renderFooterButtons(handleMelSubmit, 'Add Meal')}
+          {renderFooterButtons('Add Meal')}
         </form>
       )}
 
@@ -1153,7 +1152,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             )}
           </div>
 
-          {renderFooterButtons(handleBokSubmit, bookToEdit ? 'Save Book Changes' : 'Add to Shelf')}
+          {renderFooterButtons(bookToEdit ? 'Save Book Changes' : 'Add to Shelf')}
         </form>
       )}
     </BottomSheet>
