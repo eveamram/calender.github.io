@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useStore, getTodayDateString } from '../../context/StoreContext';
 import { BottomSheet } from '../ui/BottomSheet';
 import { EventType, ProfilePersona, MealType, BookStatus, CalendarEvent, BookItem, CATEGORY_METAS } from '../../types';
-import { ChevronDown, ChevronUp, Palette } from 'lucide-react';
+import { ChevronDown, ChevronUp, Palette, Trash2 } from 'lucide-react';
 
 interface CreationModalContainerProps {
   modalType: 'event' | 'class' | 'task' | 'habit' | 'meal' | 'book' | null;
@@ -39,6 +39,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   const {
     addEvent,
     updateEvent,
+    deleteEvent,
     addClass,
     addTask,
     addHabit,
@@ -477,12 +478,29 @@ const getDayOfWeekFromDateStr = (dateStr: string): number => {
             )}
           </div>
 
-          <button
-            type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-bold py-3 rounded-xl text-sm shadow-md shadow-blue-600/20 transition-all mt-4 cursor-pointer"
-          >
-            {eventToEdit ? 'Save Changes' : 'Create Event'}
-          </button>
+          <div className="flex gap-2.5 mt-4">
+            {eventToEdit && (
+              <button
+                type="button"
+                onClick={async () => {
+                  if (window.confirm('Are you sure you want to delete this event?')) {
+                    await deleteEvent(eventToEdit.id);
+                    onClose();
+                  }
+                }}
+                className="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-600 font-extrabold py-3 rounded-xl text-sm transition-all cursor-pointer flex items-center justify-center gap-1.5 border border-rose-200"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Delete Event</span>
+              </button>
+            )}
+            <button
+              type="submit"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-bold py-3 rounded-xl text-sm shadow-md shadow-blue-600/20 transition-all cursor-pointer"
+            >
+              {eventToEdit ? 'Save Changes' : 'Create Event'}
+            </button>
+          </div>
         </form>
       )}
 
