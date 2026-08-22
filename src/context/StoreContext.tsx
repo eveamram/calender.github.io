@@ -59,6 +59,7 @@ interface StoreContextType {
   // CRUD & Reset Operations
   addEvent: (evt: Omit<CalendarEvent, 'id' | 'created_at' | 'updated_at'>) => Promise<boolean>;
   updateEvent: (id: string, updates: Partial<CalendarEvent>) => Promise<boolean>;
+  toggleEventComplete: (id: string) => Promise<boolean>;
   deleteEvent: (id: string) => Promise<boolean>;
   clearCalendarEventsExceptAnniversaries: () => Promise<void>;
   clearAnniversariesOnly: () => Promise<void>;
@@ -257,6 +258,19 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!existing) return false;
     const updated = { ...existing, ...updates, updated_at: new Date().toISOString() };
     return await syncEngine.upsertItem('events', updated);
+  };
+
+  const toggleEventComplete = async (id: string): Promise<boolean> => {
+    const existing = events.find((e) => e.id === id);
+    if (!existing) return false;
+    const nextCompleted = !existing.is_completed;
+    if (existing.task_id) {
+      const task = tasks.find((t) => t.id === existing.task_id);
+      if (task) {
+        await syncEngine.upsertItem('tasks', { ...task, is_completed: nextCompleted });
+      }
+    }
+    return await updateEvent(id, { is_completed: nextCompleted });
   };
 
   const deleteEvent = async (id: string): Promise<boolean> => {
@@ -534,6 +548,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         filterByProfile,
         addEvent,
         updateEvent,
+        toggleEventComplete,
         deleteEvent,
         clearCalendarEventsExceptAnniversaries,
         clearAnniversariesOnly,

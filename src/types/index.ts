@@ -32,6 +32,7 @@ export interface CalendarEvent {
   location?: string;
   color?: string;
   task_id?: string;
+  is_completed?: boolean;
   profile?: ProfilePersona;
   created_at?: string;
   updated_at?: string;

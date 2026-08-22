@@ -23,7 +23,6 @@ interface BooksViewProps {
 
 // 8 Playful & Fun Local CSS Cover Themes (No External Images or APIs)
 const COVER_THEMES = [
-  // 1. Red Rising / Sunset Mountain (Crimson & Gold)
   {
     key: 'red_rising',
     matchTitle: 'red rising',
@@ -32,14 +31,12 @@ const COVER_THEMES = [
     spine: 'bg-amber-300/30',
     art: (
       <div className="absolute inset-0 flex flex-col justify-end p-2 pointer-events-none overflow-hidden">
-        {/* Sun & Mountains */}
         <div className="w-12 h-12 rounded-full bg-amber-300/40 blur-xs mx-auto -mb-4 shadow-lg" />
         <div className="w-full h-10 bg-gradient-to-t from-purple-950/90 via-rose-950/80 to-transparent rounded-t-full" />
         <div className="absolute top-3 right-3 text-amber-200/80 text-[10px] animate-pulse">✦ ✨</div>
       </div>
     ),
   },
-  // 2. The Midnight Library (Navy & Stars)
   {
     key: 'midnight',
     matchTitle: 'midnight library',
@@ -55,7 +52,6 @@ const COVER_THEMES = [
       </div>
     ),
   },
-  // 3. Lessons in Chemistry (Coral & Beaker)
   {
     key: 'chemistry',
     matchTitle: 'chemistry',
@@ -72,7 +68,6 @@ const COVER_THEMES = [
       </div>
     ),
   },
-  // 4. The Seven Husbands (Emerald & Gold)
   {
     key: 'seven_husbands',
     matchTitle: 'evelyn hugo',
@@ -86,7 +81,6 @@ const COVER_THEMES = [
       </div>
     ),
   },
-  // 5. Celestial Dreams (Violet & Pink)
   {
     key: 'celestial',
     matchTitle: '',
@@ -100,7 +94,6 @@ const COVER_THEMES = [
       </div>
     ),
   },
-  // 6. Botanical Sanctuary (Sage & Forest)
   {
     key: 'botanical',
     matchTitle: '',
@@ -113,7 +106,6 @@ const COVER_THEMES = [
       </div>
     ),
   },
-  // 7. Golden Sunshine (Ochre & Honey)
   {
     key: 'golden',
     matchTitle: '',
@@ -126,7 +118,6 @@ const COVER_THEMES = [
       </div>
     ),
   },
-  // 8. Ocean Waves (Teal & Cyan)
   {
     key: 'ocean',
     matchTitle: '',
@@ -159,7 +150,6 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
   const [selectedBookId, setSelectedBookId] = useState<string | null>(null);
 
   const [editingPersonPage, setEditingPersonPage] = useState<{ bookId: string; person: 'Eve' | 'Abbie' } | null>(null);
-  const [editingPageBookId, setEditingPageBookId] = useState<string | null>(null);
   const [customPageInput, setCustomPageInput] = useState<string>('');
   const [deletingBookId, setDeletingBookId] = useState<string | null>(null);
 
@@ -179,7 +169,6 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
     });
   }, [filteredByPersona, activeStatusTab, searchQuery]);
 
-  // Selected Featured Book (defaults to first item in list)
   const featuredBook = useMemo(() => {
     if (selectedBookId) {
       const found = filteredBooks.find((b) => b.id === selectedBookId);
@@ -188,7 +177,6 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
     return filteredBooks[0] || null;
   }, [selectedBookId, filteredBooks]);
 
-  // Statistics
   const totalPagesRead = useMemo(() => {
     return filteredByPersona.reduce((acc, b) => {
       if (b.status === 'completed' && b.total_pages) return acc + b.total_pages;
@@ -239,7 +227,7 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
     },
     {
       status: 'all',
-      label: 'All Books',
+      label: 'All',
       count: filteredByPersona.length,
       emoji: '📚',
       activeStyle: 'bg-amber-100/90 text-amber-950 border-amber-300 shadow-2xs',
@@ -249,18 +237,6 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
   const handleUpdateRating = async (book: BookItem, newRating: number) => {
     confetti({ particleCount: 20, spread: 40, origin: { y: 0.8 } });
     await updateBookItem(book.id, { rating: newRating });
-  };
-
-  const handleIncrementPage = async (book: BookItem, pgs = 15) => {
-    const nextPg = Math.min(book.total_pages || 9999, (book.current_page || 0) + pgs);
-    const updates: Partial<BookItem> = { current_page: nextPg };
-
-    if (book.total_pages && nextPg >= book.total_pages) {
-      updates.status = 'completed';
-      confetti({ particleCount: 50, spread: 80, origin: { y: 0.7 } });
-    }
-
-    await updateBookItem(book.id, updates);
   };
 
   const handleIncrementPersonPage = async (book: BookItem, person: 'Eve' | 'Abbie', pgs = 15) => {
@@ -278,21 +254,6 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
       await updateBookItem(book.id, updates);
     }
     setEditingPersonPage(null);
-    setCustomPageInput('');
-  };
-
-  const handleSaveCustomPage = async (book: BookItem) => {
-    const parsed = parseInt(customPageInput, 10);
-    if (!isNaN(parsed) && parsed >= 0) {
-      const nextPg = book.total_pages ? Math.min(book.total_pages, parsed) : parsed;
-      const updates: Partial<BookItem> = { current_page: nextPg };
-      if (book.total_pages && nextPg >= book.total_pages) {
-        updates.status = 'completed';
-        confetti({ particleCount: 50, spread: 80, origin: { y: 0.7 } });
-      }
-      await updateBookItem(book.id, updates);
-    }
-    setEditingPageBookId(null);
     setCustomPageInput('');
   };
 
@@ -316,60 +277,59 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
   };
 
   return (
-    <div className="bg-[#F7F2EA] min-h-screen py-6 px-4 md:px-8 font-sans -mx-4 md:-mx-8 -my-6 transition-colors">
-      <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="bg-[#F7F2EA] min-h-screen py-4 sm:py-6 px-3 sm:px-6 md:px-8 font-sans pb-40 transition-colors">
+      <div className="space-y-4 sm:space-y-6 max-w-6xl mx-auto">
         {/* Rich Warm & Dreamy Header Banner (Lavender -> Pink -> Peach -> Warm Yellow) */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-purple-200/90 via-pink-200/85 via-amber-100/90 to-yellow-100/90 p-6 sm:p-8 border border-amber-200/80 shadow-xs">
-          {/* Soft Blurred Ambient Glows */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-purple-200/90 via-pink-200/85 via-amber-100/90 to-yellow-100/90 p-4 sm:p-6 md:p-8 border border-amber-200/80 shadow-xs">
           <div className="absolute -top-12 -left-12 w-48 h-48 bg-purple-300/40 rounded-full blur-2xl pointer-events-none" />
           <div className="absolute -bottom-12 right-12 w-56 h-56 bg-amber-200/50 rounded-full blur-2xl pointer-events-none" />
 
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
-            <div className="space-y-2">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6 relative z-10">
+            <div className="space-y-2 w-full md:w-auto">
               <div className="inline-flex items-center gap-1.5 text-xs font-bold text-purple-900 bg-white/60 backdrop-blur-md px-3 py-1 rounded-full border border-purple-300/50 shadow-2xs">
                 <Sparkles className="w-3.5 h-3.5 text-purple-700" />
-                <span>Personal Reading Journal</span>
-                <Coffee className="w-3.5 h-3.5 text-amber-700 ml-1" />
+                <span>Personal Reading Sanctuary</span>
+                <Coffee className="w-3.5 h-3.5 text-amber-700 ml-0.5" />
               </div>
 
-              <h1 className="text-3xl sm:text-4xl font-serif font-bold text-stone-900 tracking-tight flex items-center gap-2">
-                <span>Your Reading Shelf</span>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-serif font-bold text-stone-900 tracking-tight flex items-center gap-2">
+                <span>Reading Shelf</span>
                 <span className="text-rose-500 font-sans font-normal">♡</span>
               </h1>
 
-              <p className="text-xs sm:text-sm text-stone-700 font-medium italic opacity-90">
+              <p className="text-xs text-stone-700 font-medium italic opacity-90">
                 “A reader lives a thousand lives before he dies.” — George R.R. Martin
               </p>
 
-              {/* Stats Badges */}
-              <div className="flex items-center gap-2 sm:gap-3 pt-3 flex-wrap">
-                <div className="flex items-center gap-2 bg-[#FFFDF9]/90 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-amber-200/60 shadow-2xs">
-                  <div className="w-7 h-7 rounded-xl bg-purple-700 text-white flex items-center justify-center text-xs font-bold">
+              {/* Mobile-Friendly Stats Grid */}
+              <div className="grid grid-cols-3 gap-2 pt-2">
+                <div className="flex items-center gap-2 bg-[#FFFDF9]/90 backdrop-blur-md px-2.5 py-1.5 rounded-2xl border border-amber-200/60 shadow-2xs">
+                  <div className="w-6 h-6 rounded-lg bg-purple-700 text-white flex items-center justify-center text-xs font-bold shrink-0">
                     📖
                   </div>
-                  <div className="text-xs">
-                    <span className="font-extrabold text-stone-900 block leading-tight">{totalPagesRead}</span>
-                    <span className="text-[10px] text-stone-500 font-semibold">Pages Read</span>
+                  <div className="text-xs min-w-0">
+                    <span className="font-extrabold text-stone-900 block leading-tight truncate">{totalPagesRead}</span>
+                    <span className="text-[9px] text-stone-500 font-semibold block truncate">Pages</span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 bg-[#FFFDF9]/90 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-amber-200/60 shadow-2xs">
-                  <div className="w-7 h-7 rounded-xl bg-rose-500 text-white flex items-center justify-center text-xs font-bold">
+                <div className="flex items-center gap-2 bg-[#FFFDF9]/90 backdrop-blur-md px-2.5 py-1.5 rounded-2xl border border-amber-200/60 shadow-2xs">
+                  <div className="w-6 h-6 rounded-lg bg-rose-500 text-white flex items-center justify-center text-xs font-bold shrink-0">
                     📚
                   </div>
-                  <div className="text-xs">
-                    <span className="font-extrabold text-stone-900 block leading-tight">{readingCount}</span>
-                    <span className="text-[10px] text-stone-500 font-semibold">Reading</span>
+                  <div className="text-xs min-w-0">
+                    <span className="font-extrabold text-stone-900 block leading-tight truncate">{readingCount}</span>
+                    <span className="text-[9px] text-stone-500 font-semibold block truncate">Reading</span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 bg-[#FFFDF9]/90 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-amber-200/60 shadow-2xs">
-                  <div className="w-7 h-7 rounded-xl bg-amber-500 text-white flex items-center justify-center text-xs font-bold">
+                <div className="flex items-center gap-2 bg-[#FFFDF9]/90 backdrop-blur-md px-2.5 py-1.5 rounded-2xl border border-amber-200/60 shadow-2xs">
+                  <div className="w-6 h-6 rounded-lg bg-amber-500 text-white flex items-center justify-center text-xs font-bold shrink-0">
                     ⭐
                   </div>
-                  <div className="text-xs">
-                    <span className="font-extrabold text-stone-900 block leading-tight">{completedCount}</span>
-                    <span className="text-[10px] text-stone-500 font-semibold">Finished</span>
+                  <div className="text-xs min-w-0">
+                    <span className="font-extrabold text-stone-900 block leading-tight truncate">{completedCount}</span>
+                    <span className="text-[9px] text-stone-500 font-semibold block truncate">Finished</span>
                   </div>
                 </div>
               </div>
@@ -377,7 +337,7 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
 
             <button
               onClick={() => onOpenAddBookModal(null)}
-              className="flex items-center gap-2 bg-purple-950 hover:bg-purple-900 active:scale-95 text-white font-extrabold px-5 py-3 rounded-2xl text-xs shadow-md transition-all cursor-pointer shrink-0 self-start md:self-center"
+              className="w-full md:w-auto flex items-center justify-center gap-2 bg-purple-950 hover:bg-purple-900 active:scale-95 text-white font-extrabold px-5 py-3 rounded-2xl text-xs shadow-md transition-all cursor-pointer shrink-0"
             >
               <Plus className="w-4 h-4 stroke-[3]" />
               <span>Add Book</span>
@@ -386,16 +346,16 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
         </div>
 
         {/* Filter Tabs & Search Bar */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-          {/* Soft Search Input */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5">
+          {/* Search Input */}
           <div className="relative w-full sm:w-72">
             <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search books..."
+              placeholder="Search title or author..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-8 py-2 rounded-2xl bg-[#FFFDF9] border border-stone-300/70 text-xs font-semibold text-stone-800 placeholder:text-stone-400 focus:outline-none focus:border-purple-400 shadow-2xs"
+              className="w-full pl-9 pr-8 py-2.5 rounded-2xl bg-[#FFFDF9] border border-stone-300/70 text-xs font-semibold text-stone-800 placeholder:text-stone-400 focus:outline-none focus:border-purple-400 shadow-2xs"
             />
             {searchQuery && (
               <button
@@ -407,15 +367,15 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
             )}
           </div>
 
-          {/* Soft Tinted Filter Tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto py-1">
+          {/* Filter Tabs */}
+          <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto py-1 scrollbar-none">
             {tabs.map((tab) => {
               const isActive = activeStatusTab === tab.status;
               return (
                 <button
                   key={tab.status}
                   onClick={() => setActiveStatusTab(tab.status)}
-                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-2xl text-xs font-extrabold border transition-all cursor-pointer shrink-0 ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-extrabold border transition-all cursor-pointer shrink-0 ${
                     isActive
                       ? tab.activeStyle
                       : 'bg-[#FFFDF9] text-stone-600 border-stone-200/80 hover:bg-stone-100/60'
@@ -436,12 +396,12 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
           </div>
         </div>
 
-        {/* Main Two-Column Layout (35% Selected Book | 65% Your Books) */}
+        {/* Main Layout */}
         {filteredBooks.length === 0 ? (
-          <div className="bg-[#FFFDF9] rounded-3xl p-12 border border-stone-200/80 text-center space-y-3 shadow-2xs">
+          <div className="bg-[#FFFDF9] rounded-3xl p-8 sm:p-12 border border-stone-200/80 text-center space-y-3 shadow-2xs">
             <BookOpen className="w-10 h-10 mx-auto text-stone-300 stroke-[1.5]" />
-            <p className="text-sm font-bold text-stone-800">No books found in your library</p>
-            <p className="text-xs text-stone-500">Add a new book or change your search filter.</p>
+            <p className="text-sm font-bold text-stone-800">No books found on your shelf</p>
+            <p className="text-xs text-stone-500">Add a new book or adjust your search filter.</p>
             <button
               onClick={() => onOpenAddBookModal(null)}
               className="text-xs font-bold text-purple-900 hover:underline pt-2 cursor-pointer inline-block"
@@ -450,21 +410,19 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Left Column: Selected Featured Book Panel (35% Width = lg:col-span-5) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
+            {/* Featured Book Panel */}
             {featuredBook && (
-              <div className="lg:col-span-5 bg-[#FBF7F2] rounded-3xl p-5 border border-stone-300/60 shadow-2xs space-y-5">
-                <div className="flex items-start gap-4">
-                  {/* Artistic CSS Book Cover */}
+              <div className="lg:col-span-5 bg-[#FBF7F2] rounded-3xl p-4 sm:p-5 border border-stone-300/60 shadow-2xs space-y-4">
+                <div className="flex flex-col sm:flex-row items-start gap-4">
+                  {/* Book Cover */}
                   {(() => {
                     const theme = getCoverTheme(featuredBook);
                     return (
                       <div
-                        className={`w-28 h-40 rounded-2xl bg-gradient-to-br ${theme.bg} p-3 flex flex-col justify-between text-white shadow-md relative overflow-hidden shrink-0 border border-white/20`}
+                        className={`w-28 sm:w-32 h-40 sm:h-44 rounded-2xl bg-gradient-to-br ${theme.bg} p-3 flex flex-col justify-between text-white shadow-md relative overflow-hidden shrink-0 border border-white/20 mx-auto sm:mx-0`}
                       >
-                        {/* Spine Crease */}
                         <div className={`absolute top-0 left-0 w-1.5 h-full ${theme.spine}`} />
-                        {/* Ribbon */}
                         <div className="absolute top-0 right-3 w-4 h-6 bg-white/25 backdrop-blur-md rounded-b-sm flex items-center justify-center">
                           <span className="text-[9px] text-white">🔖</span>
                         </div>
@@ -483,10 +441,10 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
                   })()}
 
                   {/* Info & Controls */}
-                  <div className="space-y-2.5 flex-1 min-w-0">
+                  <div className="space-y-2.5 flex-1 min-w-0 w-full">
                     <div className="flex items-start justify-between gap-1">
-                      <div>
-                        <h2 className="text-xl font-serif font-bold text-stone-900 truncate leading-snug">
+                      <div className="min-w-0">
+                        <h2 className="text-lg sm:text-xl font-serif font-bold text-stone-900 truncate leading-snug">
                           {featuredBook.title}
                         </h2>
                         <p className="text-xs text-stone-500 font-semibold truncate">by {featuredBook.author}</p>
@@ -515,7 +473,7 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
                       </div>
                     </div>
 
-                    {/* Profile Badge with Avatar */}
+                    {/* Profile Badge */}
                     <div className="flex items-center gap-1.5">
                       <PersonaAvatar person={featuredBook.profile || 'Eve'} size="sm" />
                       <span
@@ -535,7 +493,7 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
                         <button
                           key={starNum}
                           onClick={() => handleUpdateRating(featuredBook, starNum)}
-                          className="hover:scale-110 transition-transform cursor-pointer"
+                          className="hover:scale-110 transition-transform cursor-pointer p-0.5"
                         >
                           <Star
                             className={`w-4 h-4 ${
@@ -558,7 +516,7 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
                           <button
                             key={st}
                             onClick={() => handleStatusChange(featuredBook, st)}
-                            className={`flex-1 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                            className={`flex-1 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer text-center ${
                               featuredBook.status === st
                                 ? 'bg-[#FFFDF9] text-stone-900 shadow-2xs font-extrabold'
                                 : 'text-stone-500 hover:text-stone-800'
@@ -573,11 +531,11 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
                 </div>
 
                 {/* PROGRESS Section */}
-                <div className="border-t border-stone-200/60 pt-4 space-y-4">
+                <div className="border-t border-stone-200/60 pt-3 space-y-3">
                   <h4 className="text-xs font-extrabold text-stone-400 uppercase tracking-wider flex items-center gap-1">
                     <span>
                       {featuredBook.profile === 'Both'
-                        ? 'OUR PROGRESS'
+                        ? 'OUR READING PROGRESS'
                         : `${(featuredBook.profile || 'Eve').toUpperCase()}'S PROGRESS`}
                     </span>
                     <Heart className="w-3 h-3 text-rose-400 fill-rose-300" />
@@ -605,8 +563,8 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
                           </div>
 
                           <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-bold text-stone-600">
-                              {personPage} / {totalP} pages · {pPercent}%
+                            <span className="text-[11px] font-bold text-stone-600">
+                              {personPage} / {totalP} pgs ({pPercent}%)
                             </span>
                             <button
                               onClick={() => {
@@ -639,7 +597,6 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
                           </div>
                         ) : (
                           <>
-                            {/* Colorful Gradient Progress Bar */}
                             <div className="w-full h-2.5 bg-stone-200/80 rounded-full overflow-hidden p-0.5">
                               <div
                                 className="h-full rounded-full transition-all duration-300"
@@ -647,25 +604,24 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
                               />
                             </div>
 
-                            {/* Increments */}
-                            <div className="grid grid-cols-3 gap-2 pt-1">
+                            <div className="grid grid-cols-3 gap-1.5 pt-0.5">
                               <button
                                 onClick={() => handleIncrementPersonPage(featuredBook, person, 5)}
                                 className="py-1 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-[11px] transition-colors cursor-pointer text-center"
                               >
-                                +5 pages
+                                +5 pgs
                               </button>
                               <button
                                 onClick={() => handleIncrementPersonPage(featuredBook, person, 15)}
                                 className="py-1 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-[11px] transition-colors cursor-pointer text-center"
                               >
-                                +15 pages
+                                +15 pgs
                               </button>
                               <button
                                 onClick={() => handleIncrementPersonPage(featuredBook, person, 30)}
                                 className="py-1 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-[11px] transition-colors cursor-pointer text-center"
                               >
-                                +30 pages
+                                +30 pgs
                               </button>
                             </div>
                           </>
@@ -677,17 +633,17 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
               </div>
             )}
 
-            {/* Right Column: Your Books Shelf (65% Width = lg:col-span-7) */}
-            <div className="lg:col-span-7 space-y-4">
+            {/* Shelf Grid Column */}
+            <div className="lg:col-span-7 space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-serif font-bold text-stone-900 flex items-center gap-1.5">
+                <h3 className="text-base sm:text-lg font-serif font-bold text-stone-900 flex items-center gap-1.5">
                   <span className="text-rose-500">♡</span>
-                  <span>Your Books</span>
+                  <span>Your Books Shelf</span>
                 </h3>
               </div>
 
-              {/* Grid of Bookshelf Items */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {/* Grid: 2 columns on mobile, 3 on tablet, 4 on desktop */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
                 {filteredBooks.map((book) => {
                   const theme = getCoverTheme(book);
                   const isSelected = featuredBook?.id === book.id;
@@ -700,36 +656,32 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
                     <div
                       key={book.id}
                       onClick={() => setSelectedBookId(book.id)}
-                      className={`bg-[#FFFDF9] rounded-3xl p-3 border transition-all cursor-pointer flex flex-col justify-between space-y-3 group ${
+                      className={`bg-[#FFFDF9] rounded-3xl p-2.5 sm:p-3 border transition-all cursor-pointer flex flex-col justify-between space-y-2.5 group ${
                         isSelected
                           ? 'border-purple-500 ring-2 ring-purple-300/50 shadow-md scale-[1.02]'
                           : 'border-stone-200/80 hover:border-stone-300 hover:shadow-xs'
                       }`}
                     >
-                      {/* Tall Book Cover Proportions */}
                       <div
-                        className={`w-full aspect-[2/3] rounded-2xl bg-gradient-to-br ${theme.bg} p-3 flex flex-col justify-between text-white shadow-sm relative overflow-hidden border border-white/20`}
+                        className={`w-full aspect-[2/3] rounded-2xl bg-gradient-to-br ${theme.bg} p-2.5 flex flex-col justify-between text-white shadow-sm relative overflow-hidden border border-white/20`}
                       >
-                        {/* Spine Crease */}
                         <div className={`absolute top-0 left-0 w-1.5 h-full ${theme.spine}`} />
-                        {/* Ribbon */}
-                        <div className="absolute top-0 right-3 w-3.5 h-5 bg-white/25 backdrop-blur-md rounded-b-sm flex items-center justify-center">
+                        <div className="absolute top-0 right-2 w-3.5 h-5 bg-white/25 backdrop-blur-md rounded-b-sm flex items-center justify-center">
                           <span className="text-[8px] text-white">🔖</span>
                         </div>
 
                         {theme.art}
-                        <div className="text-[8px] uppercase tracking-widest text-white/70 pl-2">✦</div>
+                        <div className="text-[8px] uppercase tracking-widest text-white/70 pl-1.5">✦</div>
 
-                        <div className="space-y-1 z-10 pl-2">
-                          <h4 className={`text-xs sm:text-sm font-serif font-bold leading-tight line-clamp-3 ${theme.titleColor}`}>
+                        <div className="space-y-0.5 z-10 pl-1.5">
+                          <h4 className={`text-xs font-serif font-bold leading-tight line-clamp-2 ${theme.titleColor}`}>
                             {book.title}
                           </h4>
-                          <p className="text-[10px] text-white/80 truncate font-sans">{book.author}</p>
+                          <p className="text-[9px] text-white/80 truncate font-sans">{book.author}</p>
                         </div>
                       </div>
 
-                      {/* Book Metadata below cover */}
-                      <div className="space-y-1.5">
+                      <div className="space-y-1">
                         <div className="flex items-start justify-between gap-1">
                           <h4 className="text-xs font-bold text-stone-900 truncate leading-tight group-hover:text-purple-900">
                             {book.title}
@@ -739,26 +691,24 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
                               e.stopPropagation();
                               handleDeleteBook(book.id);
                             }}
-                            className="opacity-0 group-hover:opacity-100 text-stone-300 hover:text-rose-600 transition-opacity p-0.5"
+                            className="text-stone-300 hover:text-rose-600 transition-colors p-0.5 shrink-0"
                             title="Delete"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
-                        <p className="text-[11px] text-stone-500 truncate">by {book.author}</p>
+                        <p className="text-[10px] text-stone-500 truncate">by {book.author}</p>
 
-                        {/* Status Tag */}
                         <div>
-                          <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-md bg-purple-50 text-purple-900 inline-block">
+                          <span className="text-[8px] font-extrabold px-1.5 py-0.5 rounded-md bg-purple-50 text-purple-900 inline-block">
                             {book.status === 'reading' ? 'Reading' : book.status === 'want_to_read' ? 'Want to Read' : 'Finished'}
                           </span>
                         </div>
 
-                        {/* Progress Bar */}
                         {book.status === 'reading' && (
-                          <div className="space-y-1 pt-1">
-                            <div className="flex items-center justify-between text-[10px] font-bold text-stone-500">
-                              <span>{book.current_page || 0} / {book.total_pages || 300}</span>
+                          <div className="space-y-0.5 pt-0.5">
+                            <div className="flex items-center justify-between text-[9px] font-bold text-stone-500">
+                              <span>{book.current_page || 0}/{book.total_pages || 300}</span>
                               <span>{progressPercent}%</span>
                             </div>
                             <div className="w-full h-1.5 bg-stone-200/80 rounded-full overflow-hidden">
@@ -774,15 +724,15 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
                   );
                 })}
 
-                {/* Cozy Warm Add New Book Card */}
+                {/* Add New Book Card */}
                 <button
                   onClick={() => onOpenAddBookModal(null)}
-                  className="w-full aspect-[2/3] rounded-3xl border-2 border-dashed border-purple-300/70 hover:border-purple-500 bg-purple-50/40 hover:bg-purple-50/80 flex flex-col items-center justify-center gap-2 p-4 transition-all cursor-pointer group shadow-2xs"
+                  className="w-full aspect-[2/3] rounded-3xl border-2 border-dashed border-purple-300/70 hover:border-purple-500 bg-purple-50/40 hover:bg-purple-50/80 flex flex-col items-center justify-center gap-1.5 p-3 transition-all cursor-pointer group shadow-2xs"
                 >
-                  <div className="w-10 h-10 rounded-2xl bg-purple-200/60 text-purple-900 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <Plus className="w-5 h-5 stroke-[2.5]" />
+                  <div className="w-9 h-9 rounded-2xl bg-purple-200/60 text-purple-900 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Plus className="w-4 h-4 stroke-[2.5]" />
                   </div>
-                  <span className="text-xs font-extrabold text-purple-900">Add a Book</span>
+                  <span className="text-xs font-extrabold text-purple-900">Add Book</span>
                 </button>
               </div>
             </div>

@@ -25,6 +25,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
     selectedDate,
     setSelectedDate,
     toggleTaskComplete,
+    toggleEventComplete,
     deleteEvent,
     tasks,
     filterByProfile,
@@ -226,7 +227,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                       <div className="flex items-center justify-between gap-2">
                         <h4
                           className={`text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors ${
-                            task?.is_completed ? 'line-through text-slate-400' : ''
+                            evt.is_completed || task?.is_completed ? 'line-through text-slate-400 opacity-60' : ''
                           }`}
                         >
                           {evt.title}
@@ -279,21 +280,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
 
-                      {task && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleTaskComplete(task.id);
-                          }}
-                          className="text-slate-400 hover:text-blue-600 cursor-pointer ml-1"
-                        >
-                          {task.is_completed ? (
-                            <CheckCircle className="w-4 h-4 text-emerald-500 fill-emerald-50" />
-                          ) : (
-                            <Circle className="w-4 h-4" />
-                          )}
-                        </button>
-                      )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleEventComplete(evt.id);
+                        }}
+                        className="text-slate-400 hover:text-blue-600 cursor-pointer ml-1 p-0.5"
+                        title={evt.is_completed || task?.is_completed ? 'Mark incomplete' : 'Mark complete'}
+                      >
+                        {evt.is_completed || task?.is_completed ? (
+                          <CheckCircle className="w-4 h-4 text-emerald-500 fill-emerald-50" />
+                        ) : (
+                          <Circle className="w-4 h-4" />
+                        )}
+                      </button>
                     </div>
                   </div>
                 );
