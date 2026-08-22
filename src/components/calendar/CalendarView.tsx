@@ -44,6 +44,27 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
   const [currentMonthDate, setCurrentMonthDate] = useState(() => new Date());
   const [showHabitSelectorModal, setShowHabitSelectorModal] = useState(false);
 
+  // Hidden and Completed IDs for auto-generated holidays & events
+  const [hiddenEventIds, setHiddenEventIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('calender_hidden_event_ids');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return [];
+  });
+
+  const [completedEventIds, setCompletedEventIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('calender_completed_event_ids');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return [];
+  });
+
   // Filter habits for current active profile
   const filteredHabits = useMemo(() => filterByProfile(habits), [habits, filterByProfile]);
 
@@ -58,7 +79,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
     return habits.map((h) => h.id);
   });
 
-  // Sync visible habit IDs if new habits are created and user hasn't explicitly unselected them
   useEffect(() => {
     if (!localStorage.getItem('calender_visible_habit_ids')) {
       setVisibleHabitIds(habits.map((h) => h.id));
@@ -124,10 +144,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
     const map = new Map<string, CalendarEvent[]>();
 
     filteredEvents.forEach((evt) => {
+      if (hiddenEventIds.includes(evt.id)) return;
       if (!map.has(evt.event_date)) {
         map.set(evt.event_date, []);
       }
-      map.get(evt.event_date)!.push(evt);
+      const isComp = evt.is_completed || completedEventIds.includes(evt.id);
+      map.get(evt.event_date)!.push({ ...evt, is_completed: isComp });
     });
 
     calendarDays.forEach((dayObj) => {
@@ -135,27 +157,29 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
 
       // Dynamic 30th Anniversary
       const annivEvt = getAnniversaryEvent(dayObj.dateStr);
-      if (annivEvt) {
+      if (annivEvt && !hiddenEventIds.includes(annivEvt.id)) {
         const hasAnniv = list.some((e) => e.title.includes('Anniversary'));
         if (!hasAnniv) {
           if (!map.has(dayObj.dateStr)) map.set(dayObj.dateStr, []);
-          map.get(dayObj.dateStr)!.push(annivEvt);
+          const isComp = completedEventIds.includes(annivEvt.id);
+          map.get(dayObj.dateStr)!.push({ ...annivEvt, is_completed: isComp });
         }
       }
 
-      // Dynamic Common & Christian Holidays
+      // Dynamic Common Secular Holidays
       const holidayEvt = getCommonHolidayEvent(dayObj.dateStr);
-      if (holidayEvt) {
+      if (holidayEvt && !hiddenEventIds.includes(holidayEvt.id)) {
         const hasHoliday = list.some((e) => e.title === holidayEvt.title);
         if (!hasHoliday) {
           if (!map.has(dayObj.dateStr)) map.set(dayObj.dateStr, []);
-          map.get(dayObj.dateStr)!.push(holidayEvt);
+          const isComp = completedEventIds.includes(holidayEvt.id);
+          map.get(dayObj.dateStr)!.push({ ...holidayEvt, is_completed: isComp });
         }
       }
     });
 
     return map;
-  }, [filteredEvents, calendarDays]);
+  }, [filteredEvents, calendarDays, hiddenEventIds, completedEventIds]);
 
   const selectedDayEvents = useMemo(() => {
     const list = eventsByDate.get(selectedDate) || [];
@@ -194,6 +218,32 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
   const handleToggleHabitOnCalendar = async (habitId: string) => {
     confetti({ particleCount: 25, spread: 50, origin: { y: 0.8 } });
     await toggleHabitCompletion(habitId, selectedDate);
+  };
+
+  const handleDeleteAnyEvent = async (evt: CalendarEvent) => {
+    setHiddenEventIds((prev) => {
+      const updated = [...prev, evt.id];
+      localStorage.setItem('calender_hidden_event_ids', JSON.stringify(updated));
+      return updated;
+    });
+
+    if (events.some((e) => e.id === evt.id)) {
+      await deleteEvent(evt.id);
+    }
+  };
+
+  const handleToggleAnyEventComplete = async (evt: CalendarEvent) => {
+    const isCurrentlyDone = evt.is_completed || completedEventIds.includes(evt.id);
+
+    setCompletedEventIds((prev) => {
+      const updated = isCurrentlyDone ? prev.filter((id) => id !== evt.id) : [...prev, evt.id];
+      localStorage.setItem('calender_completed_event_ids', JSON.stringify(updated));
+      return updated;
+    });
+
+    if (events.some((e) => e.id === evt.id)) {
+      await toggleEventComplete(evt.id);
+    }
   };
 
   return (
@@ -373,6 +423,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                 const task = evt.task_id ? tasks.find((t) => t.id === evt.task_id) : null;
                 const ownerName = evt.profile || 'Eve';
                 const badgeColor = profileColors[ownerName] || '#2563eb';
+                const isCompleted = evt.is_completed || task?.is_completed || completedEventIds.includes(evt.id);
 
                 return (
                   <div
@@ -402,7 +453,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                       <div className="flex items-center justify-between gap-2">
                         <h4
                           className={`text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors ${
-                            evt.is_completed || task?.is_completed ? 'line-through text-slate-400 opacity-60' : ''
+                            isCompleted ? 'line-through text-slate-400 opacity-60' : ''
                           }`}
                         >
                           {evt.title}
@@ -430,41 +481,42 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    {/* ALWAYS VISIBLE ACTION BUTTONS */}
+                    <div className="flex items-center gap-2 shrink-0">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           onOpenAddModal(evt.event_date, evt);
                         }}
-                        className="p-1 text-slate-400 hover:text-blue-600 transition-colors cursor-pointer"
+                        className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
                         title="Edit Event"
                       >
-                        <Pencil className="w-3.5 h-3.5" />
+                        <Pencil className="w-4 h-4" />
                       </button>
 
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          deleteEvent(evt.id);
+                          handleDeleteAnyEvent(evt);
                         }}
-                        className="p-1 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                        className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                         title="Delete Event"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
 
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          toggleEventComplete(evt.id);
+                          handleToggleAnyEventComplete(evt);
                         }}
-                        className="text-slate-400 hover:text-blue-600 cursor-pointer ml-1 p-0.5"
-                        title={evt.is_completed || task?.is_completed ? 'Mark incomplete' : 'Mark complete'}
+                        className="p-1.5 text-slate-500 hover:text-emerald-600 rounded-lg cursor-pointer"
+                        title={isCompleted ? 'Mark incomplete' : 'Mark complete'}
                       >
-                        {evt.is_completed || task?.is_completed ? (
-                          <CheckCircle className="w-4 h-4 text-emerald-500 fill-emerald-50" />
+                        {isCompleted ? (
+                          <CheckCircle className="w-5 h-5 text-emerald-500 fill-emerald-50" />
                         ) : (
-                          <Circle className="w-4 h-4" />
+                          <Circle className="w-5 h-5 text-slate-400" />
                         )}
                       </button>
                     </div>
@@ -673,6 +725,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                     {dayEvts.slice(0, 2).map((e) => {
                       const meta = CATEGORY_METAS[e.event_type as EventType] || CATEGORY_METAS.personal;
                       const evtColor = e.color || meta.color || '#3b82f6';
+                      const isCompleted = e.is_completed || completedEventIds.includes(e.id);
 
                       return (
                         <div
@@ -686,7 +739,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                             onOpenAddModal(e.event_date, e);
                           }}
                           className={`text-[11px] font-bold px-2 py-1 rounded-xl truncate flex items-center justify-between transition-all cursor-pointer text-slate-900 hover:scale-[1.02] shadow-2xs ${
-                            e.is_completed ? 'line-through opacity-50' : ''
+                            isCompleted ? 'line-through opacity-50' : ''
                           }`}
                           style={{ backgroundColor: `${evtColor}25`, borderLeft: `3.5px solid ${evtColor}` }}
                         >
@@ -809,6 +862,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                 const task = evt.task_id ? tasks.find((t) => t.id === evt.task_id) : null;
                 const ownerName = evt.profile || 'Eve';
                 const badgeColor = profileColors[ownerName] || '#2563eb';
+                const isCompleted = evt.is_completed || task?.is_completed || completedEventIds.includes(evt.id);
 
                 return (
                   <div
@@ -842,7 +896,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                       <div className="flex items-center justify-between gap-2">
                         <h4
                           className={`text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors ${
-                            evt.is_completed || task?.is_completed ? 'line-through text-slate-400 opacity-60' : ''
+                            isCompleted ? 'line-through text-slate-400 opacity-60' : ''
                           }`}
                         >
                           {evt.title}
@@ -870,41 +924,42 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    {/* ALWAYS VISIBLE ACTION BUTTONS */}
+                    <div className="flex items-center gap-2 shrink-0">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           onOpenAddModal(evt.event_date, evt);
                         }}
-                        className="p-1 text-slate-400 hover:text-blue-600 transition-colors cursor-pointer"
+                        className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
                         title="Edit Event"
                       >
-                        <Pencil className="w-3.5 h-3.5" />
+                        <Pencil className="w-4 h-4" />
                       </button>
 
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          deleteEvent(evt.id);
+                          handleDeleteAnyEvent(evt);
                         }}
-                        className="p-1 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                        className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                         title="Delete Event"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
 
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          toggleEventComplete(evt.id);
+                          handleToggleAnyEventComplete(evt);
                         }}
-                        className="text-slate-400 hover:text-blue-600 cursor-pointer ml-1 p-0.5"
-                        title={evt.is_completed || task?.is_completed ? 'Mark incomplete' : 'Mark complete'}
+                        className="p-1.5 text-slate-500 hover:text-emerald-600 rounded-lg cursor-pointer"
+                        title={isCompleted ? 'Mark incomplete' : 'Mark complete'}
                       >
-                        {evt.is_completed || task?.is_completed ? (
-                          <CheckCircle className="w-4 h-4 text-emerald-500 fill-emerald-50" />
+                        {isCompleted ? (
+                          <CheckCircle className="w-5 h-5 text-emerald-500 fill-emerald-50" />
                         ) : (
-                          <Circle className="w-4 h-4" />
+                          <Circle className="w-5 h-5 text-slate-400" />
                         )}
                       </button>
                     </div>
