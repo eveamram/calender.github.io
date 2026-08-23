@@ -69,47 +69,45 @@ export const TodoView: React.FC<TodoViewProps> = ({ onOpenAddModal }) => {
     return (
       <div
         key={task.id}
-        className="flex items-center justify-between gap-3 p-3.5 rounded-xl border border-slate-200/80 bg-white hover:bg-slate-50/80 transition-all group"
+        onClick={() => toggleTaskComplete(task.id)}
+        className="flex items-center justify-between gap-3 p-3.5 rounded-2xl border border-slate-200/80 bg-white hover:bg-slate-50/80 active:bg-slate-100/90 transition-all cursor-pointer group shadow-2xs"
       >
         <div className="flex items-center gap-3 min-w-0 flex-1">
-          <button
-            onClick={() => toggleTaskComplete(task.id)}
-            className="text-slate-300 hover:text-blue-600 transition-colors shrink-0"
-          >
+          <div className="text-slate-300 hover:text-slate-700 transition-colors shrink-0">
             {task.is_completed ? (
               <CheckCircle className="w-5 h-5 text-emerald-500 fill-emerald-50" />
             ) : (
-              <Circle className="w-5 h-5 stroke-[1.75]" />
+              <Circle className="w-5 h-5 stroke-[1.75] text-slate-400" />
             )}
-          </button>
+          </div>
 
           <span
-            className={`text-sm font-medium text-slate-900 truncate ${
-              task.is_completed ? 'line-through text-slate-400' : ''
+            className={`text-sm font-semibold text-slate-900 truncate ${
+              task.is_completed ? 'line-through text-slate-400 font-normal' : ''
             }`}
           >
             {task.title}
           </span>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
           {task.priority === 'high' && (
-            <span className="flex items-center gap-1 text-[11px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-md">
-              <AlertCircle className="w-3 h-3" />
+            <span className="flex items-center gap-1 text-[11px] font-extrabold text-rose-700 bg-rose-50 border border-rose-200/60 px-2 py-0.5 rounded-lg">
+              <AlertCircle className="w-3 h-3 text-rose-600" />
               High
             </span>
           )}
 
           {task.due_date && (
-            <span className="flex items-center gap-1 text-[11px] font-semibold text-slate-400">
-              <CalendarIcon className="w-3 h-3" />
+            <span className="flex items-center gap-1 text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-lg">
+              <CalendarIcon className="w-3 h-3 text-slate-400" />
               {task.due_date === todayStr ? 'Today' : task.due_date}
             </span>
           )}
 
           {activeProfile === 'Both' && (
             <span
-              className="text-[10px] font-bold text-white px-2 py-0.5 rounded-md"
+              className="text-[10px] font-extrabold text-white px-2 py-0.5 rounded-lg shadow-2xs"
               style={{ backgroundColor: badgeColor }}
             >
               {ownerName}
@@ -118,7 +116,8 @@ export const TodoView: React.FC<TodoViewProps> = ({ onOpenAddModal }) => {
 
           <button
             onClick={() => deleteTask(task.id)}
-            className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-500 transition-opacity p-1"
+            className="text-slate-300 hover:text-rose-500 transition-colors p-1.5 rounded-lg hover:bg-rose-50 cursor-pointer"
+            title="Delete task"
           >
             <Trash2 className="w-4 h-4" />
           </button>

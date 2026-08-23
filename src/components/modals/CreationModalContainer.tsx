@@ -596,13 +596,53 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
     }
   };
 
-  const getTitleText = () => {
-    if (eventToEdit) return 'Edit Event';
-    if (classToEdit) return 'Edit Class';
-    if (bookToEdit) return 'Edit Book';
-    if (habitToEdit) return 'Edit Habit';
-    if (modalType === 'grocery') return 'Add Grocery Item';
-    return `Add ${modalType.charAt(0).toUpperCase() + modalType.slice(1)}`;
+  const getModalMeta = () => {
+    switch (modalType) {
+      case 'event':
+        return {
+          title: eventToEdit ? 'Edit Event' : 'Add Event',
+          subtitle: 'Schedule a calendar event or reminder',
+          emoji: '📅',
+        };
+      case 'class':
+        return {
+          title: classToEdit ? 'Edit Class' : 'Add Class',
+          subtitle: 'Add or update your course timetable',
+          emoji: '📚',
+        };
+      case 'habit':
+        return {
+          title: habitToEdit ? 'Edit Habit' : 'Add Habit',
+          subtitle: 'Build daily routines and track progress',
+          emoji: '⚡',
+        };
+      case 'task':
+        return {
+          title: 'Add Task',
+          subtitle: 'Create a new action item to complete',
+          emoji: '✅',
+        };
+      case 'grocery':
+        return {
+          title: 'Add Grocery Item',
+          subtitle: 'Keep your shopping list organized',
+          emoji: '🛒',
+        };
+      case 'meal':
+        return {
+          title: 'Add Meal',
+          subtitle: 'Plan your daily menu & recipes',
+          emoji: '🍳',
+        };
+      case 'book':
+        return {
+          title: bookToEdit ? 'Edit Book' : 'Add to Reading List',
+          subtitle: 'Log books and track reading status',
+          emoji: '📖',
+        };
+      default:
+        return { title: 'Add New Item', subtitle: '', emoji: '✨' };
+    }
   };
 
   const renderFooterButtons = (saveLabel = 'Save') => (
@@ -611,22 +651,30 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         type="button"
         onClick={onClose}
         disabled={isSaving}
-        className="flex-1 min-h-[48px] py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-extrabold transition-all cursor-pointer"
+        className="flex-1 min-h-[48px] py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-extrabold transition-all cursor-pointer active:scale-95"
       >
         Cancel
       </button>
       <button
         type="submit"
         disabled={isSaving}
-        className="flex-1 min-h-[48px] py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-extrabold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+        className="flex-1 min-h-[48px] py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-extrabold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
       >
         {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : saveLabel}
       </button>
     </div>
   );
 
+  const modalMeta = getModalMeta();
+
   return (
-    <BottomSheet isOpen={Boolean(modalType)} onClose={onClose} title={getTitleText()}>
+    <BottomSheet
+      isOpen={Boolean(modalType)}
+      onClose={onClose}
+      title={modalMeta.title}
+      subtitle={modalMeta.subtitle}
+      badgeEmoji={modalMeta.emoji}
+    >
       {errorMsg && (
         <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-2xl text-xs font-bold mb-3">
           {errorMsg}
@@ -635,13 +683,12 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
       {/* 1. ADD / EDIT EVENT FORM */}
       {modalType === 'event' && (
-        <form onSubmit={handleEvtSubmit} className="space-y-4">
+        <form onSubmit={handleEvtSubmit} className="space-y-4 pb-2">
           <div>
             <label className="block text-xs font-extrabold text-slate-800 mb-1.5">Event Title</label>
             <input
               type="text"
               required
-              autoFocus
               value={evtTitle}
               onChange={(e) => setEvtTitle(e.target.value)}
               placeholder="What's happening?"
@@ -657,7 +704,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                 required
                 value={evtDate}
                 onChange={(e) => setEvtDate(e.target.value)}
-                className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-xs font-semibold text-slate-900"
+                className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
               />
             </div>
             <div>
@@ -665,7 +712,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               <select
                 value={evtType}
                 onChange={(e) => setEvtType(e.target.value as EventType)}
-                className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-xs font-extrabold text-slate-900 cursor-pointer"
+                className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-sm font-semibold text-slate-900 cursor-pointer focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
               >
                 {(Object.keys(CATEGORY_METAS) as EventType[]).map((catKey) => {
                   const meta = CATEGORY_METAS[catKey];
@@ -686,7 +733,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                 type="time"
                 value={evtStartTime}
                 onChange={(e) => setEvtStartTime(e.target.value)}
-                className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-xs font-semibold text-slate-900"
+                className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
               />
             </div>
             <div>
@@ -695,7 +742,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                 type="time"
                 value={evtEndTime}
                 onChange={(e) => setEvtEndTime(e.target.value)}
-                className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-xs font-semibold text-slate-900"
+                className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
               />
             </div>
           </div>
@@ -711,7 +758,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               className="flex items-center gap-1.5 text-xs font-extrabold text-slate-600 hover:text-slate-900 py-1 transition-colors cursor-pointer"
             >
               {showEvtMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              <span>{showEvtMore ? 'Fewer options' : 'More options'}</span>
+              <span>{showEvtMore ? 'Fewer options' : 'More options (Location, Link)'}</span>
             </button>
 
             {showEvtMore && (
@@ -723,7 +770,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                     value={evtLocation}
                     onChange={(e) => setEvtLocation(e.target.value)}
                     placeholder="Room, building, or video link"
-                    className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-xs font-semibold text-slate-900"
+                    className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
                   />
                 </div>
               </div>
@@ -742,7 +789,6 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             <input
               type="text"
               required
-              autoFocus
               value={clsName}
               onChange={(e) => setClsName(e.target.value)}
               placeholder="e.g. Organic Chemistry"
@@ -821,26 +867,41 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
       {/* 3. ADD / EDIT HABIT FORM */}
       {modalType === 'habit' && (
-        <form onSubmit={handleHbtSubmit} className="space-y-4">
+        <form onSubmit={handleHbtSubmit} className="space-y-4 pb-2">
           <div>
-            <label className="block text-xs font-extrabold text-slate-800 mb-1.5">Habit Name</label>
+            <label className="block text-xs font-extrabold text-slate-800 mb-1.5">Habit Name & Emoji</label>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={hbtEmoji}
                 onChange={(e) => setHbtEmoji(e.target.value)}
-                className="w-14 min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl text-center text-lg font-bold"
+                className="w-14 min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl text-center text-xl font-bold focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
                 title="Emoji"
               />
               <input
                 type="text"
                 required
-                autoFocus
                 value={hbtTitle}
                 onChange={(e) => setHbtTitle(e.target.value)}
                 placeholder="e.g. Drink Water"
-                className="flex-1 min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900"
+                className="flex-1 min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
               />
+            </div>
+
+            {/* Quick Emoji Bar */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pt-2 pb-1 no-scrollbar">
+              {['⚡', '💧', '🏋️', '📚', '🧘', '🍎', '💻', '🎨', '🏃', '😴'].map((em) => (
+                <button
+                  type="button"
+                  key={em}
+                  onClick={() => setHbtEmoji(em)}
+                  className={`w-9 h-9 rounded-xl text-base flex items-center justify-center transition-all cursor-pointer ${
+                    hbtEmoji === em ? 'bg-slate-900 text-white shadow-xs scale-105' : 'bg-slate-100 hover:bg-slate-200'
+                  }`}
+                >
+                  {em}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -849,7 +910,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
           )}
 
           {/* Show in Daily Schedule Toggle */}
-          <div className="bg-slate-100/80 border border-slate-200/80 rounded-2xl p-3 flex items-center justify-between min-h-[48px]">
+          <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 flex items-center justify-between min-h-[48px]">
             <div className="space-y-0.5">
               <span className="text-xs font-extrabold text-slate-900">Show in Daily Schedule</span>
               <p className="text-[11px] text-slate-500 font-medium">Display on your daily calendar</p>
@@ -888,7 +949,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                   value={hbtQty}
                   onChange={(e) => setHbtQty(e.target.value)}
                   placeholder="e.g. 8"
-                  className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-xs font-semibold text-slate-900"
+                  className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
                 />
               </div>
             )}
@@ -900,23 +961,62 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
       {/* 4. ADD TASK FORM */}
       {modalType === 'task' && (
-        <form onSubmit={handleTskSubmit} className="space-y-4">
+        <form onSubmit={handleTskSubmit} className="space-y-4 pb-2">
           <div>
             <label className="block text-xs font-extrabold text-slate-800 mb-1.5">What needs to be done?</label>
             <input
               type="text"
               required
-              autoFocus
               value={tskTitle}
               onChange={(e) => setTskTitle(e.target.value)}
               placeholder="e.g. Buy toothpaste"
-              className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900"
+              className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
             />
+          </div>
+
+          {/* Priority Pills */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">Priority</label>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => setTskPriority('low')}
+                className={`min-h-[44px] rounded-xl text-xs font-extrabold transition-all cursor-pointer border ${
+                  tskPriority === 'low'
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-400 ring-2 ring-emerald-400/20 shadow-xs'
+                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                🟢 Low
+              </button>
+              <button
+                type="button"
+                onClick={() => setTskPriority('normal')}
+                className={`min-h-[44px] rounded-xl text-xs font-extrabold transition-all cursor-pointer border ${
+                  tskPriority === 'normal'
+                    ? 'bg-amber-50 text-amber-800 border-amber-400 ring-2 ring-amber-400/20 shadow-xs'
+                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                🟡 Normal
+              </button>
+              <button
+                type="button"
+                onClick={() => setTskPriority('high')}
+                className={`min-h-[44px] rounded-xl text-xs font-extrabold transition-all cursor-pointer border ${
+                  tskPriority === 'high'
+                    ? 'bg-rose-50 text-rose-800 border-rose-400 ring-2 ring-rose-400/20 shadow-xs'
+                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                🔴 High
+              </button>
+            </div>
           </div>
 
           {renderProfileSelector(tskProfile, setTskProfile)}
 
-          {/* Collapsible Due Date / Time / Priority */}
+          {/* Collapsible Due Date / Time */}
           <div>
             <button
               type="button"
@@ -924,48 +1024,28 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               className="flex items-center gap-1.5 text-xs font-extrabold text-slate-600 hover:text-slate-900 py-1 transition-colors cursor-pointer"
             >
               {showTskMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              <span>{showTskMore ? 'Fewer options' : 'More options (Due Date, Time & Priority)'}</span>
+              <span>{showTskMore ? 'Fewer options' : 'More options (Due Date & Time)'}</span>
             </button>
 
             {showTskMore && (
-              <div className="pt-2 space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Due Date</label>
-                    <input
-                      type="date"
-                      value={tskDueDate}
-                      onChange={(e) => setTskDueDate(e.target.value)}
-                      className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-xs font-semibold text-slate-900"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Due Time</label>
-                    <input
-                      type="time"
-                      value={tskDueTime}
-                      onChange={(e) => setTskDueTime(e.target.value)}
-                      className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-xs font-semibold text-slate-900"
-                    />
-                  </div>
-                </div>
-
+              <div className="pt-2 grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Priority</label>
-                  <div className="flex bg-slate-100 p-1 rounded-2xl gap-1 min-h-[48px] items-center">
-                    {(['low', 'normal', 'high'] as const).map((p) => (
-                      <button
-                        type="button"
-                        key={p}
-                        onClick={() => setTskPriority(p)}
-                        className={`flex-1 min-h-[40px] rounded-xl text-xs font-extrabold capitalize transition-all cursor-pointer ${
-                          tskPriority === p ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                      >
-                        {p}
-                      </button>
-                    ))}
-                  </div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Due Date</label>
+                  <input
+                    type="date"
+                    value={tskDueDate}
+                    onChange={(e) => setTskDueDate(e.target.value)}
+                    className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Due Time</label>
+                  <input
+                    type="time"
+                    value={tskDueTime}
+                    onChange={(e) => setTskDueTime(e.target.value)}
+                    className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+                  />
                 </div>
               </div>
             )}
@@ -977,23 +1057,46 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
       {/* 5. ADD GROCERY ITEM FORM */}
       {modalType === 'grocery' && (
-        <form onSubmit={handleGrcSubmit} className="space-y-4">
+        <form onSubmit={handleGrcSubmit} className="space-y-4 pb-2">
           <div>
             <label className="block text-xs font-extrabold text-slate-800 mb-1.5">Grocery Item</label>
             <input
               type="text"
               required
-              autoFocus
               value={grcTitle}
               onChange={(e) => setGrcTitle(e.target.value)}
               placeholder="e.g. Organic Milk"
-              className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900"
+              className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
             />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">Category</label>
+            <select
+              value={grcCategory}
+              onChange={(e) => setGrcCategory(e.target.value as GroceryCategory)}
+              className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-sm font-semibold text-slate-900 cursor-pointer focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+            >
+              {[
+                { label: 'Produce', emoji: '🥬' },
+                { label: 'Dairy', emoji: '🧀' },
+                { label: 'Pantry', emoji: '🌾' },
+                { label: 'Bakery', emoji: '🍞' },
+                { label: 'Meat', emoji: '🥩' },
+                { label: 'Frozen', emoji: '🧊' },
+                { label: 'Beverages', emoji: '🧃' },
+                { label: 'Other', emoji: '📦' },
+              ].map((c) => (
+                <option key={c.label} value={c.label}>
+                  {c.emoji} {c.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           {renderProfileSelector(grcProfile, setGrcProfile)}
 
-          {/* Collapsible Quantity & Category */}
+          {/* Collapsible Quantity */}
           <div>
             <button
               type="button"
@@ -1001,35 +1104,19 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               className="flex items-center gap-1.5 text-xs font-extrabold text-slate-600 hover:text-slate-900 py-1 transition-colors cursor-pointer"
             >
               {showGrcMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              <span>{showGrcMore ? 'Fewer options' : 'More options (Quantity, Category)'}</span>
+              <span>{showGrcMore ? 'Fewer options' : 'More options (Quantity)'}</span>
             </button>
 
             {showGrcMore && (
-              <div className="pt-2 grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Quantity</label>
-                  <input
-                    type="text"
-                    value={grcQty}
-                    onChange={(e) => setGrcQty(e.target.value)}
-                    placeholder="e.g. 2 gal"
-                    className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-xs font-semibold text-slate-900"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Category</label>
-                  <select
-                    value={grcCategory}
-                    onChange={(e) => setGrcCategory(e.target.value as GroceryCategory)}
-                    className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-xs font-extrabold text-slate-900 cursor-pointer"
-                  >
-                    {['Produce', 'Dairy', 'Pantry', 'Bakery', 'Meat', 'Frozen', 'Beverages', 'Other'].map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div className="pt-2">
+                <label className="block text-xs font-bold text-slate-700 mb-1">Quantity / Weight</label>
+                <input
+                  type="text"
+                  value={grcQty}
+                  onChange={(e) => setGrcQty(e.target.value)}
+                  placeholder="e.g. 2 gal, 1 lb"
+                  className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+                />
               </div>
             )}
           </div>
@@ -1040,45 +1127,58 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
       {/* 6. ADD MEAL FORM */}
       {modalType === 'meal' && (
-        <form onSubmit={handleMelSubmit} className="space-y-4">
+        <form onSubmit={handleMelSubmit} className="space-y-4 pb-2">
           <div>
-            <label className="block text-xs font-extrabold text-slate-800 mb-1.5">Meal Name</label>
+            <label className="block text-xs font-extrabold text-slate-800 mb-1.5">Meal Title</label>
             <input
               type="text"
               required
-              autoFocus
               value={melTitle}
               onChange={(e) => setMelTitle(e.target.value)}
               placeholder="e.g. Avocado Toast"
-              className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900"
+              className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Date</label>
-              <input
-                type="date"
-                required
-                value={melDate}
-                onChange={(e) => setMelDate(e.target.value)}
-                className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-xs font-semibold text-slate-900"
-              />
+          {/* Meal Type Segmented Pills */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">Meal Type</label>
+            <div className="grid grid-cols-4 gap-1.5">
+              {[
+                { type: 'breakfast', label: 'Breakfast', emoji: '🍳' },
+                { type: 'lunch', label: 'Lunch', emoji: '🥗' },
+                { type: 'dinner', label: 'Dinner', emoji: '🍲' },
+                { type: 'snack', label: 'Snack', emoji: '🍎' },
+              ].map((m) => {
+                const isSelected = melType === m.type;
+                return (
+                  <button
+                    type="button"
+                    key={m.type}
+                    onClick={() => setMelType(m.type as MealType)}
+                    className={`min-h-[44px] rounded-xl text-xs font-extrabold transition-all cursor-pointer flex flex-col items-center justify-center ${
+                      isSelected
+                        ? 'bg-slate-900 text-white shadow-xs scale-105'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    <span className="text-sm">{m.emoji}</span>
+                    <span className="text-[10px] capitalize">{m.type}</span>
+                  </button>
+                );
+              })}
             </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Meal Type</label>
-              <select
-                value={melType}
-                onChange={(e) => setMelType(e.target.value as MealType)}
-                className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-xs font-extrabold text-slate-900 capitalize cursor-pointer"
-              >
-                {['breakfast', 'lunch', 'dinner', 'snack'].map((t) => (
-                  <option key={t} value={t} className="capitalize">
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Date</label>
+            <input
+              type="date"
+              required
+              value={melDate}
+              onChange={(e) => setMelDate(e.target.value)}
+              className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+            />
           </div>
 
           {renderProfileSelector(melProfile, setMelProfile)}
@@ -1096,13 +1196,13 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
             {showMelMore && (
               <div className="pt-2">
-                <label className="block text-xs font-bold text-slate-700 mb-1">Notes / Ingredients</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Notes / Recipe / Ingredients</label>
                 <textarea
                   value={melNotes}
                   onChange={(e) => setMelNotes(e.target.value)}
                   placeholder="e.g. Add sourdough & poached eggs"
                   rows={2}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-xs font-semibold text-slate-900"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
                 />
               </div>
             )}
@@ -1114,42 +1214,55 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
       {/* 7. ADD / EDIT BOOK FORM */}
       {modalType === 'book' && (
-        <form onSubmit={handleBokSubmit} className="space-y-4">
+        <form onSubmit={handleBokSubmit} className="space-y-4 pb-2">
           <div>
             <label className="block text-xs font-extrabold text-slate-800 mb-1.5">Book Title</label>
             <input
               type="text"
               required
-              autoFocus
               value={bokTitle}
               onChange={(e) => setBokTitle(e.target.value)}
               placeholder="e.g. Tomorrow, and Tomorrow, and Tomorrow"
-              className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900"
+              className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Author</label>
-              <input
-                type="text"
-                value={bokAuthor}
-                onChange={(e) => setBokAuthor(e.target.value)}
-                placeholder="Author name"
-                className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-xs font-semibold text-slate-900"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Reading Status</label>
-              <select
-                value={bokStatus}
-                onChange={(e) => setBokStatus(e.target.value as BookStatus)}
-                className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-xs font-extrabold text-slate-900 cursor-pointer"
-              >
-                <option value="reading">Currently Reading 📖</option>
-                <option value="want_to_read">Want to Read 📝</option>
-                <option value="completed">Finished Reading 🎉</option>
-              </select>
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Author</label>
+            <input
+              type="text"
+              value={bokAuthor}
+              onChange={(e) => setBokAuthor(e.target.value)}
+              placeholder="Author name"
+              className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+            />
+          </div>
+
+          {/* Reading Status Segmented Pills */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">Reading Status</label>
+            <div className="grid grid-cols-3 gap-1.5">
+              {[
+                { status: 'reading', label: 'Reading 📖' },
+                { status: 'want_to_read', label: 'To Read 📝' },
+                { status: 'completed', label: 'Finished 🎉' },
+              ].map((s) => {
+                const isSelected = bokStatus === s.status;
+                return (
+                  <button
+                    type="button"
+                    key={s.status}
+                    onClick={() => setBokStatus(s.status as BookStatus)}
+                    className={`min-h-[44px] rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center px-1.5 ${
+                      isSelected
+                        ? 'bg-slate-900 text-white shadow-xs scale-105'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -1175,7 +1288,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                     value={bokTotalPages}
                     onChange={(e) => setBokTotalPages(e.target.value)}
                     placeholder="e.g. 384"
-                    className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-xs font-semibold text-slate-900"
+                    className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
                   />
                 </div>
                 <div>
@@ -1185,7 +1298,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                     value={bokGenre}
                     onChange={(e) => setBokGenre(e.target.value)}
                     placeholder="e.g. Fiction"
-                    className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-xs font-semibold text-slate-900"
+                    className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
                   />
                 </div>
               </div>
