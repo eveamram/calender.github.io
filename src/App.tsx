@@ -13,7 +13,7 @@ import { MealsView } from './components/meals/MealsView';
 import { BooksView } from './components/books/BooksView';
 import { CreationModalContainer } from './components/modals/CreationModalContainer';
 import { SettingsModal } from './components/modals/SettingsModal';
-import { MealType, CalendarEvent, BookItem, HabitItem } from './types';
+import { MealType, CalendarEvent, ClassItem, BookItem, HabitItem } from './types';
 
 const MainAppContent: React.FC = () => {
   const { activeTab, syncStatus } = useStore();
@@ -24,15 +24,19 @@ const MainAppContent: React.FC = () => {
 
   const [initialModalDate, setInitialModalDate] = useState<string | undefined>(undefined);
   const [eventToEdit, setEventToEdit] = useState<CalendarEvent | null>(null);
+  const [classToEdit, setClassToEdit] = useState<ClassItem | null>(null);
   const [bookToEdit, setBookToEdit] = useState<BookItem | null>(null);
   const [habitToEdit, setHabitToEdit] = useState<HabitItem | null>(null);
   const [initialMealDay, setInitialMealDay] = useState<number | undefined>(undefined);
   const [initialMealType, setInitialMealType] = useState<MealType | undefined>(undefined);
+  const [initialClassDay, setInitialClassDay] = useState<number | undefined>(undefined);
 
   const handleOpenAddForTab = () => {
     setEventToEdit(null);
+    setClassToEdit(null);
     setBookToEdit(null);
     setHabitToEdit(null);
+    setInitialClassDay(undefined);
     switch (activeTab) {
       case 'calendar':
         setActiveModal('event');
@@ -75,7 +79,11 @@ const MainAppContent: React.FC = () => {
         )}
         {activeTab === 'classes' && (
           <ClassesView
-            onOpenAddClassModal={() => setActiveModal('class')}
+            onOpenAddClassModal={(day, clsToEdit) => {
+              setInitialClassDay(day);
+              setClassToEdit(clsToEdit || null);
+              setActiveModal('class');
+            }}
             onOpenAddExamModal={() => setActiveModal('event')}
           />
         )}
@@ -122,17 +130,21 @@ const MainAppContent: React.FC = () => {
           setActiveModal(null);
           setInitialModalDate(undefined);
           setEventToEdit(null);
+          setClassToEdit(null);
           setBookToEdit(null);
           setHabitToEdit(null);
           setInitialMealDay(undefined);
           setInitialMealType(undefined);
+          setInitialClassDay(undefined);
         }}
         initialDate={initialModalDate}
         eventToEdit={eventToEdit}
+        classToEdit={classToEdit}
         bookToEdit={bookToEdit}
         habitToEdit={habitToEdit}
         initialMealDay={initialMealDay}
         initialMealType={initialMealType}
+        initialClassDay={initialClassDay}
       />
     </div>
   );

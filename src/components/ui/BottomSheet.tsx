@@ -24,12 +24,15 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end sm:justify-center sm:items-center bg-slate-900/50 backdrop-blur-xs animate-fade-in p-0 sm:p-4">
+    <div className="fixed inset-0 z-[100] flex flex-col justify-end sm:justify-center sm:items-center bg-slate-900/50 backdrop-blur-xs animate-fade-in p-0 sm:p-4">
       {/* Backdrop overlay */}
       <div className="fixed inset-0" onClick={onClose} />
 
       {/* Sheet Content Container */}
-      <div className="relative bg-white rounded-t-[28px] sm:rounded-3xl max-h-[90vh] sm:max-h-[85vh] shadow-2xl border border-slate-200/80 animate-slide-up w-full max-w-lg mx-auto flex flex-col z-10 overflow-hidden">
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative bg-white rounded-t-[28px] sm:rounded-3xl max-h-[90vh] sm:max-h-[85vh] shadow-2xl border border-slate-200/80 animate-slide-up w-full max-w-lg mx-auto flex flex-col z-10 overflow-hidden"
+      >
         {/* Mobile Drag Handle */}
         <div className="pt-3 pb-1 flex justify-center sm:hidden cursor-pointer shrink-0" onClick={onClose}>
           <div className="w-12 h-1.5 bg-slate-300 rounded-full" />

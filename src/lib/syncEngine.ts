@@ -343,12 +343,27 @@ export const syncEngine = {
           const { data, error } = await supabase.from(dbTable).select('*');
           if (!error && Array.isArray(data)) {
             const tableMap = memoryStore.get(appTable)!;
-            tableMap.clear();
+            const remoteIds = new Set(data.map((d) => d.id));
+
             data.forEach((item) => {
               if (item && item.id) {
-                tableMap.set(item.id, item);
+                const localItem = tableMap.get(item.id);
+                tableMap.set(item.id, { ...localItem, ...item });
               }
             });
+
+            // Remove items deleted on server only if server responded with data
+            if (data.length > 0) {
+              Array.from(tableMap.keys()).forEach((localId) => {
+                if (!remoteIds.has(localId)) {
+                  // Keep newly created local items that haven't hit server yet
+                  const isNewLocal = localId.includes('-') && Date.now() - parseInt(localId.split('-')[1] || '0', 10) < 300000;
+                  if (!isNewLocal) {
+                    tableMap.delete(localId);
+                  }
+                }
+              });
+            }
             saveLocalSnapshot(appTable);
           } else if (error) {
             const errMsg = `Cloud table '${dbTable}' sync notice: ${error.message}`;
@@ -403,7 +418,11 @@ export const syncEngine = {
 
     const dbTable = TABLE_MAP[appTable];
     try {
-      const { data, error } = await supabase.from(dbTable).upsert([item]).select();
+      const dbPayload = { ...item } as any;
+      if (appTable === 'habits') {
+        delete dbPayload.show_in_daily_schedule;
+      }
+      const { data, error } = await supabase.from(dbTable).upsert([dbPayload]).select();
       if (error) {
         console.warn(`Supabase upsert warning [${appTable} -> ${dbTable}]:`, error.message);
         updateSyncStatus({ syncError: `Saved locally. Cloud sync notice: ${error.message}` });

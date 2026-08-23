@@ -647,9 +647,10 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
                 {filteredBooks.map((book) => {
                   const theme = getCoverTheme(book);
                   const isSelected = featuredBook?.id === book.id;
+                  const effectivePage = Math.max(book.current_page || 0, book.eve_page || 0, book.abbie_page || 0);
                   const hasPages = Boolean(book.total_pages && book.total_pages > 0);
                   const progressPercent = hasPages
-                    ? Math.min(100, Math.round(((book.current_page || 0) / (book.total_pages || 1)) * 100))
+                    ? Math.min(100, Math.round((effectivePage / (book.total_pages || 1)) * 100))
                     : 0;
 
                   return (
@@ -708,7 +709,7 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
                         {book.status === 'reading' && (
                           <div className="space-y-0.5 pt-0.5">
                             <div className="flex items-center justify-between text-[9px] font-bold text-stone-500">
-                              <span>{book.current_page || 0}/{book.total_pages || 300}</span>
+                              <span>{effectivePage}/{book.total_pages || 300}</span>
                               <span>{progressPercent}%</span>
                             </div>
                             <div className="w-full h-1.5 bg-stone-200/80 rounded-full overflow-hidden">

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useStore, getTodayDateString } from '../../context/StoreContext';
 import { BottomSheet } from '../ui/BottomSheet';
-import { EventType, ProfilePersona, MealType, BookStatus, CalendarEvent, BookItem, HabitItem, CATEGORY_METAS, GroceryCategory } from '../../types';
+import { EventType, ProfilePersona, MealType, BookStatus, CalendarEvent, ClassItem, BookItem, HabitItem, CATEGORY_METAS, GroceryCategory } from '../../types';
 import { ChevronDown, ChevronUp, Palette, Trash2, Calendar as CalendarIcon, Sparkles, Loader2, Plus } from 'lucide-react';
 
 interface CreationModalContainerProps {
@@ -9,10 +9,12 @@ interface CreationModalContainerProps {
   onClose: () => void;
   initialDate?: string;
   eventToEdit?: CalendarEvent | null;
+  classToEdit?: ClassItem | null;
   bookToEdit?: BookItem | null;
   habitToEdit?: HabitItem | null;
   initialMealDay?: number;
   initialMealType?: MealType;
+  initialClassDay?: number;
 }
 
 const COLOR_SWATCHES = [
@@ -43,16 +45,19 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   onClose,
   initialDate,
   eventToEdit,
+  classToEdit,
   bookToEdit,
   habitToEdit,
   initialMealDay,
   initialMealType,
+  initialClassDay,
 }) => {
   const {
     addEvent,
     updateEvent,
     deleteEvent,
     addClass,
+    updateClass,
     addTask,
     addHabit,
     updateHabit,
@@ -123,21 +128,35 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   const [clsEndTime, setClsEndTime] = useState('11:15');
   const [clsDays, setClsDays] = useState<number[]>([1, 3]);
   const [clsProfile, setClsProfile] = useState<ProfilePersona>(defaultProfile);
+  const [clsColor, setClsColor] = useState('');
 
   useEffect(() => {
     if (modalType === 'class') {
       setIsSaving(false);
       setErrorMsg(null);
-      setShowClsMore(false);
-      setClsName('');
-      setClsInstructor('');
-      setClsRoom('');
-      setClsStartTime('10:00');
-      setClsEndTime('11:15');
-      setClsDays([1, 3]);
-      setClsProfile(defaultProfile);
+      if (classToEdit) {
+        setClsName(classToEdit.name);
+        setClsInstructor(classToEdit.instructor || '');
+        setClsRoom(classToEdit.room || '');
+        setClsStartTime(classToEdit.start_time || '10:00');
+        setClsEndTime(classToEdit.end_time || '11:15');
+        setClsDays(classToEdit.days_of_week && classToEdit.days_of_week.length > 0 ? classToEdit.days_of_week : [1, 3]);
+        setClsProfile(classToEdit.profile || defaultProfile);
+        setClsColor(classToEdit.color || '');
+        setShowClsMore(Boolean(classToEdit.room || classToEdit.instructor || classToEdit.color));
+      } else {
+        setShowClsMore(false);
+        setClsName('');
+        setClsInstructor('');
+        setClsRoom('');
+        setClsStartTime('10:00');
+        setClsEndTime('11:15');
+        setClsDays(initialClassDay ? [initialClassDay] : [1, 3]);
+        setClsProfile(defaultProfile);
+        setClsColor('');
+      }
     }
-  }, [modalType, defaultProfile]);
+  }, [modalType, classToEdit, initialClassDay, defaultProfile]);
 
   // 3. TASK FORM STATE
   const [tskTitle, setTskTitle] = useState('');
@@ -397,18 +416,37 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   const handleClsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clsName.trim() || isSaving) return;
+    if (clsDays.length === 0) {
+      setErrorMsg('Please select at least one day of the week for this class.');
+      return;
+    }
     setIsSaving(true);
     setErrorMsg(null);
     try {
-      const ok = await addClass({
-        name: clsName.trim(),
-        instructor: clsInstructor.trim() || undefined,
-        room: clsRoom.trim() || undefined,
-        start_time: clsStartTime,
-        end_time: clsEndTime,
-        days_of_week: clsDays,
-        profile: clsProfile,
-      });
+      let ok = false;
+      if (classToEdit) {
+        ok = await updateClass(classToEdit.id, {
+          name: clsName.trim(),
+          instructor: clsInstructor.trim() || undefined,
+          room: clsRoom.trim() || undefined,
+          start_time: clsStartTime,
+          end_time: clsEndTime,
+          days_of_week: clsDays,
+          profile: clsProfile,
+          color: clsColor || undefined,
+        });
+      } else {
+        ok = await addClass({
+          name: clsName.trim(),
+          instructor: clsInstructor.trim() || undefined,
+          room: clsRoom.trim() || undefined,
+          start_time: clsStartTime,
+          end_time: clsEndTime,
+          days_of_week: clsDays,
+          profile: clsProfile,
+          color: clsColor || undefined,
+        });
+      }
       if (ok) onClose();
       else setErrorMsg('Could not save class to Supabase. Please try again.');
     } catch (err: any) {
@@ -560,6 +598,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
   const getTitleText = () => {
     if (eventToEdit) return 'Edit Event';
+    if (classToEdit) return 'Edit Class';
     if (bookToEdit) return 'Edit Book';
     if (habitToEdit) return 'Edit Habit';
     if (modalType === 'grocery') return 'Add Grocery Item';
@@ -695,9 +734,9 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         </form>
       )}
 
-      {/* 2. ADD CLASS FORM */}
+      {/* 2. ADD / EDIT CLASS FORM */}
       {modalType === 'class' && (
-        <form onSubmit={handleClsSubmit} className="space-y-4">
+        <form onSubmit={handleClsSubmit} className="space-y-4 pb-2">
           <div>
             <label className="block text-xs font-extrabold text-slate-800 mb-1.5">Class Name</label>
             <input
@@ -707,7 +746,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               value={clsName}
               onChange={(e) => setClsName(e.target.value)}
               placeholder="e.g. Organic Chemistry"
-              className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900"
+              className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
             />
           </div>
 
@@ -722,7 +761,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                 type="time"
                 value={clsStartTime}
                 onChange={(e) => setClsStartTime(e.target.value)}
-                className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-xs font-semibold text-slate-900"
+                className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
               />
             </div>
             <div>
@@ -731,11 +770,12 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                 type="time"
                 value={clsEndTime}
                 onChange={(e) => setClsEndTime(e.target.value)}
-                className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-xs font-semibold text-slate-900"
+                className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
               />
             </div>
           </div>
 
+          {renderColorPicker(clsColor, setClsColor)}
           {renderProfileSelector(clsProfile, setClsProfile)}
 
           {/* Collapsible Room / Instructor */}
@@ -746,11 +786,11 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               className="flex items-center gap-1.5 text-xs font-extrabold text-slate-600 hover:text-slate-900 py-1 transition-colors cursor-pointer"
             >
               {showClsMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              <span>{showClsMore ? 'Fewer options' : 'More options (Room, Professor)'}</span>
+              <span>{showClsMore ? 'Fewer options' : 'More options (Room, Instructor)'}</span>
             </button>
 
             {showClsMore && (
-              <div className="pt-2 grid grid-cols-2 gap-3">
+              <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Room / Hall</label>
                   <input
@@ -758,7 +798,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                     value={clsRoom}
                     onChange={(e) => setClsRoom(e.target.value)}
                     placeholder="Science 101"
-                    className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-xs font-semibold text-slate-900"
+                    className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
                   />
                 </div>
                 <div>
@@ -768,14 +808,14 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                     value={clsInstructor}
                     onChange={(e) => setClsInstructor(e.target.value)}
                     placeholder="Prof. Smith"
-                    className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-xs font-semibold text-slate-900"
+                    className="w-full min-h-[48px] bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-3 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
                   />
                 </div>
               </div>
             )}
           </div>
 
-          {renderFooterButtons('Add Class')}
+          {renderFooterButtons(classToEdit ? 'Save Changes' : 'Add Class')}
         </form>
       )}
 
