@@ -624,7 +624,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
     }
   };
 
-  const renderFooterButtons = (saveLabel = 'Save') => (
+  const renderFooterButtons = (saveLabel = 'Save', isRed = false) => (
     <div className="flex items-center gap-2 pt-3 sticky bottom-0 bg-white/95 backdrop-blur-xs border-t border-slate-100 z-10 pb-1 w-full box-border">
       <button
         type="button"
@@ -637,7 +637,11 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
       <button
         type="submit"
         disabled={isSaving}
-        className="flex-1 py-3 min-h-[46px] rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-extrabold shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
+        className={`flex-1 py-3 min-h-[46px] rounded-xl text-white text-xs font-black shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95 ${
+          isRed
+            ? 'bg-red-600 hover:bg-red-700 shadow-md shadow-red-500/30 ring-2 ring-red-500/20'
+            : 'bg-slate-900 hover:bg-slate-800'
+        }`}
       >
         {isSaving ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : saveLabel}
       </button>
@@ -645,6 +649,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   );
 
   const modalMeta = getModalMeta();
+  const isExamModal = modalType === 'event' && (evtType === 'exam' || initialEventType === 'exam');
 
   return (
     <BottomSheet
@@ -653,6 +658,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
       title={modalMeta.title}
       subtitle={modalMeta.subtitle}
       badgeEmoji={modalMeta.emoji}
+      isRedHeader={isExamModal}
     >
       {errorMsg && (
         <div className="bg-rose-50 border border-rose-200 text-rose-700 px-3 py-2.5 rounded-xl text-xs font-bold mb-2">
@@ -664,50 +670,74 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
       {modalType === 'event' && (
         <form onSubmit={handleEvtSubmit} className="space-y-4 pb-1 w-full box-border">
           <div className="space-y-1.5">
-            <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">EVENT TITLE</label>
+            <label className={`block text-[11px] font-extrabold tracking-wider ${isExamModal ? 'text-red-700' : 'text-slate-600'}`}>
+              {isExamModal ? 'EXAM TITLE' : 'EVENT TITLE'}
+            </label>
             <input
               type="text"
               required
               value={evtTitle}
               onChange={(e) => setEvtTitle(e.target.value)}
-              placeholder="What's happening?"
-              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
+              placeholder={isExamModal ? 'e.g. Midterm 1, Final Exam' : "What's happening?"}
+              className={`w-full bg-slate-50 border rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 transition-all min-h-[46px] box-border ${
+                isExamModal
+                  ? 'border-red-200 bg-red-50/20 placeholder:text-red-300 focus:bg-white focus:border-red-600 focus:ring-1 focus:ring-red-600/20'
+                  : 'border-slate-200/90 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10'
+              }`}
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">DATE</label>
+            <label className={`block text-[11px] font-extrabold tracking-wider ${isExamModal ? 'text-red-700' : 'text-slate-600'}`}>
+              EXAM DATE
+            </label>
             <input
               type="date"
               required
               value={evtDate}
               onChange={(e) => setEvtDate(e.target.value)}
-              className="w-full max-w-[210px] bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
+              className={`w-full max-w-[210px] bg-slate-50 border rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 transition-all min-h-[46px] box-border ${
+                isExamModal
+                  ? 'border-red-200 bg-red-50/20 focus:bg-white focus:border-red-600 focus:ring-1 focus:ring-red-600/20'
+                  : 'border-slate-200/90 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10'
+              }`}
             />
           </div>
 
           {/* SINGLE-COLUMN VERTICAL STACK FOR TIMES */}
           <div className="space-y-1.5">
-            <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">START TIME</label>
+            <label className={`block text-[11px] font-extrabold tracking-wider ${isExamModal ? 'text-red-700' : 'text-slate-600'}`}>
+              START TIME
+            </label>
             <input
               type="time"
               value={evtStartTime}
               onChange={(e) => setEvtStartTime(e.target.value)}
-              className="w-full max-w-[170px] bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
+              className={`w-full max-w-[170px] bg-slate-50 border rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 transition-all min-h-[46px] box-border ${
+                isExamModal
+                  ? 'border-red-200 bg-red-50/20 focus:bg-white focus:border-red-600 focus:ring-1 focus:ring-red-600/20'
+                  : 'border-slate-200/90 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10'
+              }`}
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">END TIME</label>
+            <label className={`block text-[11px] font-extrabold tracking-wider ${isExamModal ? 'text-red-700' : 'text-slate-600'}`}>
+              END TIME
+            </label>
             <input
               type="time"
               value={evtEndTime}
               onChange={(e) => setEvtEndTime(e.target.value)}
-              className="w-full max-w-[170px] bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
+              className={`w-full max-w-[170px] bg-slate-50 border rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 transition-all min-h-[46px] box-border ${
+                isExamModal
+                  ? 'border-red-200 bg-red-50/20 focus:bg-white focus:border-red-600 focus:ring-1 focus:ring-red-600/20'
+                  : 'border-slate-200/90 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10'
+              }`}
             />
           </div>
 
-          {evtType !== 'exam' && renderColorPicker(evtColor, setEvtColor)}
+          {!isExamModal && renderColorPicker(evtColor, setEvtColor)}
           {renderProfileSelector(evtProfile, setEvtProfile)}
 
           {/* Collapsible Secondary Fields */}
@@ -715,40 +745,50 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             <button
               type="button"
               onClick={() => setShowEvtMore(!showEvtMore)}
-              className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-900 py-1 transition-colors cursor-pointer"
+              className={`flex items-center gap-1 text-[11px] font-bold py-1 transition-colors cursor-pointer ${
+                isExamModal ? 'text-red-700 hover:text-red-900' : 'text-slate-500 hover:text-slate-900'
+              }`}
             >
               {showEvtMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              <span>{showEvtMore ? 'Fewer options' : 'More options (Category, Location)'}</span>
+              <span>{showEvtMore ? 'Fewer options' : 'More options (Location, Building, Room)'}</span>
             </button>
 
             {showEvtMore && (
               <div className="pt-3 space-y-3">
-                <div className="space-y-1.5">
-                  <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">CATEGORY</label>
-                  <select
-                    value={evtType}
-                    onChange={(e) => setEvtType(e.target.value as EventType)}
-                    className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 cursor-pointer focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
-                  >
-                    {(Object.keys(CATEGORY_METAS) as EventType[]).map((catKey) => {
-                      const meta = CATEGORY_METAS[catKey];
-                      return (
-                        <option key={catKey} value={catKey}>
-                          {meta.emoji} {meta.label}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
+                {!isExamModal && (
+                  <div className="space-y-1.5">
+                    <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">CATEGORY</label>
+                    <select
+                      value={evtType}
+                      onChange={(e) => setEvtType(e.target.value as EventType)}
+                      className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 cursor-pointer focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
+                    >
+                      {(Object.keys(CATEGORY_METAS) as EventType[]).map((catKey) => {
+                        const meta = CATEGORY_METAS[catKey];
+                        return (
+                          <option key={catKey} value={catKey}>
+                            {meta.emoji} {meta.label}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                )}
 
                 <div className="space-y-1.5">
-                  <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">LOCATION / LINK</label>
+                  <label className={`block text-[11px] font-extrabold tracking-wider ${isExamModal ? 'text-red-700' : 'text-slate-600'}`}>
+                    LOCATION / LINK
+                  </label>
                   <input
                     type="text"
                     value={evtLocation}
                     onChange={(e) => setEvtLocation(e.target.value)}
-                    placeholder="Room, building, or link"
-                    className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
+                    placeholder="Room, building, or exam link"
+                    className={`w-full bg-slate-50 border rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 transition-all min-h-[46px] box-border ${
+                      isExamModal
+                        ? 'border-red-200 bg-red-50/20 placeholder:text-red-300 focus:bg-white focus:border-red-600 focus:ring-1 focus:ring-red-600/20'
+                        : 'border-slate-200/90 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10'
+                    }`}
                   />
                 </div>
               </div>
@@ -757,8 +797,9 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
           {renderFooterButtons(
             eventToEdit
-              ? (evtType === 'exam' ? 'Save Exam' : 'Save Changes')
-              : (evtType === 'exam' || initialEventType === 'exam' ? 'Add Exam' : 'Add Event')
+              ? (isExamModal ? 'Save Exam' : 'Save Changes')
+              : (isExamModal ? 'Add Exam' : 'Add Event'),
+            isExamModal
           )}
         </form>
       )}
