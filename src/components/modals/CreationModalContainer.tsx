@@ -603,6 +603,9 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   const getModalMeta = () => {
     switch (modalType) {
       case 'event':
+        if (evtType === 'exam' || initialEventType === 'exam') {
+          return { title: eventToEdit ? 'Edit Exam' : 'Add Exam', subtitle: 'Scheduled test or examination', emoji: '🚨' };
+        }
         return { title: eventToEdit ? 'Edit Event' : 'Add Event', subtitle: 'Schedule an event', emoji: '📅' };
       case 'class':
         return { title: classToEdit ? 'Edit Class' : 'Add Class', subtitle: 'Course timetable', emoji: '📚' };
@@ -752,7 +755,11 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             )}
           </div>
 
-          {renderFooterButtons(eventToEdit ? 'Save Changes' : 'Add Event')}
+          {renderFooterButtons(
+            eventToEdit
+              ? (evtType === 'exam' ? 'Save Exam' : 'Save Changes')
+              : (evtType === 'exam' || initialEventType === 'exam' ? 'Add Exam' : 'Add Event')
+          )}
         </form>
       )}
 
