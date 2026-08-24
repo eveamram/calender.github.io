@@ -304,9 +304,9 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
             {onOpenAddExamModal && (
               <button
                 onClick={onOpenAddExamModal}
-                className="flex items-center gap-1 bg-rose-600 hover:bg-rose-700 text-white font-extrabold px-3 py-1.5 rounded-xl text-xs shadow-xs transition-all cursor-pointer"
+                className="flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white font-black px-3.5 py-2 rounded-xl text-xs shadow-md shadow-red-500/20 transition-all cursor-pointer active:scale-95 shrink-0"
               >
-                <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                <Plus className="w-4 h-4 stroke-[3]" />
                 <span>Add Exam</span>
               </button>
             )}
