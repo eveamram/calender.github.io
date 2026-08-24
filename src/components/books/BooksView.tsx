@@ -337,10 +337,11 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
 
             <button
               onClick={() => onOpenAddBookModal(null)}
-              className="w-full md:w-auto flex items-center justify-center gap-2 bg-purple-950 hover:bg-purple-900 active:scale-95 text-white font-extrabold px-5 py-3 rounded-2xl text-xs shadow-md transition-all cursor-pointer shrink-0"
+              className="p-2 sm:px-4 sm:py-2.5 rounded-2xl bg-purple-950 hover:bg-purple-900 active:scale-95 text-white font-extrabold text-xs shadow-md transition-all cursor-pointer shrink-0 flex items-center gap-1.5"
+              title="Add Book"
             >
-              <Plus className="w-4 h-4 stroke-[3]" />
-              <span>Add Book</span>
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <span className="hidden sm:inline">Add Book</span>
             </button>
           </div>
         </div>

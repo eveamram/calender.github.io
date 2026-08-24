@@ -135,10 +135,11 @@ export const TodoView: React.FC<TodoViewProps> = ({ onOpenAddModal }) => {
         </div>
         <button
           onClick={onOpenAddModal}
-          className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-3.5 py-2 rounded-xl text-xs shadow-xs transition-all"
+          className="p-2 sm:px-4 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs shadow-xs transition-all cursor-pointer active:scale-95 flex items-center gap-1.5"
+          title="Add Details"
         >
-          <Plus className="w-4 h-4" />
-          <span>Add Details</span>
+          <Plus className="w-4 h-4 stroke-[2.5]" />
+          <span className="hidden sm:inline">Add Details</span>
         </button>
       </div>
 
@@ -147,14 +148,14 @@ export const TodoView: React.FC<TodoViewProps> = ({ onOpenAddModal }) => {
           type="text"
           value={quickTitle}
           onChange={(e) => setQuickTitle(e.target.value)}
-          placeholder="What needs to be done? (e.g. Buy toothpaste)"
-          className="w-full bg-white border border-slate-200/90 rounded-2xl py-3.5 pl-4 pr-24 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-xs"
+          placeholder="What needs to be done?"
+          className="w-full bg-white border border-slate-200/90 rounded-2xl py-2.5 pl-4 pr-20 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 shadow-2xs"
         />
         <button
           type="submit"
-          className="absolute right-2 top-2 bottom-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 rounded-xl text-xs transition-colors"
+          className="absolute right-1.5 top-1.5 bottom-1.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold px-3 rounded-xl text-xs transition-all cursor-pointer active:scale-95"
         >
-          Add Task
+          Add
         </button>
       </form>
 

@@ -96,10 +96,11 @@ export const MealsView: React.FC<MealsViewProps> = ({ onOpenAddMealModal }) => {
         </div>
         <button
           onClick={() => onOpenAddMealModal()}
-          className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-xl text-xs shadow-xs transition-all"
+          className="p-2 sm:px-4 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs shadow-xs transition-all cursor-pointer active:scale-95 flex items-center gap-1.5"
+          title="Add Meal"
         >
-          <Plus className="w-4 h-4" />
-          <span>Add Meal</span>
+          <Plus className="w-4 h-4 stroke-[2.5]" />
+          <span className="hidden sm:inline">Add Meal</span>
         </button>
       </div>
 

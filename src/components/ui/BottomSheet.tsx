@@ -41,7 +41,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
       {/* Sheet Content Container */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative bg-white rounded-t-[32px] sm:rounded-3xl max-h-[92vh] sm:max-h-[85vh] shadow-2xl border border-slate-200/80 animate-slide-up w-full max-w-lg mx-auto flex flex-col z-10 overflow-hidden"
+        className="relative bg-white rounded-t-[32px] sm:rounded-3xl max-h-[85vh] shadow-2xl border border-slate-200/80 animate-slide-up w-full max-w-lg mx-auto flex flex-col z-10 overflow-hidden"
       >
         {/* Mobile Drag Handle Bar */}
         <div className="pt-3 pb-1.5 flex justify-center sm:hidden cursor-pointer shrink-0" onClick={onClose}>

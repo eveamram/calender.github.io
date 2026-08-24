@@ -113,10 +113,11 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => onOpenAddModal(null)}
-            className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-xs transition-all cursor-pointer min-h-[44px]"
+            className="p-2 sm:px-4 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs shadow-xs transition-all cursor-pointer active:scale-95 flex items-center gap-1.5"
+            title="Add Habit"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>Add Habit</span>
+            <span className="hidden sm:inline">Add Habit</span>
           </button>
         </div>
       </div>
