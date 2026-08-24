@@ -24,6 +24,7 @@ interface CalendarViewProps {
 export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) => {
   const {
     events,
+    classes,
     selectedDate,
     setSelectedDate,
     toggleEventComplete,
@@ -154,6 +155,32 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
     let jsDay = dateObj.getDay(); // 0=Sun, 1=Mon...
     const dayOfWeekNum = jsDay === 0 ? 7 : jsDay; // 1..7 (Mon..Sun)
 
+    // Filter classes for the selected date's day of week (1=Mon ... 5=Fri)
+    const filteredClasses = filterByProfile(classes);
+    const classEvents: CalendarEvent[] = filteredClasses
+      .filter((cls) => {
+        const activeDays = cls.days_of_week && cls.days_of_week.length > 0 ? cls.days_of_week : [1, 2, 3, 4, 5];
+        return activeDays.includes(dayOfWeekNum);
+      })
+      .map((cls) => {
+        const ownerProf = cls.profile || 'Eve';
+        const classColor = cls.color || profileColors[ownerProf] || '#2563eb';
+        return {
+          id: `class-item-${cls.id}`,
+          title: `📚 ${cls.name}${cls.room ? ` (${cls.room})` : ''}`,
+          event_type: 'class',
+          event_date: selectedDate,
+          start_time: cls.start_time,
+          end_time: cls.end_time,
+          location: cls.room || cls.instructor,
+          color: classColor,
+          profile: cls.profile || 'Both',
+          is_completed: false,
+          is_class_item: true,
+          class_original_id: cls.id,
+        } as CalendarEvent & { is_class_item?: boolean; class_original_id?: string };
+      });
+
     // Filter habits enabled via Habits tab setting show_in_daily_schedule
     const habitEvents: CalendarEvent[] = filteredHabits
       .filter((h) => Boolean(h.show_in_daily_schedule))
@@ -181,9 +208,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
         } as CalendarEvent & { is_habit_item?: boolean; habit_original_id?: string };
       });
 
-    const combined = [...eventList, ...habitEvents];
+    const combined = [...eventList, ...classEvents, ...habitEvents];
     return combined.sort((a, b) => (a.start_time || '00:00').localeCompare(b.start_time || '00:00'));
-  }, [eventsByDate, selectedDate, filteredHabits, habitCompletions]);
+  }, [eventsByDate, selectedDate, classes, filteredHabits, habitCompletions, filterByProfile, profileColors]);
 
   const todayStr = useMemo(() => getTodayDateString(), []);
 
@@ -314,7 +341,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                   >
                     {/* Time Column */}
                     <div className="w-16 shrink-0 text-right text-xs font-bold text-slate-500 pt-0.5">
-                      {evt.start_time || 'All Day'}
+                      {evt.start_time ? formatTime12Hour(evt.start_time) : 'All Day'}
                     </div>
 
                     {/* Timeline Accent Dot & Line */}
@@ -351,7 +378,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
 
                       <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-0.5">
                         {evt.end_time && (
-                          <span className="font-semibold text-slate-500">Until {evt.end_time}</span>
+                          <span className="font-semibold text-slate-500">Until {formatTime12Hour(evt.end_time)}</span>
                         )}
                         {evt.location && (
                           <span className="flex items-center gap-1 font-medium text-slate-400 truncate">

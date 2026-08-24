@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useStore, getTodayDateString } from '../../context/StoreContext';
 import { BottomSheet } from '../ui/BottomSheet';
 import { EventType, ProfilePersona, MealType, BookStatus, CalendarEvent, ClassItem, BookItem, HabitItem, CATEGORY_METAS, GroceryCategory } from '../../types';
-import { ChevronDown, ChevronUp, Palette, Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Palette, Loader2, Calendar, Clock, Target, Check, ChevronRight } from 'lucide-react';
 
 interface CreationModalContainerProps {
   modalType: 'event' | 'class' | 'task' | 'habit' | 'grocery' | 'meal' | 'book' | null;
@@ -21,14 +21,14 @@ interface CreationModalContainerProps {
 const COLOR_SWATCHES = [
   { label: 'Royal Blue', hex: '#2563eb' },
   { label: 'Soft Indigo', hex: '#6366f1' },
-  { label: 'Purple', hex: '#7c3aed' },
+  { label: 'Purple', hex: '#a855f7' },
   { label: 'Pink', hex: '#ec4899' },
-  { label: 'Coral', hex: '#f43f5e' },
+  { label: 'Red', hex: '#ef4444' },
   { label: 'Orange', hex: '#f97316' },
   { label: 'Amber', hex: '#d97706' },
-  { label: 'Emerald', hex: '#059669' },
-  { label: 'Teal', hex: '#0d9488' },
-  { label: 'Slate', hex: '#475569' },
+  { label: 'Emerald', hex: '#10b981' },
+  { label: 'Cyan', hex: '#06b6d4' },
+  { label: 'Gray', hex: '#6b7280' },
 ];
 
 const WEEK_DAYS = [
@@ -294,8 +294,8 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   // Sleek & Touch-Friendly Segmented Profile Selector
   const renderProfileSelector = (selected: ProfilePersona, setSelected: (p: ProfilePersona) => void) => (
     <div className="space-y-1.5 w-full">
-      <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">PROFILE OWNER</label>
-      <div className="grid grid-cols-3 bg-slate-100 p-1 rounded-xl gap-1 items-center border border-slate-200/60 w-full box-border">
+      <label className="block text-xs font-extrabold text-slate-700 tracking-tight">Profile Owner</label>
+      <div className="grid grid-cols-3 bg-[#f4f6f9] p-1.5 rounded-2xl gap-1 items-center border border-slate-200/60 w-full box-border">
         {(['Eve', 'Abbie', 'Both'] as ProfilePersona[]).map((p) => {
           const isSelected = selected === p;
           return (
@@ -303,10 +303,10 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               type="button"
               key={p}
               onClick={() => setSelected(p)}
-              className={`py-2 rounded-lg text-xs font-extrabold transition-all cursor-pointer min-h-[44px] flex items-center justify-center ${
+              className={`py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer min-h-[44px] flex items-center justify-center ${
                 isSelected
-                  ? 'bg-slate-900 text-white shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                  ? 'bg-[#0f172a] text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
               }`}
             >
               {p}
@@ -320,19 +320,19 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   // Wrapping Color Swatches (Multi-line, no scroll, no clipping)
   const renderColorPicker = (selectedColor: string, setSelectedColor: (c: string) => void) => (
     <div className="space-y-1.5 w-full">
-      <label className="block text-[11px] font-extrabold text-slate-600 flex items-center gap-1 tracking-wider">
-        <Palette className="w-3.5 h-3.5 text-slate-600" />
-        <span>COLOR THEME</span>
+      <label className="block text-xs font-extrabold text-slate-700 flex items-center gap-1.5 tracking-tight">
+        <Palette className="w-3.5 h-3.5 text-slate-700" />
+        <span>Color Theme</span>
       </label>
-      <div className="flex flex-wrap items-center gap-2.5 py-1 w-full box-border">
-        {COLOR_SWATCHES.map((c) => {
+      <div className="flex items-center justify-between gap-1.5 py-1 w-full box-border overflow-x-auto">
+        {COLOR_SWATCHES.slice(0, 8).map((c) => {
           const isSelected = selectedColor === c.hex;
           return (
             <button
               type="button"
               key={c.hex}
               onClick={() => setSelectedColor(c.hex)}
-              className={`w-9 h-9 min-w-[36px] rounded-full transition-all cursor-pointer border ${
+              className={`w-9 h-9 min-w-[34px] rounded-full transition-all cursor-pointer border flex-1 max-w-[40px] shrink-0 ${
                 isSelected
                   ? 'ring-2 ring-slate-900 ring-offset-2 scale-110 shadow-2xs border-transparent'
                   : 'border-slate-300 hover:scale-105'
@@ -625,22 +625,22 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   };
 
   const renderFooterButtons = (saveLabel = 'Save', isRed = false) => (
-    <div className="flex items-center gap-2 pt-3 sticky bottom-0 bg-white/95 backdrop-blur-xs border-t border-slate-100 z-10 pb-1 w-full box-border">
+    <div className="flex items-center gap-3 pt-3 sticky bottom-0 bg-white z-10 pb-1 w-full box-border">
       <button
         type="button"
         onClick={onClose}
         disabled={isSaving}
-        className="flex-1 py-3 min-h-[46px] rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-extrabold transition-all cursor-pointer active:scale-95 flex items-center justify-center"
+        className="flex-1 py-3.5 min-h-[48px] rounded-2xl bg-[#f4f6f9] hover:bg-slate-200 text-slate-700 text-sm font-extrabold transition-all cursor-pointer active:scale-95 flex items-center justify-center"
       >
         Cancel
       </button>
       <button
         type="submit"
         disabled={isSaving}
-        className={`flex-1 py-3 min-h-[46px] rounded-xl text-white text-xs font-black shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95 ${
+        className={`flex-1 py-3.5 min-h-[48px] rounded-2xl text-white text-sm font-extrabold shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95 ${
           isRed
-            ? 'bg-red-600 hover:bg-red-700 shadow-md shadow-red-500/30 ring-2 ring-red-500/20'
-            : 'bg-slate-900 hover:bg-slate-800'
+            ? 'bg-red-600 hover:bg-red-700 shadow-red-500/30'
+            : 'bg-[#0f172a] hover:bg-slate-800'
         }`}
       >
         {isSaving ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : saveLabel}
@@ -661,17 +661,18 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
       isRedHeader={isExamModal}
     >
       {errorMsg && (
-        <div className="bg-rose-50 border border-rose-200 text-rose-700 px-3 py-2.5 rounded-xl text-xs font-bold mb-2">
+        <div className="bg-rose-50 border border-rose-200 text-rose-700 px-3.5 py-2.5 rounded-2xl text-xs font-bold mb-2">
           {errorMsg}
         </div>
       )}
 
-      {/* 1. ADD / EDIT EVENT FORM — STRICT SINGLE-COLUMN VERTICAL LAYOUT */}
+      {/* 1. ADD / EDIT EVENT FORM — MATCHING SCREENSHOT 2-COLUMN LAYOUT */}
       {modalType === 'event' && (
         <form onSubmit={handleEvtSubmit} className="space-y-4 pb-1 w-full box-border">
+          {/* Event Title */}
           <div className="space-y-1.5">
-            <label className={`block text-[11px] font-extrabold tracking-wider ${isExamModal ? 'text-red-700' : 'text-slate-600'}`}>
-              {isExamModal ? 'EXAM TITLE' : 'EVENT TITLE'}
+            <label className={`block text-xs sm:text-sm font-bold tracking-tight ${isExamModal ? 'text-red-700' : 'text-slate-800'}`}>
+              {isExamModal ? 'Exam Title' : 'Event Title'}
             </label>
             <input
               type="text"
@@ -679,62 +680,92 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               value={evtTitle}
               onChange={(e) => setEvtTitle(e.target.value)}
               placeholder={isExamModal ? 'e.g. Midterm 1, Final Exam' : "What's happening?"}
-              className={`w-full bg-slate-50 border rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 transition-all min-h-[46px] box-border ${
+              className={`w-full bg-[#f4f6f9] border rounded-2xl px-4 py-3.5 text-sm font-semibold text-slate-900 transition-all min-h-[48px] box-border ${
                 isExamModal
-                  ? 'border-red-200 bg-red-50/20 placeholder:text-red-300 focus:bg-white focus:border-red-600 focus:ring-1 focus:ring-red-600/20'
-                  : 'border-slate-200/90 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10'
+                  ? 'border-red-200 bg-red-50/30 placeholder:text-red-300 focus:bg-white focus:border-red-600'
+                  : 'border-slate-200/60 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10'
               }`}
             />
           </div>
 
-          <div className="space-y-1.5">
-            <label className={`block text-[11px] font-extrabold tracking-wider ${isExamModal ? 'text-red-700' : 'text-slate-600'}`}>
-              EXAM DATE
-            </label>
-            <input
-              type="date"
-              required
-              value={evtDate}
-              onChange={(e) => setEvtDate(e.target.value)}
-              className={`w-full max-w-[210px] bg-slate-50 border rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 transition-all min-h-[46px] box-border ${
-                isExamModal
-                  ? 'border-red-200 bg-red-50/20 focus:bg-white focus:border-red-600 focus:ring-1 focus:ring-red-600/20'
-                  : 'border-slate-200/90 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10'
-              }`}
-            />
+          {/* Date & Category 2-Column Row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className={`block text-xs sm:text-sm font-bold tracking-tight ${isExamModal ? 'text-red-700' : 'text-slate-800'}`}>
+                Date
+              </label>
+              <input
+                type="date"
+                required
+                value={evtDate}
+                onChange={(e) => setEvtDate(e.target.value)}
+                className={`w-full bg-[#f4f6f9] border rounded-2xl px-3.5 py-3.5 text-xs sm:text-sm font-semibold text-slate-900 transition-all min-h-[48px] box-border text-center sm:text-left cursor-pointer ${
+                  isExamModal
+                    ? 'border-red-200 bg-red-50/30 focus:bg-white focus:border-red-600'
+                    : 'border-slate-200/60 focus:bg-white focus:border-slate-900'
+                }`}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className={`block text-xs sm:text-sm font-bold tracking-tight ${isExamModal ? 'text-red-700' : 'text-slate-800'}`}>
+                Category
+              </label>
+              <select
+                value={evtType}
+                onChange={(e) => setEvtType(e.target.value as EventType)}
+                disabled={isExamModal}
+                className={`w-full bg-[#f4f6f9] border rounded-2xl px-3.5 py-3.5 text-xs sm:text-sm font-semibold text-slate-900 transition-all min-h-[48px] box-border cursor-pointer ${
+                  isExamModal
+                    ? 'border-red-200 bg-red-50/30 opacity-70'
+                    : 'border-slate-200/60 focus:bg-white focus:border-slate-900'
+                }`}
+              >
+                {(Object.keys(CATEGORY_METAS) as EventType[]).map((catKey) => {
+                  const meta = CATEGORY_METAS[catKey];
+                  return (
+                    <option key={catKey} value={catKey}>
+                      {meta.emoji} {meta.label}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
           </div>
 
-          {/* SINGLE-COLUMN VERTICAL STACK FOR TIMES */}
-          <div className="space-y-1.5">
-            <label className={`block text-[11px] font-extrabold tracking-wider ${isExamModal ? 'text-red-700' : 'text-slate-600'}`}>
-              START TIME
-            </label>
-            <input
-              type="time"
-              value={evtStartTime}
-              onChange={(e) => setEvtStartTime(e.target.value)}
-              className={`w-full max-w-[170px] bg-slate-50 border rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 transition-all min-h-[46px] box-border ${
-                isExamModal
-                  ? 'border-red-200 bg-red-50/20 focus:bg-white focus:border-red-600 focus:ring-1 focus:ring-red-600/20'
-                  : 'border-slate-200/90 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10'
-              }`}
-            />
-          </div>
+          {/* Start Time & End Time 2-Column Row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className={`block text-xs sm:text-sm font-bold tracking-tight ${isExamModal ? 'text-red-700' : 'text-slate-800'}`}>
+                Start Time
+              </label>
+              <input
+                type="time"
+                value={evtStartTime}
+                onChange={(e) => setEvtStartTime(e.target.value)}
+                className={`w-full bg-[#f4f6f9] border rounded-2xl px-3.5 py-3.5 text-xs sm:text-sm font-semibold text-slate-900 transition-all min-h-[48px] box-border text-center cursor-pointer ${
+                  isExamModal
+                    ? 'border-red-200 bg-red-50/30 focus:bg-white focus:border-red-600'
+                    : 'border-slate-200/60 focus:bg-white focus:border-slate-900'
+                }`}
+              />
+            </div>
 
-          <div className="space-y-1.5">
-            <label className={`block text-[11px] font-extrabold tracking-wider ${isExamModal ? 'text-red-700' : 'text-slate-600'}`}>
-              END TIME
-            </label>
-            <input
-              type="time"
-              value={evtEndTime}
-              onChange={(e) => setEvtEndTime(e.target.value)}
-              className={`w-full max-w-[170px] bg-slate-50 border rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 transition-all min-h-[46px] box-border ${
-                isExamModal
-                  ? 'border-red-200 bg-red-50/20 focus:bg-white focus:border-red-600 focus:ring-1 focus:ring-red-600/20'
-                  : 'border-slate-200/90 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10'
-              }`}
-            />
+            <div className="space-y-1.5">
+              <label className={`block text-xs sm:text-sm font-bold tracking-tight ${isExamModal ? 'text-red-700' : 'text-slate-800'}`}>
+                End Time
+              </label>
+              <input
+                type="time"
+                value={evtEndTime}
+                onChange={(e) => setEvtEndTime(e.target.value)}
+                className={`w-full bg-[#f4f6f9] border rounded-2xl px-3.5 py-3.5 text-xs sm:text-sm font-semibold text-slate-900 transition-all min-h-[48px] box-border text-center cursor-pointer ${
+                  isExamModal
+                    ? 'border-red-200 bg-red-50/30 focus:bg-white focus:border-red-600'
+                    : 'border-slate-200/60 focus:bg-white focus:border-slate-900'
+                }`}
+              />
+            </div>
           </div>
 
           {!isExamModal && renderColorPicker(evtColor, setEvtColor)}
@@ -745,49 +776,29 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             <button
               type="button"
               onClick={() => setShowEvtMore(!showEvtMore)}
-              className={`flex items-center gap-1 text-[11px] font-bold py-1 transition-colors cursor-pointer ${
-                isExamModal ? 'text-red-700 hover:text-red-900' : 'text-slate-500 hover:text-slate-900'
+              className={`flex items-center gap-1.5 text-xs sm:text-sm font-bold py-1 transition-colors cursor-pointer ${
+                isExamModal ? 'text-red-700 hover:text-red-900' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              {showEvtMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              <span>{showEvtMore ? 'Fewer options' : 'More options (Location, Building, Room)'}</span>
+              {showEvtMore ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              <span>{showEvtMore ? 'Fewer options' : 'More options'}</span>
             </button>
 
             {showEvtMore && (
-              <div className="pt-3 space-y-3">
-                {!isExamModal && (
-                  <div className="space-y-1.5">
-                    <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">CATEGORY</label>
-                    <select
-                      value={evtType}
-                      onChange={(e) => setEvtType(e.target.value as EventType)}
-                      className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 cursor-pointer focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
-                    >
-                      {(Object.keys(CATEGORY_METAS) as EventType[]).map((catKey) => {
-                        const meta = CATEGORY_METAS[catKey];
-                        return (
-                          <option key={catKey} value={catKey}>
-                            {meta.emoji} {meta.label}
-                          </option>
-                        );
-                      })}
-                    </select>
-                  </div>
-                )}
-
+              <div className="pt-2 space-y-3">
                 <div className="space-y-1.5">
-                  <label className={`block text-[11px] font-extrabold tracking-wider ${isExamModal ? 'text-red-700' : 'text-slate-600'}`}>
-                    LOCATION / LINK
+                  <label className={`block text-xs sm:text-sm font-bold tracking-tight ${isExamModal ? 'text-red-700' : 'text-slate-800'}`}>
+                    Location / Link
                   </label>
                   <input
                     type="text"
                     value={evtLocation}
                     onChange={(e) => setEvtLocation(e.target.value)}
                     placeholder="Room, building, or exam link"
-                    className={`w-full bg-slate-50 border rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 transition-all min-h-[46px] box-border ${
+                    className={`w-full bg-[#f4f6f9] border rounded-2xl px-4 py-3.5 text-sm font-semibold text-slate-900 transition-all min-h-[48px] box-border ${
                       isExamModal
-                        ? 'border-red-200 bg-red-50/20 placeholder:text-red-300 focus:bg-white focus:border-red-600 focus:ring-1 focus:ring-red-600/20'
-                        : 'border-slate-200/90 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10'
+                        ? 'border-red-200 bg-red-50/30 placeholder:text-red-300 focus:bg-white focus:border-red-600'
+                        : 'border-slate-200/60 focus:bg-white focus:border-slate-900'
                     }`}
                   />
                 </div>
@@ -804,18 +815,18 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         </form>
       )}
 
-      {/* 2. ADD / EDIT CLASS FORM — STRICT SINGLE-COLUMN VERTICAL LAYOUT */}
+      {/* 2. ADD / EDIT CLASS FORM — MATCHING SCREENSHOT 2-COLUMN LAYOUT */}
       {modalType === 'class' && (
         <form onSubmit={handleClsSubmit} className="space-y-4 pb-1 w-full box-border">
           <div className="space-y-1.5">
-            <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">CLASS NAME</label>
+            <label className="block text-xs sm:text-sm font-bold text-slate-800 tracking-tight">Class Name</label>
             <input
               type="text"
               required
               value={clsName}
               onChange={(e) => setClsName(e.target.value)}
               placeholder="e.g. Organic Chemistry"
-              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
+              className="w-full bg-[#f4f6f9] border border-slate-200/60 rounded-2xl px-4 py-3.5 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all min-h-[48px] box-border"
             />
           </div>
 
@@ -825,25 +836,27 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             false
           )}
 
-          {/* SINGLE-COLUMN VERTICAL STACK FOR CLASS TIMES */}
-          <div className="space-y-1.5">
-            <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">START TIME</label>
-            <input
-              type="time"
-              value={clsStartTime}
-              onChange={(e) => setClsStartTime(e.target.value)}
-              className="w-full max-w-[170px] bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
-            />
-          </div>
+          {/* Start Time & End Time 2-Column Row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="block text-xs sm:text-sm font-bold text-slate-800 tracking-tight">Start Time</label>
+              <input
+                type="time"
+                value={clsStartTime}
+                onChange={(e) => setClsStartTime(e.target.value)}
+                className="w-full bg-[#f4f6f9] border border-slate-200/60 rounded-2xl px-3.5 py-3.5 text-xs sm:text-sm font-semibold text-slate-900 text-center focus:bg-white focus:border-slate-900 transition-all min-h-[48px] box-border cursor-pointer"
+              />
+            </div>
 
-          <div className="space-y-1.5">
-            <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">END TIME</label>
-            <input
-              type="time"
-              value={clsEndTime}
-              onChange={(e) => setClsEndTime(e.target.value)}
-              className="w-full max-w-[170px] bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
-            />
+            <div className="space-y-1.5">
+              <label className="block text-xs sm:text-sm font-bold text-slate-800 tracking-tight">End Time</label>
+              <input
+                type="time"
+                value={clsEndTime}
+                onChange={(e) => setClsEndTime(e.target.value)}
+                className="w-full bg-[#f4f6f9] border border-slate-200/60 rounded-2xl px-3.5 py-3.5 text-xs sm:text-sm font-semibold text-slate-900 text-center focus:bg-white focus:border-slate-900 transition-all min-h-[48px] box-border cursor-pointer"
+              />
+            </div>
           </div>
 
           {renderProfileSelector(clsProfile, setClsProfile)}

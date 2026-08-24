@@ -8,16 +8,17 @@ interface ClassesViewProps {
   onOpenAddExamModal?: () => void;
 }
 
-const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 
 const getTodayDayNum = () => {
   const d = new Date().getDay();
-  return d === 0 ? 7 : d;
+  if (d === 0 || d === 6) return 1; // Default to Monday if today is Saturday or Sunday
+  return d;
 };
 
 export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, onOpenAddExamModal }) => {
   const { classes, events, deleteClass, deleteEvent, filterByProfile, activeProfile, profileColors } = useStore();
-  const [selectedMobileDay, setSelectedMobileDay] = useState<number>(getTodayDayNum()); // 1 = Mon, ..., 7 = Sun
+  const [selectedMobileDay, setSelectedMobileDay] = useState<number>(getTodayDayNum()); // 1 = Mon, ..., 5 = Fri
 
   const filteredClasses = useMemo(() => {
     return filterByProfile(classes);
@@ -30,14 +31,14 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
     return [...result].sort((a, b) => a.event_date.localeCompare(b.event_date));
   }, [events, filterByProfile]);
 
-  // Map classes by day of week (1=Mon ... 7=Sun)
+  // Map classes by day of week (1=Mon ... 5=Fri)
   const classesByDay = useMemo(() => {
     const map = new Map<number, ClassItem[]>();
-    for (let i = 1; i <= 7; i++) map.set(i, []);
+    for (let i = 1; i <= 5; i++) map.set(i, []);
 
     filteredClasses.forEach((cls) => {
       cls.days_of_week.forEach((dayNum) => {
-        if (map.has(dayNum)) {
+        if (dayNum >= 1 && dayNum <= 5 && map.has(dayNum)) {
           map.get(dayNum)!.push(cls);
         }
       });
@@ -70,10 +71,10 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
         </button>
       </div>
 
-      {/* MOBILE LAYOUT: Horizontal Day Selector + Vertical Day Schedule */}
-      <div className="lg:hidden space-y-5">
-        {/* Day Selector Bar */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+      {/* MOBILE LAYOUT: Horizontal 5-Day Selector + Vertical Day Schedule */}
+      <div className="lg:hidden space-y-4">
+        {/* Day Selector Bar — 5 equal skinny columns that fit the screen */}
+        <div className="grid grid-cols-5 gap-1.5 pb-1">
           {DAY_NAMES.map((name, idx) => {
             const dayNum = idx + 1;
             const isSelected = selectedMobileDay === dayNum;
@@ -83,19 +84,19 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
               <button
                 key={dayNum}
                 onClick={() => setSelectedMobileDay(dayNum)}
-                className={`flex flex-col items-center justify-center py-2.5 px-4 rounded-xl text-xs font-semibold shrink-0 transition-all cursor-pointer ${
+                className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   isSelected
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                    ? 'bg-blue-600 text-white shadow-xs scale-[1.02]'
+                    : 'bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50'
                 }`}
               >
-                <span>{name}</span>
+                <span className="text-xs font-black">{name}</span>
                 <span
-                  className={`text-[10px] mt-0.5 font-bold ${
+                  className={`text-[10px] mt-0.5 font-semibold ${
                     isSelected ? 'text-blue-100' : 'text-slate-400'
                   }`}
                 >
-                  {count} {count === 1 ? 'class' : 'classes'}
+                  {count} {count === 1 ? 'class' : 'cls'}
                 </span>
               </button>
             );
@@ -189,7 +190,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
       </div>
 
       {/* DESKTOP LAYOUT: Clean Mon–Fri Weekly Timetable */}
-      <div className="hidden lg:grid grid-cols-5 gap-4">
+      <div className="hidden lg:grid grid-cols-5 gap-2.5">
         {DAY_NAMES.slice(0, 5).map((name, idx) => {
           const dayNum = idx + 1;
           const dayClasses = classesByDay.get(dayNum) || [];
@@ -369,11 +370,11 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
 
                   <h4 className="text-sm font-extrabold text-slate-900">{exam.title}</h4>
 
-                  <div className="flex items-center gap-3 text-xs font-medium text-slate-600 pt-1">
+                  <div className="flex items-center gap-3 text-xs font-semibold text-slate-600 pt-1">
                     {exam.start_time && (
                       <span className="flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-slate-400" />
-                        {exam.start_time} {exam.end_time ? `- ${exam.end_time}` : ''}
+                        <Clock className="w-3.5 h-3.5 text-red-500" />
+                        {formatTime12Hour(exam.start_time)} {exam.end_time ? `- ${formatTime12Hour(exam.end_time)}` : ''}
                       </span>
                     )}
                     {exam.location && (

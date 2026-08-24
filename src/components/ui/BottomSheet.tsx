@@ -49,39 +49,31 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
         {/* Mobile Drag Handle Bar */}
-        <div className="pt-2.5 pb-1 flex justify-center sm:hidden cursor-pointer shrink-0" onClick={onClose}>
-          <div className={`w-12 h-1.5 rounded-full transition-colors ${isRedHeader ? 'bg-red-200 hover:bg-red-300' : 'bg-slate-300 hover:bg-slate-400'}`} />
+        <div className="pt-3 pb-1 flex justify-center cursor-pointer shrink-0" onClick={onClose}>
+          <div className={`w-12 h-1.5 rounded-full transition-colors ${isRedHeader ? 'bg-red-300' : 'bg-slate-300/80'}`} />
         </div>
 
         {/* Header */}
-        <div className={`flex items-center justify-between px-4 sm:px-5 py-3 border-b shrink-0 ${isRedHeader ? 'bg-red-50/50 border-red-100' : 'border-slate-100'}`}>
-          <div className="flex items-center gap-2.5">
-            {badgeEmoji && (
-              <span className={`w-9 h-9 rounded-xl flex items-center justify-center text-base shadow-2xs shrink-0 ${isRedHeader ? 'bg-red-100 text-red-600 border border-red-200' : 'bg-slate-100'}`}>
-                {badgeEmoji}
-              </span>
-            )}
-            <div>
-              <h3 className={`text-base font-black tracking-tight leading-snug ${isRedHeader ? 'text-red-950' : 'text-slate-900'}`}>{title}</h3>
-              {subtitle && <p className={`text-[11px] font-medium leading-none mt-0.5 ${isRedHeader ? 'text-red-600 font-semibold' : 'text-slate-500'}`}>{subtitle}</p>}
-            </div>
+        <div className={`flex items-center justify-between px-6 py-2.5 shrink-0 ${isRedHeader ? 'bg-red-50/50 border-b border-red-100' : ''}`}>
+          <div className="flex items-center gap-2 min-w-0">
+            <h3 className={`text-xl font-extrabold tracking-tight truncate ${isRedHeader ? 'text-red-950' : 'text-slate-900'}`}>{title}</h3>
           </div>
-
           <button
+            type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-100/90 hover:bg-slate-200 text-slate-500 hover:text-slate-900 flex items-center justify-center transition-all cursor-pointer shrink-0 active:scale-95 min-h-[44px] min-w-[44px]"
+            className="w-9 h-9 rounded-full bg-slate-100/90 hover:bg-slate-200 text-slate-700 hover:text-slate-900 flex items-center justify-center transition-all cursor-pointer shrink-0 active:scale-95"
             title="Close"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5 stroke-[2.5]" />
           </button>
         </div>
 
         {/* Scrollable Form Body */}
-        <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-3.5 space-y-3 min-h-0">{children}</div>
+        <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-4 space-y-4 min-h-0">{children}</div>
 
         {/* Optional Sticky Footer Action Bar */}
         {footer && (
-          <div className="px-4 sm:px-5 py-3 border-t border-slate-100 bg-slate-50/95 backdrop-blur-xs shrink-0">
+          <div className="px-5 sm:px-6 py-3 border-t border-slate-100 bg-white shrink-0">
             {footer}
           </div>
         )}
