@@ -110,6 +110,23 @@ export const getTodayDateString = (): string => {
   return `${year}-${month}-${day}`;
 };
 
+export const formatTime12Hour = (timeStr?: string): string => {
+  if (!timeStr) return '';
+  const trimmed = timeStr.trim();
+  if (trimmed.toUpperCase().includes('AM') || trimmed.toUpperCase().includes('PM')) {
+    return trimmed;
+  }
+  const parts = trimmed.split(':');
+  if (parts.length < 2) return trimmed;
+  let hours = parseInt(parts[0], 10);
+  const minutes = parts[1];
+  if (isNaN(hours)) return trimmed;
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  if (hours === 0) hours = 12;
+  return `${hours}:${minutes} ${ampm}`;
+};
+
 export const isAnniversaryEvent = (evt: CalendarEvent): boolean => {
   if (evt.event_type === 'birthday') return true;
   const titleLower = evt.title.toLowerCase();

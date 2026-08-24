@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useStore, getTodayDateString } from '../../context/StoreContext';
+import { useStore, getTodayDateString, formatTime12Hour } from '../../context/StoreContext';
 import { CalendarEvent, CATEGORY_METAS, EventType, ProfilePersona } from '../../types';
 import { getAnniversaryEvent, getCommonHolidayEvent } from '../../utils/holidays';
 import {
@@ -700,8 +700,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                     className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50/70 border border-slate-100 hover:bg-slate-100/80 transition-all cursor-pointer group"
                   >
                     {/* Time Column */}
-                    <div className="w-16 shrink-0 text-right text-xs font-bold text-slate-500 pt-0.5">
-                      {evt.start_time || 'All Day'}
+                    <div className="w-20 shrink-0 text-right text-xs font-bold text-slate-500 pt-0.5">
+                      {evt.start_time ? formatTime12Hour(evt.start_time) : 'All Day'}
                     </div>
 
                     {/* Timeline Accent Dot & Line */}
@@ -738,7 +738,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
 
                       <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-0.5">
                         {evt.end_time && (
-                          <span className="font-semibold text-slate-500">Until {evt.end_time}</span>
+                          <span className="font-semibold text-slate-500">Until {formatTime12Hour(evt.end_time)}</span>
                         )}
                         {evt.location && (
                           <span className="flex items-center gap-1 font-medium text-slate-400 truncate">

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useStore, getTodayDateString } from '../../context/StoreContext';
+import { useStore, getTodayDateString, formatTime12Hour } from '../../context/StoreContext';
 import { ClassItem } from '../../types';
 import { Plus, BookOpen, Clock, MapPin, User, Trash2, Edit3, AlertCircle } from 'lucide-react';
 
@@ -136,7 +136,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                         className="text-xs font-black text-white px-2.5 py-0.5 rounded-lg shadow-2xs"
                         style={{ backgroundColor: cardColor }}
                       >
-                        {cls.start_time} - {cls.end_time}
+                        {formatTime12Hour(cls.start_time)} - {formatTime12Hour(cls.end_time)}
                       </span>
                       <h3 className="text-base font-black text-slate-900 tracking-tight">{cls.name}</h3>
                     </div>
@@ -240,7 +240,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                             className="text-[11px] font-black text-white px-2 py-0.5 rounded-md shadow-2xs"
                             style={{ backgroundColor: cardColor }}
                           >
-                            {cls.start_time}
+                            {formatTime12Hour(cls.start_time)}
                           </span>
 
                           <div className="flex items-center gap-1">
