@@ -209,17 +209,21 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
             return (
               <div
                 key={h.id}
-                className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:border-slate-300"
+                style={{ borderLeftColor: badgeColor, borderLeftWidth: '4px' }}
+                className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:shadow-md hover:border-slate-300"
               >
                 {/* Left: Habit Info */}
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-lg shrink-0">
+                  <div
+                    className="w-11 h-11 rounded-2xl flex items-center justify-center text-xl shrink-0 shadow-2xs"
+                    style={{ backgroundColor: `${badgeColor}15`, color: badgeColor }}
+                  >
                     {h.emoji || '✨'}
                   </div>
 
                   <div className="min-w-0 space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-sm font-bold text-slate-900 truncate">{h.title}</h3>
+                      <h3 className="text-sm font-extrabold text-slate-900 truncate">{h.title}</h3>
 
                       {/* EDIT HABIT BUTTON */}
                       <button
@@ -232,7 +236,7 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
 
                       {activeProfile === 'Both' && (
                         <span
-                          className="text-[10px] font-bold text-white px-2 py-0.5 rounded-md"
+                          className="text-[10px] font-extrabold text-white px-2 py-0.5 rounded-full shadow-2xs"
                           style={{ backgroundColor: badgeColor }}
                         >
                           {ownerName}
@@ -242,9 +246,14 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
                       {/* PERSISTENT SUPABASE DAILY SCHEDULE TOGGLE BUTTON */}
                       <button
                         onClick={() => toggleHabitDailySchedule(h)}
-                        className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-lg transition-all cursor-pointer border min-h-[36px] ${
+                        style={
                           isShownInDailySchedule
-                            ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                            ? { backgroundColor: badgeColor, borderColor: badgeColor }
+                            : undefined
+                        }
+                        className={`flex items-center gap-1.5 text-[11px] font-extrabold px-2.5 py-1 rounded-xl transition-all cursor-pointer border min-h-[36px] ${
+                          isShownInDailySchedule
+                            ? 'text-white shadow-2xs scale-[1.02]'
                             : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
                         }`}
                         title={
@@ -254,11 +263,11 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
                         }
                       >
                         <Calendar className="w-3 h-3" />
-                        <span>Show in Daily Schedule {isShownInDailySchedule ? '✓' : '○'}</span>
+                        <span>Show in Schedule {isShownInDailySchedule ? '✓' : '○'}</span>
                       </button>
                     </div>
 
-                    <p className="text-xs text-slate-400 font-medium">
+                    <p className="text-xs text-slate-500 font-semibold">
                       {h.target_quantity && h.target_quantity > 1
                         ? `Target: ${h.target_quantity} ${h.target_unit || 'times'}`
                         : activeDays.length === 7
@@ -285,7 +294,7 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
                           !isScheduledForDay
                             ? 'bg-slate-50 text-slate-200 border border-dashed border-slate-200 cursor-not-allowed'
                             : isCompleted
-                            ? 'text-white font-bold shadow-xs scale-105'
+                            ? 'text-white font-black shadow-2xs scale-105 ring-2 ring-offset-1 ring-slate-900/10'
                             : w.isToday
                             ? 'bg-slate-50 text-slate-900 border-2 border-slate-400 font-bold'
                             : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
