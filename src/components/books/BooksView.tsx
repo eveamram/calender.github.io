@@ -297,9 +297,7 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
                 <span className="text-rose-500 font-sans font-normal">♡</span>
               </h1>
 
-              <p className="text-xs text-stone-700 font-medium italic opacity-90">
-                “A reader lives a thousand lives before he dies.” — George R.R. Martin
-              </p>
+
 
               {/* Mobile-Friendly Stats Grid */}
               <div className="grid grid-cols-3 gap-2 pt-2">

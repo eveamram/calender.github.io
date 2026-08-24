@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useStore, getTodayDateString } from '../../context/StoreContext';
 import { BottomSheet } from '../ui/BottomSheet';
 import { EventType, ProfilePersona, MealType, BookStatus, CalendarEvent, ClassItem, BookItem, HabitItem, CATEGORY_METAS, GroceryCategory } from '../../types';
-import { ChevronDown, ChevronUp, Palette, Trash2, Calendar as CalendarIcon, Sparkles, Loader2, Plus } from 'lucide-react';
+import { ChevronDown, ChevronUp, Palette, Loader2 } from 'lucide-react';
 
 interface CreationModalContainerProps {
   modalType: 'event' | 'class' | 'task' | 'habit' | 'grocery' | 'meal' | 'book' | null;
   onClose: () => void;
   initialDate?: string;
+  initialEventType?: EventType;
   eventToEdit?: CalendarEvent | null;
   classToEdit?: ClassItem | null;
   bookToEdit?: BookItem | null;
@@ -44,6 +45,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   modalType,
   onClose,
   initialDate,
+  initialEventType,
   eventToEdit,
   classToEdit,
   bookToEdit,
@@ -55,7 +57,6 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   const {
     addEvent,
     updateEvent,
-    deleteEvent,
     addClass,
     updateClass,
     addTask,
@@ -86,7 +87,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
   // 1. EVENT FORM STATE
   const [evtTitle, setEvtTitle] = useState('');
-  const [evtType, setEvtType] = useState<EventType>('personal');
+  const [evtType, setEvtType] = useState<EventType>(initialEventType || 'personal');
   const [evtDate, setEvtDate] = useState(initialDate || getTodayDateString());
   const [evtStartTime, setEvtStartTime] = useState('09:00');
   const [evtEndTime, setEvtEndTime] = useState('10:00');
@@ -101,7 +102,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
       setShowEvtMore(false);
       if (eventToEdit) {
         setEvtTitle(eventToEdit.title);
-        setEvtType((eventToEdit.event_type as EventType) || 'personal');
+        setEvtType((eventToEdit.event_type as EventType) || initialEventType || 'personal');
         setEvtDate(eventToEdit.event_date);
         setEvtStartTime(eventToEdit.start_time || '09:00');
         setEvtEndTime(eventToEdit.end_time || '10:00');
@@ -111,6 +112,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
       } else {
         setEvtDate(initialDate || getTodayDateString());
         setEvtTitle('');
+        setEvtType(initialEventType || 'personal');
         setEvtLocation('');
         setEvtColor('');
         setEvtStartTime('09:00');
@@ -118,7 +120,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         setEvtProfile(defaultProfile);
       }
     }
-  }, [modalType, initialDate, eventToEdit, defaultProfile]);
+  }, [modalType, initialDate, initialEventType, eventToEdit, defaultProfile]);
 
   // 2. CLASS FORM STATE
   const [clsName, setClsName] = useState('');
@@ -128,7 +130,6 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   const [clsEndTime, setClsEndTime] = useState('11:15');
   const [clsDays, setClsDays] = useState<number[]>([1, 3]);
   const [clsProfile, setClsProfile] = useState<ProfilePersona>(defaultProfile);
-  const [clsColor, setClsColor] = useState('');
 
   useEffect(() => {
     if (modalType === 'class') {
@@ -142,8 +143,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         setClsEndTime(classToEdit.end_time || '11:15');
         setClsDays(classToEdit.days_of_week && classToEdit.days_of_week.length > 0 ? classToEdit.days_of_week : [1, 3]);
         setClsProfile(classToEdit.profile || defaultProfile);
-        setClsColor(classToEdit.color || '');
-        setShowClsMore(Boolean(classToEdit.room || classToEdit.instructor || classToEdit.color));
+        setShowClsMore(Boolean(classToEdit.room || classToEdit.instructor));
       } else {
         setShowClsMore(false);
         setClsName('');
@@ -153,7 +153,6 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         setClsEndTime('11:15');
         setClsDays(initialClassDay ? [initialClassDay] : [1, 3]);
         setClsProfile(defaultProfile);
-        setClsColor('');
       }
     }
   }, [modalType, classToEdit, initialClassDay, defaultProfile]);
@@ -180,11 +179,12 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
   // 4. HABIT FORM STATE
   const [hbtTitle, setHbtTitle] = useState('');
-  const [hbtEmoji, setHbtEmoji] = useState('💧');
+  const [hbtEmoji, setHbtEmoji] = useState('⚡');
   const [hbtQty, setHbtQty] = useState('');
   const [hbtDays, setHbtDays] = useState<number[]>([1, 2, 3, 4, 5, 6, 7]);
   const [hbtProfile, setHbtProfile] = useState<ProfilePersona>(defaultProfile);
-  const [hbtShowInDailySchedule, setHbtShowInDailySchedule] = useState<boolean>(false);
+  const [hbtShowInDailySchedule, setHbtShowInDailySchedule] = useState<boolean>(true);
+  const [hbtColor, setHbtColor] = useState('');
 
   useEffect(() => {
     if (modalType === 'habit') {
@@ -193,18 +193,20 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
       setShowHbtMore(false);
       if (habitToEdit) {
         setHbtTitle(habitToEdit.title);
-        setHbtEmoji(habitToEdit.emoji || '✨');
+        setHbtEmoji(habitToEdit.emoji || '⚡');
         setHbtQty(habitToEdit.target_quantity ? String(habitToEdit.target_quantity) : '');
         setHbtDays(habitToEdit.active_days && habitToEdit.active_days.length > 0 ? habitToEdit.active_days : [1, 2, 3, 4, 5, 6, 7]);
         setHbtProfile(habitToEdit.profile || defaultProfile);
-        setHbtShowInDailySchedule(habitToEdit.show_in_daily_schedule ?? false);
+        setHbtShowInDailySchedule(habitToEdit.show_in_daily_schedule ?? true);
+        setHbtColor('');
       } else {
         setHbtTitle('');
-        setHbtEmoji('💧');
+        setHbtEmoji('⚡');
         setHbtQty('');
         setHbtDays([1, 2, 3, 4, 5, 6, 7]);
         setHbtProfile(defaultProfile);
-        setHbtShowInDailySchedule(false);
+        setHbtShowInDailySchedule(true);
+        setHbtColor('');
       }
     }
   }, [modalType, habitToEdit, defaultProfile]);
@@ -229,8 +231,8 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
   // 6. MEAL FORM STATE
   const [melTitle, setMelTitle] = useState('');
-  const [melDate, setMelDate] = useState<string>(initialDate || getTodayDateString());
   const [melDay, setMelDay] = useState<number>(initialMealDay || 1);
+  const [melDate, setMelDate] = useState<string>(initialDate || getTodayDateString());
   const [melType, setMelType] = useState<MealType>(initialMealType || 'lunch');
   const [melNotes, setMelNotes] = useState('');
   const [melProfile, setMelProfile] = useState<ProfilePersona>(defaultProfile);
@@ -241,8 +243,8 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
       setErrorMsg(null);
       setShowMelMore(false);
       setMelTitle('');
-      setMelDate(initialDate || getTodayDateString());
       setMelDay(initialMealDay || 1);
+      setMelDate(initialDate || getTodayDateString());
       setMelType(initialMealType || 'lunch');
       setMelNotes('');
       setMelProfile(defaultProfile);
@@ -292,11 +294,11 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
     return 1;
   };
 
-  // Helper Segmented Profile Selector UI Component
+  // Sleek & Compact Profile Selector
   const renderProfileSelector = (selected: ProfilePersona, setSelected: (p: ProfilePersona) => void) => (
-    <div>
-      <label className="block text-[11px] font-bold text-slate-700 mb-1">Profile Owner</label>
-      <div className="flex bg-slate-100 p-1 rounded-xl gap-1 items-center">
+    <div className="space-y-1">
+      <label className="block text-[11px] font-extrabold text-slate-600">PROFILE OWNER</label>
+      <div className="grid grid-cols-3 bg-slate-100 p-0.5 rounded-xl gap-0.5 items-center border border-slate-200/60">
         {(['Eve', 'Abbie', 'Both'] as ProfilePersona[]).map((p) => {
           const isSelected = selected === p;
           return (
@@ -304,7 +306,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               type="button"
               key={p}
               onClick={() => setSelected(p)}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+              className={`py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer min-h-[38px] flex items-center justify-center ${
                 isSelected
                   ? 'bg-slate-900 text-white shadow-2xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
@@ -318,14 +320,14 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
     </div>
   );
 
-  // Helper Color Swatches UI Component
+  // Sleek & Compact Color Swatches
   const renderColorPicker = (selectedColor: string, setSelectedColor: (c: string) => void) => (
-    <div>
-      <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center gap-1">
-        <Palette className="w-3 h-3 text-slate-700" />
-        <span>Color Theme</span>
+    <div className="space-y-1">
+      <label className="block text-[11px] font-extrabold text-slate-600 flex items-center gap-1">
+        <Palette className="w-3 h-3 text-slate-600" />
+        <span>COLOR THEME</span>
       </label>
-      <div className="flex items-center gap-2 overflow-x-auto py-0.5">
+      <div className="flex items-center gap-2 overflow-x-auto py-0.5 no-scrollbar">
         {COLOR_SWATCHES.map((c) => {
           const isSelected = selectedColor === c.hex;
           return (
@@ -335,7 +337,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               onClick={() => setSelectedColor(c.hex)}
               className={`w-7 h-7 min-w-[28px] rounded-full transition-all shrink-0 cursor-pointer border ${
                 isSelected
-                  ? 'ring-2 ring-slate-900 ring-offset-1 scale-105 shadow-2xs border-transparent'
+                  ? 'ring-2 ring-slate-900 ring-offset-1 scale-110 shadow-2xs border-transparent'
                   : 'border-slate-300 hover:scale-105'
               }`}
               style={{ backgroundColor: c.hex }}
@@ -347,10 +349,10 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
     </div>
   );
 
-  // Helper Day Selector UI Component
+  // Sleek & Compact Day Selector
   const renderDaySelector = (selectedDays: number[], toggleDay: (n: number) => void) => (
-    <div>
-      <label className="block text-[11px] font-bold text-slate-700 mb-1">Active Days</label>
+    <div className="space-y-1">
+      <label className="block text-[11px] font-extrabold text-slate-600">DAYS OF WEEK</label>
       <div className="grid grid-cols-7 gap-1">
         {WEEK_DAYS.map((d) => {
           const isSelected = selectedDays.includes(d.num);
@@ -359,9 +361,9 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               type="button"
               key={d.num}
               onClick={() => toggleDay(d.num)}
-              className={`h-9 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center cursor-pointer ${
+              className={`h-9.5 rounded-xl text-xs font-black transition-all flex items-center justify-center cursor-pointer ${
                 isSelected
-                  ? 'bg-slate-900 text-white shadow-2xs scale-105'
+                  ? 'bg-slate-900 text-white shadow-2xs scale-[1.02]'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
@@ -380,6 +382,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
     setIsSaving(true);
     setErrorMsg(null);
     try {
+      const finalColor = evtType === 'exam' ? '#f43f5e' : (evtColor || undefined);
       let ok = false;
       if (eventToEdit) {
         ok = await updateEvent(eventToEdit.id, {
@@ -389,7 +392,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
           start_time: evtStartTime,
           end_time: evtEndTime,
           location: evtLocation.trim() || undefined,
-          color: evtColor || undefined,
+          color: finalColor,
           profile: evtProfile,
         });
       } else {
@@ -400,12 +403,12 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
           start_time: evtStartTime,
           end_time: evtEndTime,
           location: evtLocation.trim() || undefined,
-          color: evtColor || undefined,
+          color: finalColor,
           profile: evtProfile,
         });
       }
       if (ok) onClose();
-      else setErrorMsg('Could not save event to Supabase. Please try again.');
+      else setErrorMsg('Could not save event. Please try again.');
     } catch (err: any) {
       setErrorMsg(err?.message || 'Save failed.');
     } finally {
@@ -423,6 +426,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
     setIsSaving(true);
     setErrorMsg(null);
     try {
+      const personaColor = profileColors[clsProfile] || (clsProfile === 'Abbie' ? '#ec4899' : '#2563eb');
       let ok = false;
       if (classToEdit) {
         ok = await updateClass(classToEdit.id, {
@@ -433,7 +437,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
           end_time: clsEndTime,
           days_of_week: clsDays,
           profile: clsProfile,
-          color: clsColor || undefined,
+          color: personaColor,
         });
       } else {
         ok = await addClass({
@@ -444,11 +448,11 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
           end_time: clsEndTime,
           days_of_week: clsDays,
           profile: clsProfile,
-          color: clsColor || undefined,
+          color: personaColor,
         });
       }
       if (ok) onClose();
-      else setErrorMsg('Could not save class to Supabase. Please try again.');
+      else setErrorMsg('Could not save class. Please try again.');
     } catch (err: any) {
       setErrorMsg(err?.message || 'Save failed.');
     } finally {
@@ -464,14 +468,14 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
     try {
       const ok = await addTask({
         title: tskTitle.trim(),
-        is_completed: false,
         due_date: tskDueDate || undefined,
         due_time: tskDueTime || undefined,
         priority: tskPriority,
+        is_completed: false,
         profile: tskProfile,
       });
       if (ok) onClose();
-      else setErrorMsg('Could not save task to Supabase. Please try again.');
+      else setErrorMsg('Could not save task. Please try again.');
     } catch (err: any) {
       setErrorMsg(err?.message || 'Save failed.');
     } finally {
@@ -489,7 +493,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
       if (habitToEdit) {
         ok = await updateHabit(habitToEdit.id, {
           title: hbtTitle.trim(),
-          emoji: hbtEmoji.trim() || '✨',
+          emoji: hbtEmoji.trim() || '⚡',
           target_quantity: hbtQty ? Number(hbtQty) : undefined,
           active_days: hbtDays,
           profile: hbtProfile,
@@ -498,7 +502,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
       } else {
         ok = await addHabit({
           title: hbtTitle.trim(),
-          emoji: hbtEmoji.trim() || '✨',
+          emoji: hbtEmoji.trim() || '⚡',
           target_quantity: hbtQty ? Number(hbtQty) : undefined,
           active_days: hbtDays,
           profile: hbtProfile,
@@ -506,7 +510,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         });
       }
       if (ok) onClose();
-      else setErrorMsg('Could not save habit to Supabase. Please try again.');
+      else setErrorMsg('Could not save habit. Please try again.');
     } catch (err: any) {
       setErrorMsg(err?.message || 'Save failed.');
     } finally {
@@ -522,7 +526,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
     try {
       const ok = await addGroceryItem({
         name: grcTitle.trim(),
-        quantity: grcQty.trim() || '1',
+        quantity: grcQty.trim() || undefined,
         category: grcCategory,
         is_completed: false,
         profile: grcProfile,
@@ -599,68 +603,40 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   const getModalMeta = () => {
     switch (modalType) {
       case 'event':
-        return {
-          title: eventToEdit ? 'Edit Event' : 'Add Event',
-          subtitle: 'Schedule a calendar event or reminder',
-          emoji: '📅',
-        };
+        return { title: eventToEdit ? 'Edit Event' : 'Add Event', subtitle: 'Schedule an event', emoji: '📅' };
       case 'class':
-        return {
-          title: classToEdit ? 'Edit Class' : 'Add Class',
-          subtitle: 'Add or update your course timetable',
-          emoji: '📚',
-        };
+        return { title: classToEdit ? 'Edit Class' : 'Add Class', subtitle: 'Course timetable', emoji: '📚' };
       case 'habit':
-        return {
-          title: habitToEdit ? 'Edit Habit' : 'Add Habit',
-          subtitle: 'Build daily routines and track progress',
-          emoji: '⚡',
-        };
+        return { title: habitToEdit ? 'Edit Habit' : 'Add Habit', subtitle: 'Daily routine', emoji: '⚡' };
       case 'task':
-        return {
-          title: 'Add Task',
-          subtitle: 'Create a new action item to complete',
-          emoji: '✅',
-        };
+        return { title: 'Add Task', subtitle: 'Action item', emoji: '✅' };
       case 'grocery':
-        return {
-          title: 'Add Grocery Item',
-          subtitle: 'Keep your shopping list organized',
-          emoji: '🛒',
-        };
+        return { title: 'Add Grocery Item', subtitle: 'Shopping list', emoji: '🛒' };
       case 'meal':
-        return {
-          title: 'Add Meal',
-          subtitle: 'Plan your daily menu & recipes',
-          emoji: '🍳',
-        };
+        return { title: 'Add Meal', subtitle: 'Menu planner', emoji: '🍳' };
       case 'book':
-        return {
-          title: bookToEdit ? 'Edit Book' : 'Add to Reading List',
-          subtitle: 'Log books and track reading status',
-          emoji: '📖',
-        };
+        return { title: bookToEdit ? 'Edit Book' : 'Add Book', subtitle: 'Reading shelf', emoji: '📖' };
       default:
         return { title: 'Add New Item', subtitle: '', emoji: '✨' };
     }
   };
 
   const renderFooterButtons = (saveLabel = 'Save') => (
-    <div className="flex items-center gap-2 pt-2">
+    <div className="flex items-center gap-2 pt-2.5 sticky bottom-0 bg-white/95 backdrop-blur-xs border-t border-slate-100 z-10 pb-1">
       <button
         type="button"
         onClick={onClose}
         disabled={isSaving}
-        className="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-extrabold transition-all cursor-pointer active:scale-95"
+        className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-extrabold transition-all cursor-pointer active:scale-95 flex items-center justify-center"
       >
         Cancel
       </button>
       <button
         type="submit"
         disabled={isSaving}
-        className="flex-1 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-extrabold shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
+        className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-extrabold shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
       >
-        {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : saveLabel}
+        {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin text-white" /> : saveLabel}
       </button>
     </div>
   );
@@ -676,78 +652,59 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
       badgeEmoji={modalMeta.emoji}
     >
       {errorMsg && (
-        <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-2xl text-xs font-bold mb-3">
+        <div className="bg-rose-50 border border-rose-200 text-rose-700 px-3 py-2 rounded-xl text-xs font-bold mb-2">
           {errorMsg}
         </div>
       )}
 
       {/* 1. ADD / EDIT EVENT FORM */}
       {modalType === 'event' && (
-        <form onSubmit={handleEvtSubmit} className="space-y-2.5 pb-1">
-          <div>
-            <label className="block text-[11px] font-bold text-slate-700 mb-1">Event Title</label>
+        <form onSubmit={handleEvtSubmit} className="space-y-3 pb-1">
+          <div className="space-y-1">
+            <label className="block text-[11px] font-extrabold text-slate-600">EVENT TITLE</label>
             <input
               type="text"
               required
               value={evtTitle}
               onChange={(e) => setEvtTitle(e.target.value)}
               placeholder="What's happening?"
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-[11px] font-extrabold text-slate-600">DATE</label>
+            <input
+              type="date"
+              required
+              value={evtDate}
+              onChange={(e) => setEvtDate(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Date</label>
-              <input
-                type="date"
-                required
-                value={evtDate}
-                onChange={(e) => setEvtDate(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Category</label>
-              <select
-                value={evtType}
-                onChange={(e) => setEvtType(e.target.value as EventType)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 cursor-pointer focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
-              >
-                {(Object.keys(CATEGORY_METAS) as EventType[]).map((catKey) => {
-                  const meta = CATEGORY_METAS[catKey];
-                  return (
-                    <option key={catKey} value={catKey}>
-                      {meta.emoji} {meta.label}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Start Time</label>
+            <div className="space-y-1">
+              <label className="block text-[11px] font-extrabold text-slate-600">START TIME</label>
               <input
                 type="time"
                 value={evtStartTime}
                 onChange={(e) => setEvtStartTime(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+                className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
               />
             </div>
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">End Time</label>
+            <div className="space-y-1">
+              <label className="block text-[11px] font-extrabold text-slate-600">END TIME</label>
               <input
                 type="time"
                 value={evtEndTime}
                 onChange={(e) => setEvtEndTime(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+                className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
               />
             </div>
           </div>
 
-          {renderColorPicker(evtColor, setEvtColor)}
+          {evtType !== 'exam' && renderColorPicker(evtColor, setEvtColor)}
           {renderProfileSelector(evtProfile, setEvtProfile)}
 
           {/* Collapsible Secondary Fields */}
@@ -755,22 +712,40 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             <button
               type="button"
               onClick={() => setShowEvtMore(!showEvtMore)}
-              className="flex items-center gap-1 text-[11px] font-extrabold text-slate-600 hover:text-slate-900 py-0.5 transition-colors cursor-pointer"
+              className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-900 py-0.5 transition-colors cursor-pointer"
             >
               {showEvtMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              <span>{showEvtMore ? 'Fewer options' : 'More options (Location, Link)'}</span>
+              <span>{showEvtMore ? 'Fewer options' : 'More options (Category, Location)'}</span>
             </button>
 
             {showEvtMore && (
-              <div className="pt-1 space-y-2">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Location / Link</label>
+              <div className="pt-2 space-y-2.5">
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-extrabold text-slate-600">CATEGORY</label>
+                  <select
+                    value={evtType}
+                    onChange={(e) => setEvtType(e.target.value as EventType)}
+                    className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 cursor-pointer focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
+                  >
+                    {(Object.keys(CATEGORY_METAS) as EventType[]).map((catKey) => {
+                      const meta = CATEGORY_METAS[catKey];
+                      return (
+                        <option key={catKey} value={catKey}>
+                          {meta.emoji} {meta.label}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-extrabold text-slate-600">LOCATION / LINK</label>
                   <input
                     type="text"
                     value={evtLocation}
                     onChange={(e) => setEvtLocation(e.target.value)}
-                    placeholder="Room, building, or video link"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+                    placeholder="Room, building, or link"
+                    className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
                   />
                 </div>
               </div>
@@ -783,16 +758,16 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
       {/* 2. ADD / EDIT CLASS FORM */}
       {modalType === 'class' && (
-        <form onSubmit={handleClsSubmit} className="space-y-2.5 pb-1">
-          <div>
-            <label className="block text-[11px] font-bold text-slate-700 mb-1">Class Name</label>
+        <form onSubmit={handleClsSubmit} className="space-y-3 pb-1">
+          <div className="space-y-1">
+            <label className="block text-[11px] font-extrabold text-slate-600">CLASS NAME</label>
             <input
               type="text"
               required
               value={clsName}
               onChange={(e) => setClsName(e.target.value)}
               placeholder="e.g. Organic Chemistry"
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
             />
           </div>
 
@@ -801,27 +776,26 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
           )}
 
           <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Start Time</label>
+            <div className="space-y-1">
+              <label className="block text-[11px] font-extrabold text-slate-600">START TIME</label>
               <input
                 type="time"
                 value={clsStartTime}
                 onChange={(e) => setClsStartTime(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+                className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
               />
             </div>
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">End Time</label>
+            <div className="space-y-1">
+              <label className="block text-[11px] font-extrabold text-slate-600">END TIME</label>
               <input
                 type="time"
                 value={clsEndTime}
                 onChange={(e) => setClsEndTime(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+                className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
               />
             </div>
           </div>
 
-          {renderColorPicker(clsColor, setClsColor)}
           {renderProfileSelector(clsProfile, setClsProfile)}
 
           {/* Collapsible Room / Instructor */}
@@ -829,32 +803,32 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             <button
               type="button"
               onClick={() => setShowClsMore(!showClsMore)}
-              className="flex items-center gap-1 text-[11px] font-extrabold text-slate-600 hover:text-slate-900 py-0.5 transition-colors cursor-pointer"
+              className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-900 py-0.5 transition-colors cursor-pointer"
             >
               {showClsMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
               <span>{showClsMore ? 'Fewer options' : 'More options (Room, Instructor)'}</span>
             </button>
 
             {showClsMore && (
-              <div className="pt-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Room / Hall</label>
+              <div className="pt-2 space-y-2.5">
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-extrabold text-slate-600">ROOM / HALL</label>
                   <input
                     type="text"
                     value={clsRoom}
                     onChange={(e) => setClsRoom(e.target.value)}
                     placeholder="Science 101"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+                    className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
                   />
                 </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Instructor</label>
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-extrabold text-slate-600">INSTRUCTOR</label>
                   <input
                     type="text"
                     value={clsInstructor}
                     onChange={(e) => setClsInstructor(e.target.value)}
                     placeholder="Prof. Smith"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+                    className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
                   />
                 </div>
               </div>
@@ -867,15 +841,15 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
       {/* 3. ADD / EDIT HABIT FORM */}
       {modalType === 'habit' && (
-        <form onSubmit={handleHbtSubmit} className="space-y-2.5 pb-1">
-          <div>
-            <label className="block text-[11px] font-bold text-slate-700 mb-1">Habit Name & Emoji</label>
+        <form onSubmit={handleHbtSubmit} className="space-y-3 pb-1">
+          <div className="space-y-1">
+            <label className="block text-[11px] font-extrabold text-slate-600">HABIT NAME & EMOJI</label>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={hbtEmoji}
                 onChange={(e) => setHbtEmoji(e.target.value)}
-                className="w-11 bg-slate-50 border border-slate-200 rounded-xl text-center text-lg font-bold focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all py-1.5"
+                className="w-10 bg-slate-50 border border-slate-200/90 rounded-xl text-center text-lg font-bold focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all py-1.5 min-h-[42px]"
                 title="Emoji"
               />
               <input
@@ -884,7 +858,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                 value={hbtTitle}
                 onChange={(e) => setHbtTitle(e.target.value)}
                 placeholder="e.g. Drink Water"
-                className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+                className="flex-1 bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
               />
             </div>
 
@@ -895,7 +869,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                   type="button"
                   key={em}
                   onClick={() => setHbtEmoji(em)}
-                  className={`w-7 h-7 rounded-lg text-sm flex items-center justify-center transition-all cursor-pointer ${
+                  className={`w-7 h-7 rounded-lg text-sm flex items-center justify-center transition-all cursor-pointer shrink-0 ${
                     hbtEmoji === em ? 'bg-slate-900 text-white shadow-2xs scale-105' : 'bg-slate-100 hover:bg-slate-200'
                   }`}
                 >
@@ -909,16 +883,18 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             setHbtDays((prev) => (prev.includes(n) ? prev.filter((d) => d !== n) : [...prev, n]))
           )}
 
+          {renderColorPicker(hbtColor, setHbtColor)}
+
           {/* Show in Daily Schedule Toggle */}
-          <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 flex items-center justify-between">
+          <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2 flex items-center justify-between">
             <div className="space-y-0.5">
-              <span className="text-[11px] font-extrabold text-slate-900">Show in Daily Schedule</span>
-              <p className="text-[10px] text-slate-500 font-medium">Display on your daily calendar</p>
+              <span className="text-xs font-bold text-slate-800">Show in Daily Schedule</span>
+              <p className="text-[10px] text-slate-500 font-medium">Display on calendar agenda</p>
             </div>
             <button
               type="button"
               onClick={() => setHbtShowInDailySchedule(!hbtShowInDailySchedule)}
-              className={`px-3 py-1 rounded-lg text-xs font-extrabold transition-all cursor-pointer border ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border min-h-[36px] ${
                 hbtShowInDailySchedule
                   ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
                   : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
@@ -935,21 +911,21 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             <button
               type="button"
               onClick={() => setShowHbtMore(!showHbtMore)}
-              className="flex items-center gap-1 text-[11px] font-extrabold text-slate-600 hover:text-slate-900 py-0.5 transition-colors cursor-pointer"
+              className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-900 py-0.5 transition-colors cursor-pointer"
             >
               {showHbtMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              <span>{showHbtMore ? 'Fewer options' : 'More options (Target Quantity Goal)'}</span>
+              <span>{showHbtMore ? 'Fewer options' : 'More options (Daily Goal)'}</span>
             </button>
 
             {showHbtMore && (
-              <div className="pt-1">
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">Target Daily Quantity Goal</label>
+              <div className="pt-2 space-y-1">
+                <label className="block text-[11px] font-extrabold text-slate-600">DAILY TARGET GOAL</label>
                 <input
                   type="number"
                   value={hbtQty}
                   onChange={(e) => setHbtQty(e.target.value)}
-                  placeholder="e.g. 8"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+                  placeholder="e.g. 8 (glasses, pages)"
+                  className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
                 />
               </div>
             )}
@@ -961,90 +937,90 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
       {/* 4. ADD TASK FORM */}
       {modalType === 'task' && (
-        <form onSubmit={handleTskSubmit} className="space-y-2.5 pb-1">
-          <div>
-            <label className="block text-[11px] font-bold text-slate-700 mb-1">What needs to be done?</label>
+        <form onSubmit={handleTskSubmit} className="space-y-3 pb-1">
+          <div className="space-y-1">
+            <label className="block text-[11px] font-extrabold text-slate-600">WHAT NEEDS TO BE DONE?</label>
             <input
               type="text"
               required
               value={tskTitle}
               onChange={(e) => setTskTitle(e.target.value)}
-              placeholder="e.g. Buy toothpaste"
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+              placeholder="Task description..."
+              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
             />
           </div>
 
-          {/* Priority Pills */}
-          <div>
-            <label className="block text-[11px] font-bold text-slate-700 mb-1">Priority</label>
-            <div className="grid grid-cols-3 gap-1.5">
-              <button
-                type="button"
-                onClick={() => setTskPriority('low')}
-                className={`py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer border ${
-                  tskPriority === 'low'
-                    ? 'bg-emerald-50 text-emerald-800 border-emerald-400 ring-2 ring-emerald-400/20 shadow-2xs'
-                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                🟢 Low
-              </button>
-              <button
-                type="button"
-                onClick={() => setTskPriority('normal')}
-                className={`py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer border ${
-                  tskPriority === 'normal'
-                    ? 'bg-amber-50 text-amber-800 border-amber-400 ring-2 ring-amber-400/20 shadow-2xs'
-                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                🟡 Normal
-              </button>
-              <button
-                type="button"
-                onClick={() => setTskPriority('high')}
-                className={`py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer border ${
-                  tskPriority === 'high'
-                    ? 'bg-rose-50 text-rose-800 border-rose-400 ring-2 ring-rose-400/20 shadow-2xs'
-                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                🔴 High
-              </button>
-            </div>
+          <div className="space-y-1">
+            <label className="block text-[11px] font-extrabold text-slate-600">DUE DATE</label>
+            <input
+              type="date"
+              value={tskDueDate}
+              onChange={(e) => setTskDueDate(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
+            />
           </div>
 
           {renderProfileSelector(tskProfile, setTskProfile)}
 
-          {/* Collapsible Due Date / Time */}
+          {/* Collapsible Priority / Due Time */}
           <div>
             <button
               type="button"
               onClick={() => setShowTskMore(!showTskMore)}
-              className="flex items-center gap-1 text-[11px] font-extrabold text-slate-600 hover:text-slate-900 py-0.5 transition-colors cursor-pointer"
+              className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-900 py-0.5 transition-colors cursor-pointer"
             >
               {showTskMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              <span>{showTskMore ? 'Fewer options' : 'More options (Due Date & Time)'}</span>
+              <span>{showTskMore ? 'Fewer options' : 'More options (Priority, Due Time)'}</span>
             </button>
 
             {showTskMore && (
-              <div className="pt-1 grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Due Date</label>
-                  <input
-                    type="date"
-                    value={tskDueDate}
-                    onChange={(e) => setTskDueDate(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
-                  />
+              <div className="pt-2 space-y-2.5">
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-extrabold text-slate-600">PRIORITY</label>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setTskPriority('low')}
+                      className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border min-h-[38px] ${
+                        tskPriority === 'low'
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-400 ring-2 ring-emerald-400/20 shadow-2xs'
+                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      🟢 Low
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTskPriority('normal')}
+                      className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border min-h-[38px] ${
+                        tskPriority === 'normal'
+                          ? 'bg-amber-50 text-amber-800 border-amber-400 ring-2 ring-amber-400/20 shadow-2xs'
+                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      🟡 Normal
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTskPriority('high')}
+                      className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border min-h-[38px] ${
+                        tskPriority === 'high'
+                          ? 'bg-rose-50 text-rose-800 border-rose-400 ring-2 ring-rose-400/20 shadow-2xs'
+                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      🔴 High
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Due Time</label>
+
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-extrabold text-slate-600">DUE TIME</label>
                   <input
                     type="time"
                     value={tskDueTime}
                     onChange={(e) => setTskDueTime(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+                    className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
                   />
                 </div>
               </div>
@@ -1057,25 +1033,25 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
       {/* 5. ADD GROCERY ITEM FORM */}
       {modalType === 'grocery' && (
-        <form onSubmit={handleGrcSubmit} className="space-y-2.5 pb-1">
-          <div>
-            <label className="block text-[11px] font-bold text-slate-700 mb-1">Grocery Item</label>
+        <form onSubmit={handleGrcSubmit} className="space-y-3 pb-1">
+          <div className="space-y-1">
+            <label className="block text-[11px] font-extrabold text-slate-600">ITEM NAME</label>
             <input
               type="text"
               required
               value={grcTitle}
               onChange={(e) => setGrcTitle(e.target.value)}
-              placeholder="e.g. Organic Milk"
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+              placeholder="e.g. Milk, Bananas"
+              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
             />
           </div>
 
-          <div>
-            <label className="block text-[11px] font-bold text-slate-700 mb-1">Category</label>
+          <div className="space-y-1">
+            <label className="block text-[11px] font-extrabold text-slate-600">CATEGORY</label>
             <select
               value={grcCategory}
               onChange={(e) => setGrcCategory(e.target.value as GroceryCategory)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 cursor-pointer focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 cursor-pointer focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
             >
               {[
                 { label: 'Produce', emoji: '🥬' },
@@ -1101,21 +1077,21 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             <button
               type="button"
               onClick={() => setShowGrcMore(!showGrcMore)}
-              className="flex items-center gap-1 text-[11px] font-extrabold text-slate-600 hover:text-slate-900 py-0.5 transition-colors cursor-pointer"
+              className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-900 py-0.5 transition-colors cursor-pointer"
             >
               {showGrcMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              <span>{showGrcMore ? 'Fewer options' : 'More options (Quantity)'}</span>
+              <span>{showGrcMore ? 'Fewer options' : 'More options (Quantity / Details)'}</span>
             </button>
 
             {showGrcMore && (
-              <div className="pt-1">
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">Quantity / Weight</label>
+              <div className="pt-2 space-y-1">
+                <label className="block text-[11px] font-extrabold text-slate-600">QUANTITY / DETAILS</label>
                 <input
                   type="text"
                   value={grcQty}
                   onChange={(e) => setGrcQty(e.target.value)}
                   placeholder="e.g. 2 gal, 1 lb"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+                  className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
                 />
               </div>
             )}
@@ -1127,22 +1103,22 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
       {/* 6. ADD MEAL FORM */}
       {modalType === 'meal' && (
-        <form onSubmit={handleMelSubmit} className="space-y-2.5 pb-1">
-          <div>
-            <label className="block text-[11px] font-bold text-slate-700 mb-1">Meal Title</label>
+        <form onSubmit={handleMelSubmit} className="space-y-3 pb-1">
+          <div className="space-y-1">
+            <label className="block text-[11px] font-extrabold text-slate-600">MEAL NAME</label>
             <input
               type="text"
               required
               value={melTitle}
               onChange={(e) => setMelTitle(e.target.value)}
               placeholder="e.g. Avocado Toast"
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
             />
           </div>
 
           {/* Meal Type Segmented Pills */}
-          <div>
-            <label className="block text-[11px] font-bold text-slate-700 mb-1">Meal Type</label>
+          <div className="space-y-1">
+            <label className="block text-[11px] font-extrabold text-slate-600">MEAL TYPE</label>
             <div className="grid grid-cols-4 gap-1">
               {[
                 { type: 'breakfast', label: 'Breakfast', emoji: '🍳' },
@@ -1156,9 +1132,9 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                     type="button"
                     key={m.type}
                     onClick={() => setMelType(m.type as MealType)}
-                    className={`py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer flex flex-col items-center justify-center ${
+                    className={`py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex flex-col items-center justify-center min-h-[40px] ${
                       isSelected
-                        ? 'bg-slate-900 text-white shadow-2xs scale-105'
+                        ? 'bg-slate-900 text-white shadow-2xs scale-[1.02]'
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
@@ -1170,14 +1146,14 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             </div>
           </div>
 
-          <div>
-            <label className="block text-[11px] font-bold text-slate-700 mb-1">Date</label>
+          <div className="space-y-1">
+            <label className="block text-[11px] font-extrabold text-slate-600">DATE</label>
             <input
               type="date"
               required
               value={melDate}
               onChange={(e) => setMelDate(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
             />
           </div>
 
@@ -1188,21 +1164,21 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             <button
               type="button"
               onClick={() => setShowMelMore(!showMelMore)}
-              className="flex items-center gap-1 text-[11px] font-extrabold text-slate-600 hover:text-slate-900 py-0.5 transition-colors cursor-pointer"
+              className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-900 py-0.5 transition-colors cursor-pointer"
             >
               {showMelMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              <span>{showMelMore ? 'Fewer options' : 'More options (Notes & Recipe)'}</span>
+              <span>{showMelMore ? 'Fewer options' : 'More options (Recipe / Notes)'}</span>
             </button>
 
             {showMelMore && (
-              <div className="pt-1">
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">Notes / Recipe / Ingredients</label>
+              <div className="pt-2 space-y-1">
+                <label className="block text-[11px] font-extrabold text-slate-600">RECIPE / NOTES</label>
                 <textarea
                   value={melNotes}
                   onChange={(e) => setMelNotes(e.target.value)}
-                  placeholder="e.g. Add sourdough & poached eggs"
+                  placeholder="Ingredients or instructions..."
                   rows={2}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+                  className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all"
                 />
               </div>
             )}
@@ -1214,33 +1190,33 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
       {/* 7. ADD / EDIT BOOK FORM */}
       {modalType === 'book' && (
-        <form onSubmit={handleBokSubmit} className="space-y-2.5 pb-1">
-          <div>
-            <label className="block text-[11px] font-bold text-slate-700 mb-1">Book Title</label>
+        <form onSubmit={handleBokSubmit} className="space-y-3 pb-1">
+          <div className="space-y-1">
+            <label className="block text-[11px] font-extrabold text-slate-600">BOOK TITLE</label>
             <input
               type="text"
               required
               value={bokTitle}
               onChange={(e) => setBokTitle(e.target.value)}
               placeholder="e.g. Tomorrow, and Tomorrow, and Tomorrow"
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
             />
           </div>
 
-          <div>
-            <label className="block text-[11px] font-bold text-slate-700 mb-1">Author</label>
+          <div className="space-y-1">
+            <label className="block text-[11px] font-extrabold text-slate-600">AUTHOR</label>
             <input
               type="text"
               value={bokAuthor}
               onChange={(e) => setBokAuthor(e.target.value)}
               placeholder="Author name"
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
             />
           </div>
 
           {/* Reading Status Segmented Pills */}
-          <div>
-            <label className="block text-[11px] font-bold text-slate-700 mb-1">Reading Status</label>
+          <div className="space-y-1">
+            <label className="block text-[11px] font-extrabold text-slate-600">STATUS</label>
             <div className="grid grid-cols-3 gap-1">
               {[
                 { status: 'reading', label: 'Reading 📖' },
@@ -1253,9 +1229,9 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                     type="button"
                     key={s.status}
                     onClick={() => setBokStatus(s.status as BookStatus)}
-                    className={`py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center px-1 ${
+                    className={`py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center px-1 min-h-[40px] ${
                       isSelected
-                        ? 'bg-slate-900 text-white shadow-2xs scale-105'
+                        ? 'bg-slate-900 text-white shadow-2xs scale-[1.02]'
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
@@ -1273,39 +1249,39 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             <button
               type="button"
               onClick={() => setShowBokMore(!showBokMore)}
-              className="flex items-center gap-1 text-[11px] font-extrabold text-slate-600 hover:text-slate-900 py-0.5 transition-colors cursor-pointer"
+              className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-900 py-0.5 transition-colors cursor-pointer"
             >
               {showBokMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              <span>{showBokMore ? 'Fewer options' : 'More options (Total Pages, Genre)'}</span>
+              <span>{showBokMore ? 'Fewer options' : 'More options (Pages, Genre)'}</span>
             </button>
 
             {showBokMore && (
-              <div className="pt-1 grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Total Pages</label>
+              <div className="pt-2 space-y-2.5">
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-extrabold text-slate-600">TOTAL PAGES</label>
                   <input
                     type="number"
                     value={bokTotalPages}
                     onChange={(e) => setBokTotalPages(e.target.value)}
                     placeholder="e.g. 384"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+                    className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
                   />
                 </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Genre</label>
+                <div className="space-y-1">
+                  <label className="block text-[11px] font-extrabold text-slate-600">GENRE</label>
                   <input
                     type="text"
                     value={bokGenre}
                     onChange={(e) => setBokGenre(e.target.value)}
                     placeholder="e.g. Fiction"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+                    className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
                   />
                 </div>
               </div>
             )}
           </div>
 
-          {renderFooterButtons(bookToEdit ? 'Save Book Changes' : 'Add to Shelf')}
+          {renderFooterButtons(bookToEdit ? 'Save Changes' : 'Add to Shelf')}
         </form>
       )}
     </BottomSheet>

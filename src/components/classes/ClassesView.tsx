@@ -119,7 +119,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
             {selectedMobileClasses.map((cls) => {
               const ownerName = cls.profile || 'Eve';
               const badgeColor = profileColors[ownerName] || '#2563eb';
-              const cardColor = activeProfile === 'Both' ? badgeColor : (cls.color || badgeColor);
+              const cardColor = profileColors[ownerName] || badgeColor;
 
               return (
                 <div
@@ -224,7 +224,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                   dayClasses.map((cls) => {
                     const ownerName = cls.profile || 'Eve';
                     const badgeColor = profileColors[ownerName] || '#2563eb';
-                    const cardColor = activeProfile === 'Both' ? badgeColor : (cls.color || badgeColor);
+                    const cardColor = profileColors[ownerName] || badgeColor;
 
                     return (
                       <div
