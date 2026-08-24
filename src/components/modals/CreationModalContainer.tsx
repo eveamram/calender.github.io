@@ -294,11 +294,11 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
     return 1;
   };
 
-  // Sleek & Compact Profile Selector
+  // Sleek & Touch-Friendly Segmented Profile Selector
   const renderProfileSelector = (selected: ProfilePersona, setSelected: (p: ProfilePersona) => void) => (
     <div className="space-y-1">
       <label className="block text-[11px] font-extrabold text-slate-600">PROFILE OWNER</label>
-      <div className="grid grid-cols-3 bg-slate-100 p-0.5 rounded-xl gap-0.5 items-center border border-slate-200/60">
+      <div className="grid grid-cols-3 bg-slate-100 p-1 rounded-xl gap-1 items-center border border-slate-200/60">
         {(['Eve', 'Abbie', 'Both'] as ProfilePersona[]).map((p) => {
           const isSelected = selected === p;
           return (
@@ -306,7 +306,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               type="button"
               key={p}
               onClick={() => setSelected(p)}
-              className={`py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer min-h-[38px] flex items-center justify-center ${
+              className={`py-2 rounded-lg text-xs font-extrabold transition-all cursor-pointer min-h-[44px] flex items-center justify-center ${
                 isSelected
                   ? 'bg-slate-900 text-white shadow-2xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
@@ -320,14 +320,14 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
     </div>
   );
 
-  // Sleek & Compact Color Swatches
+  // Sleek & Touch-Friendly Color Swatches
   const renderColorPicker = (selectedColor: string, setSelectedColor: (c: string) => void) => (
     <div className="space-y-1">
       <label className="block text-[11px] font-extrabold text-slate-600 flex items-center gap-1">
-        <Palette className="w-3 h-3 text-slate-600" />
+        <Palette className="w-3.5 h-3.5 text-slate-600" />
         <span>COLOR THEME</span>
       </label>
-      <div className="flex items-center gap-2 overflow-x-auto py-0.5 no-scrollbar">
+      <div className="flex items-center gap-2 overflow-x-auto py-1 no-scrollbar">
         {COLOR_SWATCHES.map((c) => {
           const isSelected = selectedColor === c.hex;
           return (
@@ -335,9 +335,9 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               type="button"
               key={c.hex}
               onClick={() => setSelectedColor(c.hex)}
-              className={`w-7 h-7 min-w-[28px] rounded-full transition-all shrink-0 cursor-pointer border ${
+              className={`w-8 h-8 min-w-[32px] rounded-full transition-all shrink-0 cursor-pointer border ${
                 isSelected
-                  ? 'ring-2 ring-slate-900 ring-offset-1 scale-110 shadow-2xs border-transparent'
+                  ? 'ring-2 ring-slate-900 ring-offset-2 scale-110 shadow-2xs border-transparent'
                   : 'border-slate-300 hover:scale-105'
               }`}
               style={{ backgroundColor: c.hex }}
@@ -349,7 +349,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
     </div>
   );
 
-  // Sleek & Compact Day Selector
+  // Sleek & Touch-Friendly Day Selector
   const renderDaySelector = (selectedDays: number[], toggleDay: (n: number) => void) => (
     <div className="space-y-1">
       <label className="block text-[11px] font-extrabold text-slate-600">DAYS OF WEEK</label>
@@ -361,7 +361,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               type="button"
               key={d.num}
               onClick={() => toggleDay(d.num)}
-              className={`h-9.5 rounded-xl text-xs font-black transition-all flex items-center justify-center cursor-pointer ${
+              className={`h-10 rounded-xl text-xs font-black transition-all flex items-center justify-center cursor-pointer ${
                 isSelected
                   ? 'bg-slate-900 text-white shadow-2xs scale-[1.02]'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -622,21 +622,21 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   };
 
   const renderFooterButtons = (saveLabel = 'Save') => (
-    <div className="flex items-center gap-2 pt-2.5 sticky bottom-0 bg-white/95 backdrop-blur-xs border-t border-slate-100 z-10 pb-1">
+    <div className="flex items-center gap-2 pt-3 sticky bottom-0 bg-white/95 backdrop-blur-xs border-t border-slate-100 z-10 pb-1">
       <button
         type="button"
         onClick={onClose}
         disabled={isSaving}
-        className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-extrabold transition-all cursor-pointer active:scale-95 flex items-center justify-center"
+        className="flex-1 py-3 min-h-[46px] rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-extrabold transition-all cursor-pointer active:scale-95 flex items-center justify-center"
       >
         Cancel
       </button>
       <button
         type="submit"
         disabled={isSaving}
-        className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-extrabold shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
+        className="flex-1 py-3 min-h-[46px] rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-extrabold shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95"
       >
-        {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin text-white" /> : saveLabel}
+        {isSaving ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : saveLabel}
       </button>
     </div>
   );
@@ -652,7 +652,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
       badgeEmoji={modalMeta.emoji}
     >
       {errorMsg && (
-        <div className="bg-rose-50 border border-rose-200 text-rose-700 px-3 py-2 rounded-xl text-xs font-bold mb-2">
+        <div className="bg-rose-50 border border-rose-200 text-rose-700 px-3 py-2.5 rounded-xl text-xs font-bold mb-2">
           {errorMsg}
         </div>
       )}
@@ -668,7 +668,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               value={evtTitle}
               onChange={(e) => setEvtTitle(e.target.value)}
               placeholder="What's happening?"
-              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
+              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[44px]"
             />
           </div>
 
@@ -679,7 +679,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               required
               value={evtDate}
               onChange={(e) => setEvtDate(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
+              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[44px]"
             />
           </div>
 
@@ -690,7 +690,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                 type="time"
                 value={evtStartTime}
                 onChange={(e) => setEvtStartTime(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
+                className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[44px]"
               />
             </div>
             <div className="space-y-1">
@@ -699,7 +699,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                 type="time"
                 value={evtEndTime}
                 onChange={(e) => setEvtEndTime(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
+                className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[44px]"
               />
             </div>
           </div>
@@ -712,7 +712,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             <button
               type="button"
               onClick={() => setShowEvtMore(!showEvtMore)}
-              className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-900 py-0.5 transition-colors cursor-pointer"
+              className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-900 py-1 transition-colors cursor-pointer"
             >
               {showEvtMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
               <span>{showEvtMore ? 'Fewer options' : 'More options (Category, Location)'}</span>
@@ -725,7 +725,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                   <select
                     value={evtType}
                     onChange={(e) => setEvtType(e.target.value as EventType)}
-                    className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 cursor-pointer focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
+                    className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 cursor-pointer focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[44px]"
                   >
                     {(Object.keys(CATEGORY_METAS) as EventType[]).map((catKey) => {
                       const meta = CATEGORY_METAS[catKey];
@@ -745,7 +745,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                     value={evtLocation}
                     onChange={(e) => setEvtLocation(e.target.value)}
                     placeholder="Room, building, or link"
-                    className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
+                    className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[44px]"
                   />
                 </div>
               </div>
@@ -767,7 +767,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               value={clsName}
               onChange={(e) => setClsName(e.target.value)}
               placeholder="e.g. Organic Chemistry"
-              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
+              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[44px]"
             />
           </div>
 
@@ -782,7 +782,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                 type="time"
                 value={clsStartTime}
                 onChange={(e) => setClsStartTime(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
+                className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[44px]"
               />
             </div>
             <div className="space-y-1">
@@ -791,7 +791,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                 type="time"
                 value={clsEndTime}
                 onChange={(e) => setClsEndTime(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
+                className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[44px]"
               />
             </div>
           </div>
@@ -803,7 +803,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             <button
               type="button"
               onClick={() => setShowClsMore(!showClsMore)}
-              className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-900 py-0.5 transition-colors cursor-pointer"
+              className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-900 py-1 transition-colors cursor-pointer"
             >
               {showClsMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
               <span>{showClsMore ? 'Fewer options' : 'More options (Room, Instructor)'}</span>
@@ -818,7 +818,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                     value={clsRoom}
                     onChange={(e) => setClsRoom(e.target.value)}
                     placeholder="Science 101"
-                    className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
+                    className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[44px]"
                   />
                 </div>
                 <div className="space-y-1">
@@ -828,7 +828,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                     value={clsInstructor}
                     onChange={(e) => setClsInstructor(e.target.value)}
                     placeholder="Prof. Smith"
-                    className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
+                    className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[44px]"
                   />
                 </div>
               </div>
@@ -849,7 +849,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                 type="text"
                 value={hbtEmoji}
                 onChange={(e) => setHbtEmoji(e.target.value)}
-                className="w-10 bg-slate-50 border border-slate-200/90 rounded-xl text-center text-lg font-bold focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all py-1.5 min-h-[42px]"
+                className="w-12 bg-slate-50 border border-slate-200/90 rounded-xl text-center text-lg font-bold focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all py-2 min-h-[44px]"
                 title="Emoji"
               />
               <input
@@ -858,18 +858,18 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                 value={hbtTitle}
                 onChange={(e) => setHbtTitle(e.target.value)}
                 placeholder="e.g. Drink Water"
-                className="flex-1 bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
+                className="flex-1 bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[44px]"
               />
             </div>
 
             {/* Quick Emoji Bar */}
-            <div className="flex items-center gap-1 overflow-x-auto pt-1.5 pb-0.5 no-scrollbar">
+            <div className="flex items-center gap-1.5 overflow-x-auto pt-1.5 pb-0.5 no-scrollbar">
               {['⚡', '💧', '🏋️', '📚', '🧘', '🍎', '💻', '🎨', '🏃', '😴'].map((em) => (
                 <button
                   type="button"
                   key={em}
                   onClick={() => setHbtEmoji(em)}
-                  className={`w-7 h-7 rounded-lg text-sm flex items-center justify-center transition-all cursor-pointer shrink-0 ${
+                  className={`w-8 h-8 rounded-lg text-sm flex items-center justify-center transition-all cursor-pointer shrink-0 ${
                     hbtEmoji === em ? 'bg-slate-900 text-white shadow-2xs scale-105' : 'bg-slate-100 hover:bg-slate-200'
                   }`}
                 >
@@ -883,10 +883,8 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             setHbtDays((prev) => (prev.includes(n) ? prev.filter((d) => d !== n) : [...prev, n]))
           )}
 
-          {renderColorPicker(hbtColor, setHbtColor)}
-
           {/* Show in Daily Schedule Toggle */}
-          <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2 flex items-center justify-between">
+          <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 flex items-center justify-between">
             <div className="space-y-0.5">
               <span className="text-xs font-bold text-slate-800">Show in Daily Schedule</span>
               <p className="text-[10px] text-slate-500 font-medium">Display on calendar agenda</p>
@@ -894,7 +892,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             <button
               type="button"
               onClick={() => setHbtShowInDailySchedule(!hbtShowInDailySchedule)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer border min-h-[36px] ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer border min-h-[38px] ${
                 hbtShowInDailySchedule
                   ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
                   : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
@@ -911,7 +909,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             <button
               type="button"
               onClick={() => setShowHbtMore(!showHbtMore)}
-              className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-900 py-0.5 transition-colors cursor-pointer"
+              className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-900 py-1 transition-colors cursor-pointer"
             >
               {showHbtMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
               <span>{showHbtMore ? 'Fewer options' : 'More options (Daily Goal)'}</span>
@@ -925,7 +923,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                   value={hbtQty}
                   onChange={(e) => setHbtQty(e.target.value)}
                   placeholder="e.g. 8 (glasses, pages)"
-                  className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
+                  className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[44px]"
                 />
               </div>
             )}
@@ -946,7 +944,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               value={tskTitle}
               onChange={(e) => setTskTitle(e.target.value)}
               placeholder="Task description..."
-              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
+              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[44px]"
             />
           </div>
 
@@ -956,7 +954,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               type="date"
               value={tskDueDate}
               onChange={(e) => setTskDueDate(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
+              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[44px]"
             />
           </div>
 
@@ -967,7 +965,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             <button
               type="button"
               onClick={() => setShowTskMore(!showTskMore)}
-              className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-900 py-0.5 transition-colors cursor-pointer"
+              className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-900 py-1 transition-colors cursor-pointer"
             >
               {showTskMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
               <span>{showTskMore ? 'Fewer options' : 'More options (Priority, Due Time)'}</span>
@@ -981,7 +979,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                     <button
                       type="button"
                       onClick={() => setTskPriority('low')}
-                      className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border min-h-[38px] ${
+                      className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border min-h-[42px] ${
                         tskPriority === 'low'
                           ? 'bg-emerald-50 text-emerald-800 border-emerald-400 ring-2 ring-emerald-400/20 shadow-2xs'
                           : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
@@ -992,7 +990,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                     <button
                       type="button"
                       onClick={() => setTskPriority('normal')}
-                      className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border min-h-[38px] ${
+                      className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border min-h-[42px] ${
                         tskPriority === 'normal'
                           ? 'bg-amber-50 text-amber-800 border-amber-400 ring-2 ring-amber-400/20 shadow-2xs'
                           : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
@@ -1003,7 +1001,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                     <button
                       type="button"
                       onClick={() => setTskPriority('high')}
-                      className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border min-h-[38px] ${
+                      className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border min-h-[42px] ${
                         tskPriority === 'high'
                           ? 'bg-rose-50 text-rose-800 border-rose-400 ring-2 ring-rose-400/20 shadow-2xs'
                           : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
@@ -1020,7 +1018,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                     type="time"
                     value={tskDueTime}
                     onChange={(e) => setTskDueTime(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
+                    className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[44px]"
                   />
                 </div>
               </div>
@@ -1042,7 +1040,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               value={grcTitle}
               onChange={(e) => setGrcTitle(e.target.value)}
               placeholder="e.g. Milk, Bananas"
-              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
+              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[44px]"
             />
           </div>
 
@@ -1051,7 +1049,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             <select
               value={grcCategory}
               onChange={(e) => setGrcCategory(e.target.value as GroceryCategory)}
-              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 cursor-pointer focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
+              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 cursor-pointer focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[44px]"
             >
               {[
                 { label: 'Produce', emoji: '🥬' },
@@ -1077,7 +1075,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             <button
               type="button"
               onClick={() => setShowGrcMore(!showGrcMore)}
-              className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-900 py-0.5 transition-colors cursor-pointer"
+              className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-900 py-1 transition-colors cursor-pointer"
             >
               {showGrcMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
               <span>{showGrcMore ? 'Fewer options' : 'More options (Quantity / Details)'}</span>
@@ -1091,7 +1089,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                   value={grcQty}
                   onChange={(e) => setGrcQty(e.target.value)}
                   placeholder="e.g. 2 gal, 1 lb"
-                  className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
+                  className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[44px]"
                 />
               </div>
             )}
@@ -1112,7 +1110,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               value={melTitle}
               onChange={(e) => setMelTitle(e.target.value)}
               placeholder="e.g. Avocado Toast"
-              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
+              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[44px]"
             />
           </div>
 
@@ -1132,7 +1130,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                     type="button"
                     key={m.type}
                     onClick={() => setMelType(m.type as MealType)}
-                    className={`py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex flex-col items-center justify-center min-h-[40px] ${
+                    className={`py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex flex-col items-center justify-center min-h-[44px] ${
                       isSelected
                         ? 'bg-slate-900 text-white shadow-2xs scale-[1.02]'
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -1153,7 +1151,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               required
               value={melDate}
               onChange={(e) => setMelDate(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
+              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[44px]"
             />
           </div>
 
@@ -1164,7 +1162,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             <button
               type="button"
               onClick={() => setShowMelMore(!showMelMore)}
-              className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-900 py-0.5 transition-colors cursor-pointer"
+              className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-900 py-1 transition-colors cursor-pointer"
             >
               {showMelMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
               <span>{showMelMore ? 'Fewer options' : 'More options (Recipe / Notes)'}</span>
@@ -1178,7 +1176,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                   onChange={(e) => setMelNotes(e.target.value)}
                   placeholder="Ingredients or instructions..."
                   rows={2}
-                  className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all"
+                  className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all"
                 />
               </div>
             )}
@@ -1199,7 +1197,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               value={bokTitle}
               onChange={(e) => setBokTitle(e.target.value)}
               placeholder="e.g. Tomorrow, and Tomorrow, and Tomorrow"
-              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
+              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[44px]"
             />
           </div>
 
@@ -1210,7 +1208,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               value={bokAuthor}
               onChange={(e) => setBokAuthor(e.target.value)}
               placeholder="Author name"
-              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
+              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[44px]"
             />
           </div>
 
@@ -1229,7 +1227,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                     type="button"
                     key={s.status}
                     onClick={() => setBokStatus(s.status as BookStatus)}
-                    className={`py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center px-1 min-h-[40px] ${
+                    className={`py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center px-1 min-h-[44px] ${
                       isSelected
                         ? 'bg-slate-900 text-white shadow-2xs scale-[1.02]'
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -1249,7 +1247,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             <button
               type="button"
               onClick={() => setShowBokMore(!showBokMore)}
-              className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-900 py-0.5 transition-colors cursor-pointer"
+              className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-900 py-1 transition-colors cursor-pointer"
             >
               {showBokMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
               <span>{showBokMore ? 'Fewer options' : 'More options (Pages, Genre)'}</span>
@@ -1264,7 +1262,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                     value={bokTotalPages}
                     onChange={(e) => setBokTotalPages(e.target.value)}
                     placeholder="e.g. 384"
-                    className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
+                    className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[44px]"
                   />
                 </div>
                 <div className="space-y-1">
@@ -1274,7 +1272,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                     value={bokGenre}
                     onChange={(e) => setBokGenre(e.target.value)}
                     placeholder="e.g. Fiction"
-                    className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[42px]"
+                    className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[44px]"
                   />
                 </div>
               </div>
