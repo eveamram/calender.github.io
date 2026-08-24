@@ -682,7 +682,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               required
               value={evtDate}
               onChange={(e) => setEvtDate(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
+              className="w-full max-w-[210px] bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
             />
           </div>
 
@@ -693,7 +693,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               type="time"
               value={evtStartTime}
               onChange={(e) => setEvtStartTime(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
+              className="w-full max-w-[170px] bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
             />
           </div>
 
@@ -703,7 +703,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               type="time"
               value={evtEndTime}
               onChange={(e) => setEvtEndTime(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
+              className="w-full max-w-[170px] bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
             />
           </div>
 
@@ -791,7 +791,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               type="time"
               value={clsStartTime}
               onChange={(e) => setClsStartTime(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
+              className="w-full max-w-[170px] bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
             />
           </div>
 
@@ -801,7 +801,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               type="time"
               value={clsEndTime}
               onChange={(e) => setClsEndTime(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
+              className="w-full max-w-[170px] bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
             />
           </div>
 
@@ -963,7 +963,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               type="date"
               value={tskDueDate}
               onChange={(e) => setTskDueDate(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
+              className="w-full max-w-[210px] bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
             />
           </div>
 
@@ -1027,7 +1027,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                     type="time"
                     value={tskDueTime}
                     onChange={(e) => setTskDueTime(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
+                    className="w-full max-w-[170px] bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
                   />
                 </div>
               </div>
@@ -1160,7 +1160,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               required
               value={melDate}
               onChange={(e) => setMelDate(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
+              className="w-full max-w-[210px] bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
             />
           </div>
 
