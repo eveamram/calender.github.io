@@ -1,8 +1,43 @@
 import React, { useState, useEffect } from 'react';
 import { useStore, getTodayDateString } from '../../context/StoreContext';
-import { BottomSheet } from '../ui/BottomSheet';
-import { EventType, ProfilePersona, MealType, BookStatus, CalendarEvent, ClassItem, BookItem, HabitItem, CATEGORY_METAS, GroceryCategory } from '../../types';
-import { ChevronDown, ChevronUp, Palette, Loader2, Calendar, Clock, Target, Check, ChevronRight } from 'lucide-react';
+import {
+  EventType,
+  ProfilePersona,
+  MealType,
+  BookStatus,
+  CalendarEvent,
+  ClassItem,
+  BookItem,
+  HabitItem,
+  CATEGORY_METAS,
+  GroceryCategory,
+} from '../../types';
+import {
+  ChevronDown,
+  ChevronUp,
+  Palette,
+  Calendar as CalendarIcon,
+  Clock,
+  Target,
+  BookOpen,
+  Check,
+  Tag,
+  Smile,
+  ListTodo,
+  Utensils,
+  Plus,
+} from 'lucide-react';
+import {
+  MobileFormSheet,
+  MobileFormField,
+  MobileSelectField,
+  MobileColorGrid,
+  MobileSegmentedControl,
+  MobileFormAction,
+  formatDateDisplay,
+  formatTimeDisplay,
+  DEFAULT_COLOR_SWATCHES,
+} from '../ui/MobileFormComponents';
 
 interface CreationModalContainerProps {
   modalType: 'event' | 'class' | 'task' | 'habit' | 'grocery' | 'meal' | 'book' | null;
@@ -17,19 +52,6 @@ interface CreationModalContainerProps {
   initialMealType?: MealType;
   initialClassDay?: number;
 }
-
-const COLOR_SWATCHES = [
-  { label: 'Royal Blue', hex: '#2563eb' },
-  { label: 'Soft Indigo', hex: '#6366f1' },
-  { label: 'Purple', hex: '#a855f7' },
-  { label: 'Pink', hex: '#ec4899' },
-  { label: 'Red', hex: '#ef4444' },
-  { label: 'Orange', hex: '#f97316' },
-  { label: 'Amber', hex: '#d97706' },
-  { label: 'Emerald', hex: '#10b981' },
-  { label: 'Cyan', hex: '#06b6d4' },
-  { label: 'Gray', hex: '#6b7280' },
-];
 
 const WEEK_DAYS = [
   { num: 1, label: 'M' },
@@ -107,14 +129,14 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         setEvtStartTime(eventToEdit.start_time || '09:00');
         setEvtEndTime(eventToEdit.end_time || '10:00');
         setEvtLocation(eventToEdit.location || '');
-        setEvtColor(eventToEdit.color || '');
+        setEvtColor(eventToEdit.color || DEFAULT_COLOR_SWATCHES[0].hex);
         setEvtProfile(eventToEdit.profile || defaultProfile);
       } else {
         setEvtDate(initialDate || getTodayDateString());
         setEvtTitle('');
         setEvtType(initialEventType || 'personal');
         setEvtLocation('');
-        setEvtColor('');
+        setEvtColor(DEFAULT_COLOR_SWATCHES[0].hex);
         setEvtStartTime('09:00');
         setEvtEndTime('10:00');
         setEvtProfile(defaultProfile);
@@ -130,6 +152,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   const [clsEndTime, setClsEndTime] = useState('11:15');
   const [clsDays, setClsDays] = useState<number[]>([1, 3]);
   const [clsProfile, setClsProfile] = useState<ProfilePersona>(defaultProfile);
+  const [clsColor, setClsColor] = useState(DEFAULT_COLOR_SWATCHES[0].hex);
 
   useEffect(() => {
     if (modalType === 'class') {
@@ -143,6 +166,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         setClsEndTime(classToEdit.end_time || '11:15');
         setClsDays(classToEdit.days_of_week && classToEdit.days_of_week.length > 0 ? classToEdit.days_of_week : [1, 3]);
         setClsProfile(classToEdit.profile || defaultProfile);
+        setClsColor(classToEdit.color || DEFAULT_COLOR_SWATCHES[0].hex);
         setShowClsMore(Boolean(classToEdit.room || classToEdit.instructor));
       } else {
         setShowClsMore(false);
@@ -153,6 +177,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         setClsEndTime('11:15');
         setClsDays(initialClassDay ? [initialClassDay] : [1, 3]);
         setClsProfile(defaultProfile);
+        setClsColor(DEFAULT_COLOR_SWATCHES[0].hex);
       }
     }
   }, [modalType, classToEdit, initialClassDay, defaultProfile]);
@@ -160,7 +185,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   // 3. TASK FORM STATE
   const [tskTitle, setTskTitle] = useState('');
   const [tskDueDate, setTskDueDate] = useState(getTodayDateString());
-  const [tskDueTime, setTskDueTime] = useState('');
+  const [tskDueTime, setTskDueTime] = useState('17:00');
   const [tskPriority, setTskPriority] = useState<'low' | 'normal' | 'high'>('normal');
   const [tskProfile, setTskProfile] = useState<ProfilePersona>(defaultProfile);
 
@@ -171,7 +196,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
       setShowTskMore(false);
       setTskTitle('');
       setTskDueDate(getTodayDateString());
-      setTskDueTime('');
+      setTskDueTime('17:00');
       setTskPriority('normal');
       setTskProfile(defaultProfile);
     }
@@ -184,6 +209,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   const [hbtDays, setHbtDays] = useState<number[]>([1, 2, 3, 4, 5, 6, 7]);
   const [hbtProfile, setHbtProfile] = useState<ProfilePersona>(defaultProfile);
   const [hbtShowInDailySchedule, setHbtShowInDailySchedule] = useState<boolean>(true);
+  const [hbtColor, setHbtColor] = useState(DEFAULT_COLOR_SWATCHES[0].hex);
 
   useEffect(() => {
     if (modalType === 'habit') {
@@ -197,6 +223,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         setHbtDays(habitToEdit.active_days && habitToEdit.active_days.length > 0 ? habitToEdit.active_days : [1, 2, 3, 4, 5, 6, 7]);
         setHbtProfile(habitToEdit.profile || defaultProfile);
         setHbtShowInDailySchedule(habitToEdit.show_in_daily_schedule ?? true);
+        setHbtColor(DEFAULT_COLOR_SWATCHES[0].hex);
       } else {
         setHbtTitle('');
         setHbtEmoji('⚡');
@@ -204,6 +231,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         setHbtDays([1, 2, 3, 4, 5, 6, 7]);
         setHbtProfile(defaultProfile);
         setHbtShowInDailySchedule(true);
+        setHbtColor(DEFAULT_COLOR_SWATCHES[0].hex);
       }
     }
   }, [modalType, habitToEdit, defaultProfile]);
@@ -291,67 +319,14 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
     return 1;
   };
 
-  // Sleek & Touch-Friendly Segmented Profile Selector
-  const renderProfileSelector = (selected: ProfilePersona, setSelected: (p: ProfilePersona) => void) => (
-    <div className="space-y-1.5 w-full">
-      <label className="block text-xs font-extrabold text-slate-700 tracking-tight">Profile Owner</label>
-      <div className="grid grid-cols-3 bg-[#f4f6f9] p-1.5 rounded-2xl gap-1 items-center border border-slate-200/60 w-full box-border">
-        {(['Eve', 'Abbie', 'Both'] as ProfilePersona[]).map((p) => {
-          const isSelected = selected === p;
-          return (
-            <button
-              type="button"
-              key={p}
-              onClick={() => setSelected(p)}
-              className={`py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer min-h-[44px] flex items-center justify-center ${
-                isSelected
-                  ? 'bg-[#0f172a] text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
-              }`}
-            >
-              {p}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-
-  // Wrapping Color Swatches (Multi-line, no scroll, no clipping)
-  const renderColorPicker = (selectedColor: string, setSelectedColor: (c: string) => void) => (
-    <div className="space-y-1.5 w-full">
-      <label className="block text-xs font-extrabold text-slate-700 flex items-center gap-1.5 tracking-tight">
-        <Palette className="w-3.5 h-3.5 text-slate-700" />
-        <span>Color Theme</span>
-      </label>
-      <div className="flex items-center justify-between gap-1.5 py-1 w-full box-border overflow-x-auto">
-        {COLOR_SWATCHES.slice(0, 8).map((c) => {
-          const isSelected = selectedColor === c.hex;
-          return (
-            <button
-              type="button"
-              key={c.hex}
-              onClick={() => setSelectedColor(c.hex)}
-              className={`w-9 h-9 min-w-[34px] rounded-full transition-all cursor-pointer border flex-1 max-w-[40px] shrink-0 ${
-                isSelected
-                  ? 'ring-2 ring-slate-900 ring-offset-2 scale-110 shadow-2xs border-transparent'
-                  : 'border-slate-300 hover:scale-105'
-              }`}
-              style={{ backgroundColor: c.hex }}
-              title={c.label}
-            />
-          );
-        })}
-      </div>
-    </div>
-  );
-
-  // Sleek & Touch-Friendly Day Selector
+  // Day of Week Segmented Control
   const renderDaySelector = (selectedDays: number[], toggleDay: (n: number) => void, showWeekends = true) => {
     const days = showWeekends ? WEEK_DAYS : WEEK_DAYS.slice(0, 5);
     return (
       <div className="space-y-1.5 w-full">
-        <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">DAYS OF WEEK</label>
+        <label className="block text-xs font-bold text-slate-900 tracking-tight">
+          {showWeekends ? 'Active Days' : 'Days'}
+        </label>
         <div className={`grid gap-1 w-full box-border ${showWeekends ? 'grid-cols-7' : 'grid-cols-5'}`}>
           {days.map((d) => {
             const isSelected = selectedDays.includes(d.num);
@@ -360,9 +335,9 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                 type="button"
                 key={d.num}
                 onClick={() => toggleDay(d.num)}
-                className={`h-10.5 rounded-xl text-xs font-black transition-all flex items-center justify-center cursor-pointer ${
+                className={`h-10 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center cursor-pointer ${
                   isSelected
-                    ? 'bg-slate-900 text-white shadow-2xs scale-[1.02]'
+                    ? 'bg-[#0f172a] text-white shadow-xs'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
@@ -426,7 +401,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
     setIsSaving(true);
     setErrorMsg(null);
     try {
-      const personaColor = profileColors[clsProfile] || (clsProfile === 'Abbie' ? '#ec4899' : '#2563eb');
+      const personaColor = clsColor || profileColors[clsProfile] || (clsProfile === 'Abbie' ? '#ec4899' : '#2563eb');
       let ok = false;
       if (classToEdit) {
         ok = await updateClass(classToEdit.id, {
@@ -600,64 +575,43 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
     }
   };
 
-  const getModalMeta = () => {
+  const getSheetTitle = () => {
     switch (modalType) {
       case 'event':
         if (evtType === 'exam' || initialEventType === 'exam') {
-          return { title: eventToEdit ? 'Edit Exam' : 'Add Exam', subtitle: 'Scheduled test or examination', emoji: '🚨' };
+          return eventToEdit ? 'Edit Exam' : 'Add Exam';
         }
-        return { title: eventToEdit ? 'Edit Event' : 'Add Event', subtitle: 'Schedule an event', emoji: '📅' };
+        return eventToEdit ? 'Edit Event' : 'Add Event';
       case 'class':
-        return { title: classToEdit ? 'Edit Class' : 'Add Class', subtitle: 'Course timetable', emoji: '📚' };
+        return classToEdit ? 'Edit Class' : 'Add Class';
       case 'habit':
-        return { title: habitToEdit ? 'Edit Habit' : 'Add Habit', subtitle: 'Daily routine', emoji: '⚡' };
+        return habitToEdit ? 'Edit Habit' : 'Add Habit';
       case 'task':
-        return { title: 'Add Task', subtitle: 'Action item', emoji: '✅' };
+        return 'Add Task';
       case 'grocery':
-        return { title: 'Add Grocery Item', subtitle: 'Shopping list', emoji: '🛒' };
+        return 'Add Grocery Item';
       case 'meal':
-        return { title: 'Add Meal', subtitle: 'Menu planner', emoji: '🍳' };
+        return 'Add Meal';
       case 'book':
-        return { title: bookToEdit ? 'Edit Book' : 'Add Book', subtitle: 'Reading shelf', emoji: '📖' };
+        return bookToEdit ? 'Edit Book' : 'Add Book';
       default:
-        return { title: 'Add New Item', subtitle: '', emoji: '✨' };
+        return 'Add Item';
     }
   };
 
-  const renderFooterButtons = (saveLabel = 'Save', isRed = false) => (
-    <div className="flex items-center gap-3 pt-3 sticky bottom-0 bg-white z-10 pb-1 w-full box-border">
-      <button
-        type="button"
-        onClick={onClose}
-        disabled={isSaving}
-        className="flex-1 py-3.5 min-h-[48px] rounded-2xl bg-[#f4f6f9] hover:bg-slate-200 text-slate-700 text-sm font-extrabold transition-all cursor-pointer active:scale-95 flex items-center justify-center"
-      >
-        Cancel
-      </button>
-      <button
-        type="submit"
-        disabled={isSaving}
-        className={`flex-1 py-3.5 min-h-[48px] rounded-2xl text-white text-sm font-extrabold shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95 ${
-          isRed
-            ? 'bg-red-600 hover:bg-red-700 shadow-red-500/30'
-            : 'bg-[#0f172a] hover:bg-slate-800'
-        }`}
-      >
-        {isSaving ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : saveLabel}
-      </button>
-    </div>
-  );
-
-  const modalMeta = getModalMeta();
   const isExamModal = modalType === 'event' && (evtType === 'exam' || initialEventType === 'exam');
 
+  const profileOptions = [
+    { id: 'Eve', label: 'Eve' },
+    { id: 'Abbie', label: 'Abbie' },
+    { id: 'Both', label: 'Both' },
+  ];
+
   return (
-    <BottomSheet
+    <MobileFormSheet
       isOpen={Boolean(modalType)}
       onClose={onClose}
-      title={modalMeta.title}
-      subtitle={modalMeta.subtitle}
-      badgeEmoji={modalMeta.emoji}
+      title={getSheetTitle()}
       isRedHeader={isExamModal}
     >
       {errorMsg && (
@@ -666,169 +620,124 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         </div>
       )}
 
-      {/* 1. ADD / EDIT EVENT FORM — MATCHING SCREENSHOT 2-COLUMN LAYOUT */}
+      {/* 1. ADD / EDIT EVENT FORM — EXACT MATCH TO REFERENCE IMAGE (NARROW + TALL, ONE COLUMN) */}
       {modalType === 'event' && (
-        <form onSubmit={handleEvtSubmit} className="space-y-4 pb-1 w-full box-border">
+        <form onSubmit={handleEvtSubmit} className="space-y-4 w-full">
           {/* Event Title */}
-          <div className="space-y-1.5">
-            <label className={`block text-xs sm:text-sm font-bold tracking-tight ${isExamModal ? 'text-red-700' : 'text-slate-800'}`}>
-              {isExamModal ? 'Exam Title' : 'Event Title'}
-            </label>
-            <input
-              type="text"
-              required
-              value={evtTitle}
-              onChange={(e) => setEvtTitle(e.target.value)}
-              placeholder={isExamModal ? 'e.g. Midterm 1, Final Exam' : "What's happening?"}
-              className={`w-full bg-[#f4f6f9] border rounded-2xl px-4 py-3.5 text-sm font-semibold text-slate-900 transition-all min-h-[48px] box-border ${
-                isExamModal
-                  ? 'border-red-200 bg-red-50/30 placeholder:text-red-300 focus:bg-white focus:border-red-600'
-                  : 'border-slate-200/60 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10'
-              }`}
+          <MobileFormField
+            label={isExamModal ? 'Exam Title' : 'Event Title'}
+            value={evtTitle}
+            onChange={(e) => setEvtTitle(e.target.value)}
+            placeholder={isExamModal ? 'e.g. Midterm 1, Final Exam' : "What's happening?"}
+            required
+            isRed={isExamModal}
+          />
+
+          {/* Date Field */}
+          <MobileSelectField
+            label="Date"
+            type="date"
+            displayValue={formatDateDisplay(evtDate)}
+            value={evtDate}
+            onChange={(e) => setEvtDate(e.target.value)}
+            isRed={isExamModal}
+          />
+
+          {/* Start Time Field */}
+          <MobileSelectField
+            label="Start Time"
+            type="time"
+            displayValue={formatTimeDisplay(evtStartTime)}
+            value={evtStartTime}
+            onChange={(e) => setEvtStartTime(e.target.value)}
+            isRed={isExamModal}
+          />
+
+          {/* End Time Field */}
+          <MobileSelectField
+            label="End Time"
+            type="time"
+            displayValue={formatTimeDisplay(evtEndTime)}
+            value={evtEndTime}
+            onChange={(e) => setEvtEndTime(e.target.value)}
+            isRed={isExamModal}
+          />
+
+          {/* Category Field */}
+          <MobileSelectField
+            label="Category"
+            type="select"
+            displayValue={`${CATEGORY_METAS[evtType]?.emoji || '🎯'} ${CATEGORY_METAS[evtType]?.label || 'Personal'}`}
+            value={evtType}
+            onChange={(e) => setEvtType(e.target.value as EventType)}
+            disabled={isExamModal}
+            options={(Object.keys(CATEGORY_METAS) as EventType[]).map((catKey) => ({
+              value: catKey,
+              label: CATEGORY_METAS[catKey].label,
+              emoji: CATEGORY_METAS[catKey].emoji,
+            }))}
+            isRed={isExamModal}
+          />
+
+          {/* Color Section */}
+          {!isExamModal && (
+            <MobileColorGrid
+              selectedColor={evtColor}
+              onSelectColor={(hex) => setEvtColor(hex)}
             />
-          </div>
+          )}
 
-          {/* Date & Category 2-Column Row */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className={`block text-xs sm:text-sm font-bold tracking-tight ${isExamModal ? 'text-red-700' : 'text-slate-800'}`}>
-                Date
-              </label>
-              <input
-                type="date"
-                required
-                value={evtDate}
-                onChange={(e) => setEvtDate(e.target.value)}
-                className={`w-full bg-[#f4f6f9] border rounded-2xl px-3.5 py-3.5 text-xs sm:text-sm font-semibold text-slate-900 transition-all min-h-[48px] box-border text-center sm:text-left cursor-pointer ${
-                  isExamModal
-                    ? 'border-red-200 bg-red-50/30 focus:bg-white focus:border-red-600'
-                    : 'border-slate-200/60 focus:bg-white focus:border-slate-900'
-                }`}
-              />
-            </div>
+          {/* Profile Owner */}
+          <MobileSegmentedControl
+            label="For"
+            options={profileOptions}
+            value={evtProfile}
+            onChange={(val) => setEvtProfile(val as ProfilePersona)}
+          />
 
-            <div className="space-y-1.5">
-              <label className={`block text-xs sm:text-sm font-bold tracking-tight ${isExamModal ? 'text-red-700' : 'text-slate-800'}`}>
-                Category
-              </label>
-              <select
-                value={evtType}
-                onChange={(e) => setEvtType(e.target.value as EventType)}
-                disabled={isExamModal}
-                className={`w-full bg-[#f4f6f9] border rounded-2xl px-3.5 py-3.5 text-xs sm:text-sm font-semibold text-slate-900 transition-all min-h-[48px] box-border cursor-pointer ${
-                  isExamModal
-                    ? 'border-red-200 bg-red-50/30 opacity-70'
-                    : 'border-slate-200/60 focus:bg-white focus:border-slate-900'
-                }`}
-              >
-                {(Object.keys(CATEGORY_METAS) as EventType[]).map((catKey) => {
-                  const meta = CATEGORY_METAS[catKey];
-                  return (
-                    <option key={catKey} value={catKey}>
-                      {meta.emoji} {meta.label}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-          </div>
-
-          {/* Start Time & End Time 2-Column Row */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className={`block text-xs sm:text-sm font-bold tracking-tight ${isExamModal ? 'text-red-700' : 'text-slate-800'}`}>
-                Start Time
-              </label>
-              <input
-                type="time"
-                value={evtStartTime}
-                onChange={(e) => setEvtStartTime(e.target.value)}
-                className={`w-full bg-[#f4f6f9] border rounded-2xl px-3.5 py-3.5 text-xs sm:text-sm font-semibold text-slate-900 transition-all min-h-[48px] box-border text-center cursor-pointer ${
-                  isExamModal
-                    ? 'border-red-200 bg-red-50/30 focus:bg-white focus:border-red-600'
-                    : 'border-slate-200/60 focus:bg-white focus:border-slate-900'
-                }`}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className={`block text-xs sm:text-sm font-bold tracking-tight ${isExamModal ? 'text-red-700' : 'text-slate-800'}`}>
-                End Time
-              </label>
-              <input
-                type="time"
-                value={evtEndTime}
-                onChange={(e) => setEvtEndTime(e.target.value)}
-                className={`w-full bg-[#f4f6f9] border rounded-2xl px-3.5 py-3.5 text-xs sm:text-sm font-semibold text-slate-900 transition-all min-h-[48px] box-border text-center cursor-pointer ${
-                  isExamModal
-                    ? 'border-red-200 bg-red-50/30 focus:bg-white focus:border-red-600'
-                    : 'border-slate-200/60 focus:bg-white focus:border-slate-900'
-                }`}
-              />
-            </div>
-          </div>
-
-          {!isExamModal && renderColorPicker(evtColor, setEvtColor)}
-          {renderProfileSelector(evtProfile, setEvtProfile)}
-
-          {/* Collapsible Secondary Fields */}
+          {/* More options ⌄ */}
           <div>
             <button
               type="button"
               onClick={() => setShowEvtMore(!showEvtMore)}
-              className={`flex items-center gap-1.5 text-xs sm:text-sm font-bold py-1 transition-colors cursor-pointer ${
-                isExamModal ? 'text-red-700 hover:text-red-900' : 'text-slate-600 hover:text-slate-900'
-              }`}
+              className="flex items-center justify-center gap-1.5 w-full text-xs font-bold text-slate-600 hover:text-slate-900 py-1 transition-colors cursor-pointer"
             >
-              {showEvtMore ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               <span>{showEvtMore ? 'Fewer options' : 'More options'}</span>
+              {showEvtMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
             </button>
 
             {showEvtMore && (
-              <div className="pt-2 space-y-3">
-                <div className="space-y-1.5">
-                  <label className={`block text-xs sm:text-sm font-bold tracking-tight ${isExamModal ? 'text-red-700' : 'text-slate-800'}`}>
-                    Location / Link
-                  </label>
-                  <input
-                    type="text"
-                    value={evtLocation}
-                    onChange={(e) => setEvtLocation(e.target.value)}
-                    placeholder="Room, building, or exam link"
-                    className={`w-full bg-[#f4f6f9] border rounded-2xl px-4 py-3.5 text-sm font-semibold text-slate-900 transition-all min-h-[48px] box-border ${
-                      isExamModal
-                        ? 'border-red-200 bg-red-50/30 placeholder:text-red-300 focus:bg-white focus:border-red-600'
-                        : 'border-slate-200/60 focus:bg-white focus:border-slate-900'
-                    }`}
-                  />
-                </div>
+              <div className="pt-2">
+                <MobileFormField
+                  label="Location / Link"
+                  value={evtLocation}
+                  onChange={(e) => setEvtLocation(e.target.value)}
+                  placeholder="Room, building, or exam link"
+                  isRed={isExamModal}
+                />
               </div>
             )}
           </div>
 
-          {renderFooterButtons(
-            eventToEdit
-              ? (isExamModal ? 'Save Exam' : 'Save Changes')
-              : (isExamModal ? 'Add Exam' : 'Add Event'),
-            isExamModal
-          )}
+          {/* Primary Add Button */}
+          <MobileFormAction
+            label={eventToEdit ? (isExamModal ? 'Save Exam' : 'Save Changes') : (isExamModal ? 'Add Exam' : 'Add Event')}
+            isSaving={isSaving}
+            isRed={isExamModal}
+          />
         </form>
       )}
 
-      {/* 2. ADD / EDIT CLASS FORM — MATCHING SCREENSHOT 2-COLUMN LAYOUT */}
+      {/* 2. ADD CLASS FORM */}
       {modalType === 'class' && (
-        <form onSubmit={handleClsSubmit} className="space-y-4 pb-1 w-full box-border">
-          <div className="space-y-1.5">
-            <label className="block text-xs sm:text-sm font-bold text-slate-800 tracking-tight">Class Name</label>
-            <input
-              type="text"
-              required
-              value={clsName}
-              onChange={(e) => setClsName(e.target.value)}
-              placeholder="e.g. Organic Chemistry"
-              className="w-full bg-[#f4f6f9] border border-slate-200/60 rounded-2xl px-4 py-3.5 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all min-h-[48px] box-border"
-            />
-          </div>
+        <form onSubmit={handleClsSubmit} className="space-y-4 w-full">
+          <MobileFormField
+            label="Class Name"
+            value={clsName}
+            onChange={(e) => setClsName(e.target.value)}
+            placeholder="e.g. Organic Chemistry"
+            required
+          />
 
           {renderDaySelector(
             clsDays,
@@ -836,83 +745,80 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             false
           )}
 
-          {/* Start Time & End Time 2-Column Row */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className="block text-xs sm:text-sm font-bold text-slate-800 tracking-tight">Start Time</label>
-              <input
-                type="time"
-                value={clsStartTime}
-                onChange={(e) => setClsStartTime(e.target.value)}
-                className="w-full bg-[#f4f6f9] border border-slate-200/60 rounded-2xl px-3.5 py-3.5 text-xs sm:text-sm font-semibold text-slate-900 text-center focus:bg-white focus:border-slate-900 transition-all min-h-[48px] box-border cursor-pointer"
-              />
-            </div>
+          <MobileSelectField
+            label="Start Time"
+            type="time"
+            displayValue={formatTimeDisplay(clsStartTime)}
+            value={clsStartTime}
+            onChange={(e) => setClsStartTime(e.target.value)}
+          />
 
-            <div className="space-y-1.5">
-              <label className="block text-xs sm:text-sm font-bold text-slate-800 tracking-tight">End Time</label>
-              <input
-                type="time"
-                value={clsEndTime}
-                onChange={(e) => setClsEndTime(e.target.value)}
-                className="w-full bg-[#f4f6f9] border border-slate-200/60 rounded-2xl px-3.5 py-3.5 text-xs sm:text-sm font-semibold text-slate-900 text-center focus:bg-white focus:border-slate-900 transition-all min-h-[48px] box-border cursor-pointer"
-              />
-            </div>
-          </div>
+          <MobileSelectField
+            label="End Time"
+            type="time"
+            displayValue={formatTimeDisplay(clsEndTime)}
+            value={clsEndTime}
+            onChange={(e) => setClsEndTime(e.target.value)}
+          />
 
-          {renderProfileSelector(clsProfile, setClsProfile)}
+          <MobileColorGrid
+            selectedColor={clsColor}
+            onSelectColor={(hex) => setClsColor(hex)}
+          />
 
-          {/* Collapsible Room / Instructor */}
+          <MobileSegmentedControl
+            label="For"
+            options={profileOptions}
+            value={clsProfile}
+            onChange={(val) => setClsProfile(val as ProfilePersona)}
+          />
+
           <div>
             <button
               type="button"
               onClick={() => setShowClsMore(!showClsMore)}
-              className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-900 py-1 transition-colors cursor-pointer"
+              className="flex items-center justify-center gap-1.5 w-full text-xs font-bold text-slate-600 hover:text-slate-900 py-1 transition-colors cursor-pointer"
             >
+              <span>{showClsMore ? 'Fewer options' : 'More options'}</span>
               {showClsMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              <span>{showClsMore ? 'Fewer options' : 'More options (Room, Instructor)'}</span>
             </button>
 
             {showClsMore && (
-              <div className="pt-3 space-y-3">
-                <div className="space-y-1.5">
-                  <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">ROOM / HALL</label>
-                  <input
-                    type="text"
-                    value={clsRoom}
-                    onChange={(e) => setClsRoom(e.target.value)}
-                    placeholder="Science 101"
-                    className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">INSTRUCTOR</label>
-                  <input
-                    type="text"
-                    value={clsInstructor}
-                    onChange={(e) => setClsInstructor(e.target.value)}
-                    placeholder="Prof. Smith"
-                    className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
-                  />
-                </div>
+              <div className="pt-2 space-y-3">
+                <MobileFormField
+                  label="Room / Hall"
+                  value={clsRoom}
+                  onChange={(e) => setClsRoom(e.target.value)}
+                  placeholder="Science 101"
+                />
+                <MobileFormField
+                  label="Instructor"
+                  value={clsInstructor}
+                  onChange={(e) => setClsInstructor(e.target.value)}
+                  placeholder="Prof. Smith"
+                />
               </div>
             )}
           </div>
 
-          {renderFooterButtons(classToEdit ? 'Save Changes' : 'Add Class')}
+          <MobileFormAction
+            label={classToEdit ? 'Save Changes' : 'Add Class'}
+            isSaving={isSaving}
+          />
         </form>
       )}
 
-      {/* 3. ADD / EDIT HABIT FORM */}
+      {/* 3. ADD HABIT FORM */}
       {modalType === 'habit' && (
-        <form onSubmit={handleHbtSubmit} className="space-y-4 pb-1 w-full box-border">
-          <div className="space-y-1.5">
-            <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">HABIT NAME & EMOJI</label>
+        <form onSubmit={handleHbtSubmit} className="space-y-4 w-full">
+          <div className="space-y-1.5 w-full">
+            <label className="block text-xs font-bold text-slate-900 tracking-tight">Habit Name & Emoji</label>
             <div className="flex gap-2 w-full">
               <input
                 type="text"
                 value={hbtEmoji}
                 onChange={(e) => setHbtEmoji(e.target.value)}
-                className="w-13 bg-slate-50 border border-slate-200/90 rounded-xl text-center text-lg font-bold focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all py-2 min-h-[46px] shrink-0"
+                className="w-13 h-[52px] bg-slate-50/80 border border-slate-200/80 rounded-2xl text-center text-lg font-bold focus:bg-white focus:border-slate-900 transition-all shrink-0"
                 title="Emoji"
               />
               <input
@@ -921,19 +827,19 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                 value={hbtTitle}
                 onChange={(e) => setHbtTitle(e.target.value)}
                 placeholder="e.g. Drink Water"
-                className="flex-1 bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
+                className="flex-1 h-[52px] bg-slate-50/80 border border-slate-200/80 rounded-2xl px-4 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
               />
             </div>
 
             {/* Quick Emoji Bar */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pt-1.5 pb-0.5 no-scrollbar">
+            <div className="flex items-center gap-1.5 overflow-x-auto pt-1 pb-0.5 no-scrollbar">
               {['⚡', '💧', '🏋️', '📚', '🧘', '🍎', '💻', '🎨', '🏃', '😴'].map((em) => (
                 <button
                   type="button"
                   key={em}
                   onClick={() => setHbtEmoji(em)}
-                  className={`w-8.5 h-8.5 rounded-lg text-sm flex items-center justify-center transition-all cursor-pointer shrink-0 ${
-                    hbtEmoji === em ? 'bg-slate-900 text-white shadow-2xs scale-105' : 'bg-slate-100 hover:bg-slate-200'
+                  className={`w-8 h-8 rounded-lg text-sm flex items-center justify-center transition-all cursor-pointer shrink-0 ${
+                    hbtEmoji === em ? 'bg-slate-900 text-white shadow-xs scale-105' : 'bg-slate-100 hover:bg-slate-200'
                   }`}
                 >
                   {em}
@@ -946,18 +852,23 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             setHbtDays((prev) => (prev.includes(n) ? prev.filter((d) => d !== n) : [...prev, n]))
           )}
 
+          <MobileColorGrid
+            selectedColor={hbtColor}
+            onSelectColor={(hex) => setHbtColor(hex)}
+          />
+
           {/* Show in Daily Schedule Toggle */}
-          <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 flex items-center justify-between gap-2 w-full box-border">
+          <div className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-3.5 flex items-center justify-between gap-2 w-full">
             <div className="space-y-0.5">
-              <span className="text-xs font-bold text-slate-800 block">Show in Daily Schedule</span>
-              <p className="text-[10px] text-slate-500 font-medium">Display on calendar agenda</p>
+              <span className="text-xs font-bold text-slate-900 block">Show in Daily Schedule</span>
+              <p className="text-[11px] text-slate-500 font-medium">Display on calendar agenda</p>
             </div>
             <button
               type="button"
               onClick={() => setHbtShowInDailySchedule(!hbtShowInDailySchedule)}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer border min-h-[40px] shrink-0 ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer border shrink-0 ${
                 hbtShowInDailySchedule
-                  ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
+                  ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
                   : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
               }`}
             >
@@ -965,221 +876,142 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             </button>
           </div>
 
-          {renderProfileSelector(hbtProfile, setHbtProfile)}
+          <MobileSegmentedControl
+            label="For"
+            options={profileOptions}
+            value={hbtProfile}
+            onChange={(val) => setHbtProfile(val as ProfilePersona)}
+          />
 
-          {/* Collapsible Quantity Goal */}
           <div>
             <button
               type="button"
               onClick={() => setShowHbtMore(!showHbtMore)}
-              className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-900 py-1 transition-colors cursor-pointer"
+              className="flex items-center justify-center gap-1.5 w-full text-xs font-bold text-slate-600 hover:text-slate-900 py-1 transition-colors cursor-pointer"
             >
+              <span>{showHbtMore ? 'Fewer options' : 'More options'}</span>
               {showHbtMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              <span>{showHbtMore ? 'Fewer options' : 'More options (Daily Goal)'}</span>
             </button>
 
             {showHbtMore && (
-              <div className="pt-2 space-y-1.5">
-                <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">DAILY TARGET GOAL</label>
-                <input
+              <div className="pt-2">
+                <MobileFormField
+                  label="Daily Target Goal"
                   type="number"
                   value={hbtQty}
                   onChange={(e) => setHbtQty(e.target.value)}
                   placeholder="e.g. 8 (glasses, pages)"
-                  className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
                 />
               </div>
             )}
           </div>
 
-          {renderFooterButtons(habitToEdit ? 'Save Habit' : 'Add Habit')}
+          <MobileFormAction
+            label={habitToEdit ? 'Save Habit' : 'Add Habit'}
+            isSaving={isSaving}
+          />
         </form>
       )}
 
       {/* 4. ADD TASK FORM */}
       {modalType === 'task' && (
-        <form onSubmit={handleTskSubmit} className="space-y-4 pb-1 w-full box-border">
-          <div className="space-y-1.5">
-            <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">WHAT NEEDS TO BE DONE?</label>
-            <input
-              type="text"
-              required
-              value={tskTitle}
-              onChange={(e) => setTskTitle(e.target.value)}
-              placeholder="Task description..."
-              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
-            />
-          </div>
+        <form onSubmit={handleTskSubmit} className="space-y-4 w-full">
+          <MobileFormField
+            label="Task"
+            value={tskTitle}
+            onChange={(e) => setTskTitle(e.target.value)}
+            placeholder="What needs to be done?"
+            required
+          />
 
-          <div className="space-y-1.5">
-            <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">DUE DATE</label>
-            <input
-              type="date"
-              value={tskDueDate}
-              onChange={(e) => setTskDueDate(e.target.value)}
-              className="w-full max-w-[210px] bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
-            />
-          </div>
+          <MobileSelectField
+            label="Due Date"
+            type="date"
+            displayValue={formatDateDisplay(tskDueDate)}
+            value={tskDueDate}
+            onChange={(e) => setTskDueDate(e.target.value)}
+          />
 
-          {renderProfileSelector(tskProfile, setTskProfile)}
+          <MobileSelectField
+            label="Due Time"
+            type="time"
+            displayValue={formatTimeDisplay(tskDueTime)}
+            value={tskDueTime}
+            onChange={(e) => setTskDueTime(e.target.value)}
+          />
 
-          {/* Collapsible Priority / Due Time */}
+          <MobileSegmentedControl
+            label="For"
+            options={profileOptions}
+            value={tskProfile}
+            onChange={(val) => setTskProfile(val as ProfilePersona)}
+          />
+
           <div>
             <button
               type="button"
               onClick={() => setShowTskMore(!showTskMore)}
-              className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-900 py-1 transition-colors cursor-pointer"
+              className="flex items-center justify-center gap-1.5 w-full text-xs font-bold text-slate-600 hover:text-slate-900 py-1 transition-colors cursor-pointer"
             >
+              <span>{showTskMore ? 'Fewer options' : 'More options'}</span>
               {showTskMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              <span>{showTskMore ? 'Fewer options' : 'More options (Priority, Due Time)'}</span>
             </button>
 
             {showTskMore && (
-              <div className="pt-3 space-y-3">
-                <div className="space-y-1.5">
-                  <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">PRIORITY</label>
-                  <div className="grid grid-cols-3 gap-1.5 w-full box-border">
-                    <button
-                      type="button"
-                      onClick={() => setTskPriority('low')}
-                      className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border min-h-[44px] ${
-                        tskPriority === 'low'
-                          ? 'bg-emerald-50 text-emerald-800 border-emerald-400 ring-2 ring-emerald-400/20 shadow-2xs'
-                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                      }`}
-                    >
-                      🟢 Low
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setTskPriority('normal')}
-                      className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border min-h-[44px] ${
-                        tskPriority === 'normal'
-                          ? 'bg-amber-50 text-amber-800 border-amber-400 ring-2 ring-amber-400/20 shadow-2xs'
-                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                      }`}
-                    >
-                      🟡 Normal
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setTskPriority('high')}
-                      className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border min-h-[44px] ${
-                        tskPriority === 'high'
-                          ? 'bg-rose-50 text-rose-800 border-rose-400 ring-2 ring-rose-400/20 shadow-2xs'
-                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                      }`}
-                    >
-                      🔴 High
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">DUE TIME</label>
-                  <input
-                    type="time"
-                    value={tskDueTime}
-                    onChange={(e) => setTskDueTime(e.target.value)}
-                    className="w-full max-w-[170px] bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {renderFooterButtons('Add Task')}
-        </form>
-      )}
-
-      {/* 5. ADD GROCERY ITEM FORM */}
-      {modalType === 'grocery' && (
-        <form onSubmit={handleGrcSubmit} className="space-y-4 pb-1 w-full box-border">
-          <div className="space-y-1.5">
-            <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">ITEM NAME</label>
-            <input
-              type="text"
-              required
-              value={grcTitle}
-              onChange={(e) => setGrcTitle(e.target.value)}
-              placeholder="e.g. Milk, Bananas"
-              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">CATEGORY</label>
-            <select
-              value={grcCategory}
-              onChange={(e) => setGrcCategory(e.target.value as GroceryCategory)}
-              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 cursor-pointer focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
-            >
-              {[
-                { label: 'Produce', emoji: '🥬' },
-                { label: 'Dairy', emoji: '🧀' },
-                { label: 'Pantry', emoji: '🌾' },
-                { label: 'Bakery', emoji: '🍞' },
-                { label: 'Meat', emoji: '🥩' },
-                { label: 'Frozen', emoji: '🧊' },
-                { label: 'Beverages', emoji: '🧃' },
-                { label: 'Other', emoji: '📦' },
-              ].map((c) => (
-                <option key={c.label} value={c.label}>
-                  {c.emoji} {c.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {renderProfileSelector(grcProfile, setGrcProfile)}
-
-          {/* Collapsible Quantity */}
-          <div>
-            <button
-              type="button"
-              onClick={() => setShowGrcMore(!showGrcMore)}
-              className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-900 py-1 transition-colors cursor-pointer"
-            >
-              {showGrcMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              <span>{showGrcMore ? 'Fewer options' : 'More options (Quantity / Details)'}</span>
-            </button>
-
-            {showGrcMore && (
               <div className="pt-2 space-y-1.5">
-                <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">QUANTITY / DETAILS</label>
-                <input
-                  type="text"
-                  value={grcQty}
-                  onChange={(e) => setGrcQty(e.target.value)}
-                  placeholder="e.g. 2 gal, 1 lb"
-                  className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
-                />
+                <label className="block text-xs font-bold text-slate-900 tracking-tight">Priority</label>
+                <div className="grid grid-cols-3 gap-1.5 w-full">
+                  {[
+                    { key: 'low', label: '🟢 Low' },
+                    { key: 'normal', label: '🟡 Normal' },
+                    { key: 'high', label: '🔴 High' },
+                  ].map((p) => (
+                    <button
+                      type="button"
+                      key={p.key}
+                      onClick={() => setTskPriority(p.key as any)}
+                      className={`h-10 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                        tskPriority === p.key
+                          ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
 
-          {renderFooterButtons('Add Grocery Item')}
+          <MobileFormAction
+            label="Add Task"
+            isSaving={isSaving}
+          />
         </form>
       )}
 
-      {/* 6. ADD MEAL FORM */}
+      {/* 5. ADD MEAL FORM */}
       {modalType === 'meal' && (
-        <form onSubmit={handleMelSubmit} className="space-y-4 pb-1 w-full box-border">
-          <div className="space-y-1.5">
-            <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">MEAL NAME</label>
-            <input
-              type="text"
-              required
-              value={melTitle}
-              onChange={(e) => setMelTitle(e.target.value)}
-              placeholder="e.g. Avocado Toast"
-              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
-            />
-          </div>
+        <form onSubmit={handleMelSubmit} className="space-y-4 w-full">
+          <MobileFormField
+            label="Meal"
+            value={melTitle}
+            onChange={(e) => setMelTitle(e.target.value)}
+            placeholder="e.g. Avocado Toast"
+            required
+          />
 
-          {/* Meal Type Segmented Pills */}
-          <div className="space-y-1.5">
-            <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">MEAL TYPE</label>
+          <MobileSelectField
+            label="Day/Date"
+            type="date"
+            displayValue={formatDateDisplay(melDate)}
+            value={melDate}
+            onChange={(e) => setMelDate(e.target.value)}
+          />
+
+          <div className="space-y-1.5 w-full">
+            <label className="block text-xs font-bold text-slate-900 tracking-tight">Meal Type</label>
             <div className="grid grid-cols-4 gap-1 w-full box-border">
               {[
                 { type: 'breakfast', label: 'Breakfast', emoji: '🍳' },
@@ -1193,9 +1025,9 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                     type="button"
                     key={m.type}
                     onClick={() => setMelType(m.type as MealType)}
-                    className={`py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex flex-col items-center justify-center min-h-[44px] ${
+                    className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex flex-col items-center justify-center min-h-[40px] ${
                       isSelected
-                        ? 'bg-slate-900 text-white shadow-2xs scale-[1.02]'
+                        ? 'bg-slate-900 text-white shadow-xs'
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
@@ -1207,77 +1039,64 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">DATE</label>
-            <input
-              type="date"
-              required
-              value={melDate}
-              onChange={(e) => setMelDate(e.target.value)}
-              className="w-full max-w-[210px] bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
-            />
-          </div>
+          <MobileSegmentedControl
+            label="For"
+            options={profileOptions}
+            value={melProfile}
+            onChange={(val) => setMelProfile(val as ProfilePersona)}
+          />
 
-          {renderProfileSelector(melProfile, setMelProfile)}
-
-          {/* Collapsible Notes */}
           <div>
             <button
               type="button"
               onClick={() => setShowMelMore(!showMelMore)}
-              className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-900 py-1 transition-colors cursor-pointer"
+              className="flex items-center justify-center gap-1.5 w-full text-xs font-bold text-slate-600 hover:text-slate-900 py-1 transition-colors cursor-pointer"
             >
+              <span>{showMelMore ? 'Fewer options' : 'More options'}</span>
               {showMelMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              <span>{showMelMore ? 'Fewer options' : 'More options (Recipe / Notes)'}</span>
             </button>
 
             {showMelMore && (
               <div className="pt-2 space-y-1.5">
-                <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">RECIPE / NOTES</label>
+                <label className="block text-xs font-bold text-slate-900 tracking-tight">Recipe / Notes</label>
                 <textarea
                   value={melNotes}
                   onChange={(e) => setMelNotes(e.target.value)}
                   placeholder="Ingredients or instructions..."
                   rows={2}
-                  className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all box-border"
+                  className="w-full bg-slate-50/80 border border-slate-200/80 rounded-2xl p-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all box-border"
                 />
               </div>
             )}
           </div>
 
-          {renderFooterButtons('Add Meal')}
+          <MobileFormAction
+            label="Add Meal"
+            isSaving={isSaving}
+          />
         </form>
       )}
 
-      {/* 7. ADD / EDIT BOOK FORM */}
+      {/* 6. ADD BOOK FORM */}
       {modalType === 'book' && (
-        <form onSubmit={handleBokSubmit} className="space-y-4 pb-1 w-full box-border">
-          <div className="space-y-1.5">
-            <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">BOOK TITLE</label>
-            <input
-              type="text"
-              required
-              value={bokTitle}
-              onChange={(e) => setBokTitle(e.target.value)}
-              placeholder="e.g. Tomorrow, and Tomorrow, and Tomorrow"
-              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
-            />
-          </div>
+        <form onSubmit={handleBokSubmit} className="space-y-4 w-full">
+          <MobileFormField
+            label="Title"
+            value={bokTitle}
+            onChange={(e) => setBokTitle(e.target.value)}
+            placeholder="e.g. Tomorrow, and Tomorrow, and Tomorrow"
+            required
+          />
 
-          <div className="space-y-1.5">
-            <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">AUTHOR</label>
-            <input
-              type="text"
-              value={bokAuthor}
-              onChange={(e) => setBokAuthor(e.target.value)}
-              placeholder="Author name"
-              className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
-            />
-          </div>
+          <MobileFormField
+            label="Author"
+            value={bokAuthor}
+            onChange={(e) => setBokAuthor(e.target.value)}
+            placeholder="Author name"
+          />
 
-          {/* Reading Status Segmented Pills */}
-          <div className="space-y-1.5">
-            <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">STATUS</label>
+          <div className="space-y-1.5 w-full">
+            <label className="block text-xs font-bold text-slate-900 tracking-tight">Status</label>
             <div className="grid grid-cols-3 gap-1 w-full box-border">
               {[
                 { status: 'reading', label: 'Reading 📖' },
@@ -1290,9 +1109,9 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                     type="button"
                     key={s.status}
                     onClick={() => setBokStatus(s.status as BookStatus)}
-                    className={`py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center px-1 min-h-[44px] ${
+                    className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center px-1 min-h-[40px] ${
                       isSelected
-                        ? 'bg-slate-900 text-white shadow-2xs scale-[1.02]'
+                        ? 'bg-slate-900 text-white shadow-xs'
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
@@ -1303,48 +1122,114 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             </div>
           </div>
 
-          {renderProfileSelector(bokProfile, setBokProfile)}
+          <MobileFormField
+            label="Total Pages"
+            type="number"
+            value={bokTotalPages}
+            onChange={(e) => setBokTotalPages(e.target.value)}
+            placeholder="e.g. 384"
+          />
 
-          {/* Collapsible Total Pages & Genre */}
+          <MobileSegmentedControl
+            label="For"
+            options={profileOptions}
+            value={bokProfile}
+            onChange={(val) => setBokProfile(val as ProfilePersona)}
+          />
+
           <div>
             <button
               type="button"
               onClick={() => setShowBokMore(!showBokMore)}
-              className="flex items-center gap-1 text-[11px] font-bold text-slate-500 hover:text-slate-900 py-1 transition-colors cursor-pointer"
+              className="flex items-center justify-center gap-1.5 w-full text-xs font-bold text-slate-600 hover:text-slate-900 py-1 transition-colors cursor-pointer"
             >
+              <span>{showBokMore ? 'Fewer options' : 'More options'}</span>
               {showBokMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              <span>{showBokMore ? 'Fewer options' : 'More options (Pages, Genre)'}</span>
             </button>
 
             {showBokMore && (
-              <div className="pt-3 space-y-3">
-                <div className="space-y-1.5">
-                  <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">TOTAL PAGES</label>
-                  <input
-                    type="number"
-                    value={bokTotalPages}
-                    onChange={(e) => setBokTotalPages(e.target.value)}
-                    placeholder="e.g. 384"
-                    className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="block text-[11px] font-extrabold text-slate-600 tracking-wider">GENRE</label>
-                  <input
-                    type="text"
-                    value={bokGenre}
-                    onChange={(e) => setBokGenre(e.target.value)}
-                    placeholder="e.g. Fiction"
-                    className="w-full bg-slate-50 border border-slate-200/90 rounded-xl px-3.5 py-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all min-h-[46px] box-border"
-                  />
-                </div>
+              <div className="pt-2">
+                <MobileFormField
+                  label="Genre"
+                  value={bokGenre}
+                  onChange={(e) => setBokGenre(e.target.value)}
+                  placeholder="e.g. Fiction"
+                />
               </div>
             )}
           </div>
 
-          {renderFooterButtons(bookToEdit ? 'Save Changes' : 'Add to Shelf')}
+          <MobileFormAction
+            label={bookToEdit ? 'Save Changes' : 'Add Book'}
+            isSaving={isSaving}
+          />
         </form>
       )}
-    </BottomSheet>
+
+      {/* 7. ADD GROCERY FORM */}
+      {modalType === 'grocery' && (
+        <form onSubmit={handleGrcSubmit} className="space-y-4 w-full">
+          <MobileFormField
+            label="Item Name"
+            value={grcTitle}
+            onChange={(e) => setGrcTitle(e.target.value)}
+            placeholder="e.g. Milk, Bananas"
+            required
+          />
+
+          <MobileSelectField
+            label="Category"
+            type="select"
+            displayValue={grcCategory}
+            value={grcCategory}
+            onChange={(e) => setGrcCategory(e.target.value as GroceryCategory)}
+            options={[
+              { value: 'Produce', label: 'Produce', emoji: '🥬' },
+              { value: 'Dairy', label: 'Dairy', emoji: '🧀' },
+              { value: 'Pantry', label: 'Pantry', emoji: '🌾' },
+              { value: 'Bakery', label: 'Bakery', emoji: '🍞' },
+              { value: 'Meat', label: 'Meat', emoji: '🥩' },
+              { value: 'Frozen', label: 'Frozen', emoji: '🧊' },
+              { value: 'Beverages', label: 'Beverages', emoji: '🧃' },
+              { value: 'Other', label: 'Other', emoji: '📦' },
+            ]}
+          />
+
+          <MobileSegmentedControl
+            label="For"
+            options={profileOptions}
+            value={grcProfile}
+            onChange={(val) => setGrcProfile(val as ProfilePersona)}
+          />
+
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowGrcMore(!showGrcMore)}
+              className="flex items-center justify-center gap-1.5 w-full text-xs font-bold text-slate-600 hover:text-slate-900 py-1 transition-colors cursor-pointer"
+            >
+              <span>{showGrcMore ? 'Fewer options' : 'More options'}</span>
+              {showGrcMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+
+            {showGrcMore && (
+              <div className="pt-2">
+                <MobileFormField
+                  label="Quantity / Details"
+                  value={grcQty}
+                  onChange={(e) => setGrcQty(e.target.value)}
+                  placeholder="e.g. 2 gal, 1 lb"
+                />
+              </div>
+            )}
+          </div>
+
+          <MobileFormAction
+            label="Add Grocery Item"
+            isSaving={isSaving}
+          />
+        </form>
+      )}
+    </MobileFormSheet>
   );
 };

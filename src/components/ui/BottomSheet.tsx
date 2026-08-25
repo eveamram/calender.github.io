@@ -16,8 +16,6 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   isOpen,
   onClose,
   title,
-  subtitle,
-  badgeEmoji,
   isRedHeader,
   children,
   footer,
@@ -36,44 +34,46 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col justify-end sm:justify-center sm:items-center bg-slate-900/60 backdrop-blur-sm animate-fade-in p-0 sm:p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/40 backdrop-blur-md animate-fade-in overflow-y-auto">
       {/* Backdrop overlay */}
       <div className="fixed inset-0 cursor-pointer" onClick={onClose} />
 
-      {/* Sheet Content Container */}
+      {/* Floating Centered Sheet Container */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`relative bg-white rounded-t-[28px] sm:rounded-3xl max-h-[85vh] sm:max-h-[90vh] shadow-2xl border animate-slide-up w-full max-w-lg mx-auto flex flex-col z-10 overflow-hidden ${
-          isRedHeader ? 'border-red-200' : 'border-slate-200/80'
+        className={`relative bg-white rounded-[32px] shadow-2xl border animate-slide-up flex flex-col z-10 overflow-hidden w-[calc(100%-40px)] sm:w-[350px] max-w-[350px] mx-auto my-auto max-h-[90vh] shrink-0 ${
+          isRedHeader ? 'border-red-200' : 'border-slate-100'
         }`}
-        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 16px)' }}
       >
         {/* Mobile Drag Handle Bar */}
-        <div className="pt-3 pb-1 flex justify-center cursor-pointer shrink-0" onClick={onClose}>
-          <div className={`w-12 h-1.5 rounded-full transition-colors ${isRedHeader ? 'bg-red-300' : 'bg-slate-300/80'}`} />
+        <div className="pt-2.5 pb-1 flex justify-center cursor-pointer shrink-0" onClick={onClose}>
+          <div className={`w-9 h-1 rounded-full transition-colors ${isRedHeader ? 'bg-red-300' : 'bg-slate-300/90'}`} />
         </div>
 
         {/* Header */}
-        <div className={`flex items-center justify-between px-6 py-2.5 shrink-0 ${isRedHeader ? 'bg-red-50/50 border-b border-red-100' : ''}`}>
-          <div className="flex items-center gap-2 min-w-0">
-            <h3 className={`text-xl font-extrabold tracking-tight truncate ${isRedHeader ? 'text-red-950' : 'text-slate-900'}`}>{title}</h3>
-          </div>
+        <div className={`flex items-center justify-between px-5 pt-1 pb-3 shrink-0 ${isRedHeader ? 'bg-red-50/40 border-b border-red-100/60' : ''}`}>
+          <h3 className={`text-xl font-bold tracking-tight truncate ${isRedHeader ? 'text-red-950' : 'text-slate-900'}`}>
+            {title}
+          </h3>
           <button
             type="button"
             onClick={onClose}
-            className="w-9 h-9 rounded-full bg-slate-100/90 hover:bg-slate-200 text-slate-700 hover:text-slate-900 flex items-center justify-center transition-all cursor-pointer shrink-0 active:scale-95"
+            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 flex items-center justify-center transition-all cursor-pointer shrink-0 active:scale-95"
             title="Close"
           >
-            <X className="w-5 h-5 stroke-[2.5]" />
+            <X className="w-4 h-4 stroke-[2.5]" />
           </button>
         </div>
 
         {/* Scrollable Form Body */}
-        <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-4 space-y-4 min-h-0">{children}</div>
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 min-h-0 no-scrollbar">
+          {children}
+        </div>
 
-        {/* Optional Sticky Footer Action Bar */}
+        {/* Footer if provided */}
         {footer && (
-          <div className="px-5 sm:px-6 py-3 border-t border-slate-100 bg-white shrink-0">
+          <div className="px-5 py-3 border-t border-slate-100 bg-white shrink-0">
             {footer}
           </div>
         )}
@@ -81,3 +81,4 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
     </div>
   );
 };
+
