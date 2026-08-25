@@ -74,9 +74,10 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
       {/* Unified Day Filter & View Selector */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-2 rounded-2xl border border-slate-200/80 shadow-xs">
         <div className="flex items-center gap-1 overflow-x-auto w-full sm:w-auto no-scrollbar p-1">
+          {/* 'All Days' is ONLY visible on computer (sm:inline-flex) */}
           <button
             onClick={() => setSelectedMobileDay(0)} // 0 = All Days
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+            className={`hidden sm:inline-flex px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               selectedMobileDay === 0
                 ? 'bg-slate-900 text-white shadow-xs'
                 : 'text-slate-600 hover:bg-slate-100'
@@ -93,7 +94,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
               <button
                 key={dayNum}
                 onClick={() => setSelectedMobileDay(dayNum)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                   isSelected
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'text-slate-700 hover:bg-slate-100 bg-slate-50'
@@ -228,7 +229,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
           )}
         </div>
       ) : (
-        /* ALL DAYS VIEW (Responsive Grid) */
+        /* ALL DAYS VIEW (Desktop Weekly Timetable - Soft Apple/Notion Cards Grid) */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {DAY_NAMES.slice(0, 5).map((name, idx) => {
             const dayNum = idx + 1;
@@ -237,9 +238,10 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
             return (
               <div
                 key={dayNum}
-                className="bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col overflow-hidden min-h-[340px] hover:border-slate-300 transition-all"
+                className="bg-slate-50/70 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col overflow-hidden min-h-[380px] hover:border-slate-300 transition-all"
               >
-                <div className="bg-slate-50/80 border-b border-slate-200/80 px-4 py-3 flex items-center justify-between">
+                {/* Column Header */}
+                <div className="bg-white border-b border-slate-200/80 px-4 py-3 flex items-center justify-between">
                   <div>
                     <span className="text-sm font-bold text-slate-900 tracking-tight">{name}</span>
                     <span className="block text-[11px] font-semibold text-slate-400">
@@ -248,13 +250,14 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                   </div>
                   <button
                     onClick={() => onOpenAddClassModal(dayNum)}
-                    className="w-7 h-7 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center transition-all cursor-pointer active:scale-95"
+                    className="w-7 h-7 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-all cursor-pointer active:scale-95"
                     title={`Add class to ${name}`}
                   >
                     <Plus className="w-4 h-4 stroke-[2.5]" />
                   </button>
                 </div>
 
+                {/* Class List */}
                 <div className="p-3 space-y-3 flex-1 overflow-y-auto">
                   {dayClasses.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400">
@@ -270,18 +273,19 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                       return (
                         <div
                           key={cls.id}
-                          className="p-3.5 rounded-2xl border-l-4 border border-slate-200/80 shadow-xs transition-all space-y-2 relative group hover:shadow-md bg-white"
+                          className="p-3.5 rounded-2xl border-l-4 bg-white border border-slate-200/80 shadow-xs transition-all space-y-2 relative group hover:shadow-md"
                           style={{
                             borderLeftColor: cardColor,
                           }}
                         >
+                          {/* Time & Actions */}
                           <div className="flex items-center justify-between gap-1 flex-wrap">
                             <span
                               className="text-[11px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1.5"
                               style={{
-                                backgroundColor: `${cardColor}18`,
+                                backgroundColor: `${cardColor}15`,
                                 color: cardColor,
-                                border: `1px solid ${cardColor}35`,
+                                border: `1px solid ${cardColor}30`,
                               }}
                             >
                               <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: cardColor }} />
@@ -315,10 +319,12 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                             </div>
                           </div>
 
+                          {/* Class Title */}
                           <h4 className="text-sm font-bold text-slate-900 tracking-tight break-words pt-0.5">{cls.name}</h4>
 
+                          {/* Room / Instructor Details */}
                           {(cls.room || cls.instructor) && (
-                            <div className="flex flex-wrap gap-1 text-[11px] font-semibold text-slate-600 pt-0.5">
+                            <div className="flex flex-wrap gap-1 text-[11px] font-medium text-slate-600 pt-1">
                               {cls.room && (
                                 <span className="inline-flex items-center gap-1 bg-slate-50 border border-slate-200/60 px-2 py-0.5 rounded-lg break-words">
                                   📍 {cls.room}
