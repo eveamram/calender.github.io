@@ -71,7 +71,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = () => {
             onClick={() => setShowMoreMenu((prev) => !prev)}
             className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl min-w-[60px] transition-all cursor-pointer ${
               isMoreActive || showMoreMenu
-                ? 'text-white bg-purple-600 shadow-sm scale-105 font-black'
+                ? 'text-white bg-slate-900 shadow-sm scale-105 font-black'
                 : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100 font-semibold'
             }`}
           >
@@ -94,7 +94,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = () => {
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
-                <span className="w-8 h-8 rounded-xl bg-purple-100 flex items-center justify-center text-sm">✨</span>
+                <span className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-sm">✨</span>
                 <div>
                   <h3 className="text-base font-black text-slate-900 tracking-tight">More Apps & Tools</h3>
                   <p className="text-[11px] text-slate-500 font-medium">Groceries, Meals, Books & Settings</p>
@@ -121,7 +121,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = () => {
                     }}
                     className={`w-full flex items-center gap-3.5 p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
                       isActive
-                        ? 'bg-purple-50 border-purple-300 text-purple-950 shadow-xs font-bold'
+                        ? 'bg-slate-900 border-slate-900 text-white shadow-xs font-bold'
                         : 'bg-slate-50/80 border-slate-200/80 hover:bg-slate-100 text-slate-800'
                     }`}
                   >
@@ -129,8 +129,8 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = () => {
                       {item.icon}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="text-sm font-extrabold text-slate-900">{item.label}</div>
-                      <div className="text-[11px] text-slate-500 font-medium truncate">{item.desc}</div>
+                      <div className={`text-sm font-extrabold ${isActive ? 'text-white' : 'text-slate-900'}`}>{item.label}</div>
+                      <div className={`text-[11px] font-medium truncate ${isActive ? 'text-slate-300' : 'text-slate-500'}`}>{item.desc}</div>
                     </div>
                   </button>
                 );
