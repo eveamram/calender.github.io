@@ -116,7 +116,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
             </button>
           </div>
         ) : (
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             {selectedMobileClasses.map((cls) => {
               const ownerName = cls.profile || 'Eve';
               const badgeColor = profileColors[ownerName] || '#2563eb';
@@ -125,67 +125,62 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
               return (
                 <div
                   key={cls.id}
-                  className="bg-white rounded-xl p-3 border border-slate-200/80 border-l-[3px] shadow-2xs space-y-2 relative group hover:border-slate-300 transition-all"
+                  className="bg-white rounded-2xl p-4 border-l-4 border border-slate-200/80 shadow-xs space-y-2.5 relative group hover:shadow-md transition-all"
                   style={{
                     borderLeftColor: cardColor,
                   }}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1 space-y-1">
+                    <div className="min-w-0 flex-1 space-y-1.5">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-sm font-semibold text-[#182238] tracking-tight break-words">{cls.name}</h3>
+                        <span
+                          className="text-xs font-semibold text-white px-2.5 py-0.5 rounded-lg shadow-2xs"
+                          style={{ backgroundColor: cardColor }}
+                        >
+                          {formatTime12Hour(cls.start_time)} - {formatTime12Hour(cls.end_time)}
+                        </span>
+                        <h3 className="text-base font-semibold text-slate-900 tracking-tight break-words">{cls.name}</h3>
                         {activeProfile === 'Both' && (
                           <span
-                            className="text-[10px] font-medium px-2 py-0.5 rounded-md shrink-0"
-                            style={{ backgroundColor: `${badgeColor}15`, color: badgeColor }}
+                            className="text-[10px] font-bold text-white px-2 py-0.5 rounded-md shrink-0"
+                            style={{ backgroundColor: badgeColor }}
                           >
                             {ownerName}
                           </span>
                         )}
                       </div>
-
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span
-                          className="text-[11px] font-medium px-2 py-0.5 rounded-md inline-block"
-                          style={{
-                            backgroundColor: `${cardColor}15`,
-                            color: cardColor,
-                          }}
-                        >
-                          {formatTime12Hour(cls.start_time)} – {formatTime12Hour(cls.end_time)}
-                        </span>
-                      </div>
                     </div>
 
-                    <div className="flex items-center gap-1 shrink-0 pt-0.5">
+                    <div className="flex items-center gap-1 shrink-0">
                       <button
                         onClick={() => onOpenAddClassModal(selectedMobileDay, cls)}
-                        className="text-slate-400 hover:text-slate-700 p-1 transition-colors cursor-pointer"
+                        className="text-slate-400 hover:text-blue-600 p-1 transition-colors cursor-pointer"
                         title="Edit Class"
                       >
-                        <Edit3 className="w-3.5 h-3.5" />
+                        <Edit3 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => deleteClass(cls.id)}
                         className="text-slate-400 hover:text-rose-600 p-1 transition-colors cursor-pointer"
                         title="Delete Class"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
 
                   {(cls.room || cls.instructor) && (
-                    <div className="flex flex-wrap items-center gap-3 text-[11px] font-medium text-slate-500 pt-0.5">
+                    <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-700 pt-0.5">
                       {cls.room && (
-                        <span className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3 text-slate-400" />
+                        <span className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/60 px-2.5 py-1 rounded-xl break-words">
+                          <MapPin className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                           {cls.room}
                         </span>
                       )}
+
                       {cls.instructor && (
-                        <span className="flex items-center gap-1">
-                          <User className="w-3 h-3 text-slate-400" />
+                        <span className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/60 px-2.5 py-1 rounded-xl break-words">
+                          <User className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
                           {cls.instructor}
                         </span>
                       )}
@@ -225,7 +220,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                 </button>
               </div>
 
-              <div className="p-3 space-y-2.5 flex-1 overflow-y-auto">
+              <div className="p-3 space-y-3 flex-1 overflow-y-auto">
                 {dayClasses.length === 0 ? (
                   <div className="h-full flex items-center justify-center text-xs text-slate-400 font-medium py-10">
                     No classes
@@ -239,26 +234,31 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                     return (
                       <div
                         key={cls.id}
-                        className="p-3 rounded-xl bg-white border border-slate-200/80 border-l-[3px] shadow-2xs transition-all space-y-1.5 relative group hover:border-slate-300"
+                        className="p-3.5 rounded-2xl border-l-4 border border-slate-200/80 shadow-xs transition-all space-y-2 relative group hover:shadow-md"
                         style={{
                           borderLeftColor: cardColor,
                         }}
                       >
-                        <div className="flex items-start justify-between gap-1">
-                          <h4 className="text-sm font-semibold text-[#182238] tracking-tight break-words flex-1 min-w-0">{cls.name}</h4>
+                        <div className="flex items-center justify-between">
+                          <span
+                            className="text-[11px] font-medium text-white px-2 py-0.5 rounded-md shadow-2xs"
+                            style={{ backgroundColor: cardColor }}
+                          >
+                            {formatTime12Hour(cls.start_time)}
+                          </span>
 
-                          <div className="flex items-center gap-1 shrink-0">
+                          <div className="flex items-center gap-1">
                             {activeProfile === 'Both' && (
                               <span
-                                className="text-[10px] font-medium px-1.5 py-0.5 rounded-md"
-                                style={{ backgroundColor: `${badgeColor}15`, color: badgeColor }}
+                                className="text-[10px] font-bold text-white px-1.5 py-0.5 rounded-md"
+                                style={{ backgroundColor: badgeColor }}
                               >
                                 {ownerName}
                               </span>
                             )}
                             <button
                               onClick={() => onOpenAddClassModal(dayNum, cls)}
-                              className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-slate-700 transition-opacity cursor-pointer p-0.5"
+                              className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-blue-600 transition-opacity cursor-pointer p-0.5"
                               title="Edit Class"
                             >
                               <Edit3 className="w-3.5 h-3.5" />
@@ -273,24 +273,12 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                           </div>
                         </div>
 
-                        <div>
-                          <span
-                            className="text-[11px] font-medium px-2 py-0.5 rounded-md inline-block"
-                            style={{
-                              backgroundColor: `${cardColor}15`,
-                              color: cardColor,
-                            }}
-                          >
-                            {formatTime12Hour(cls.start_time)} – {formatTime12Hour(cls.end_time)}
-                          </span>
-                        </div>
+                        <h4 className="text-sm font-semibold text-slate-900 tracking-tight break-words">{cls.name}</h4>
 
-                        {(cls.room || cls.instructor) && (
-                          <div className="text-[11px] font-medium text-slate-500 space-y-0.5 pt-0.5">
-                            {cls.room && <div className="break-words flex items-center gap-1">📍 {cls.room}</div>}
-                            {cls.instructor && <div className="break-words flex items-center gap-1">👤 {cls.instructor}</div>}
-                          </div>
-                        )}
+                        <div className="text-[11px] font-semibold text-slate-600 space-y-1">
+                          {cls.room && <div className="break-words flex items-center gap-1">📍 {cls.room}</div>}
+                          {cls.instructor && <div className="break-words flex items-center gap-1">👤 {cls.instructor}</div>}
+                        </div>
                       </div>
                     );
                   })
