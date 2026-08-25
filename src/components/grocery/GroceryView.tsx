@@ -92,29 +92,51 @@ export const GroceryView: React.FC = () => {
         </div>
       </div>
 
-      <form onSubmit={handleAdd} className="bg-white rounded-2xl p-2 border border-slate-200/80 shadow-2xs space-y-2">
+      <form onSubmit={handleAdd} className="bg-white rounded-2xl p-3 border border-slate-200/80 shadow-2xs space-y-3">
         <div className="flex items-center gap-2">
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Item name (e.g. Milk, Bananas)"
-            className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all"
+            className="flex-1 bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all"
           />
           <input
             type="text"
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
             placeholder="Qty"
-            className="w-20 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all"
+            className="w-16 sm:w-20 bg-slate-50 border border-slate-200/80 rounded-xl px-2.5 py-2.5 text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all"
           />
           <button
             type="submit"
-            className="bg-slate-900 hover:bg-slate-800 text-white font-extrabold px-3.5 py-2 rounded-xl text-xs flex items-center justify-center gap-1 shrink-0 transition-all cursor-pointer active:scale-95 shadow-xs"
+            className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 shrink-0 transition-all cursor-pointer active:scale-95 shadow-xs"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span className="hidden sm:inline">Add</span>
+            <span>Add</span>
           </button>
+        </div>
+
+        {/* Category Chips */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+          <span className="text-[11px] font-bold text-slate-400 shrink-0 mr-1">Category:</span>
+          {CATEGORIES.map((cat) => {
+            const isSelected = category === cat;
+            return (
+              <button
+                type="button"
+                key={cat}
+                onClick={() => setCategory(cat)}
+                className={`py-1 px-2.5 rounded-lg text-[11px] font-bold shrink-0 transition-all cursor-pointer ${
+                  isSelected
+                    ? 'bg-slate-900 text-white shadow-2xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70 hover:text-slate-900'
+                }`}
+              >
+                {cat}
+              </button>
+            );
+          })}
         </div>
       </form>
 

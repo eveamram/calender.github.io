@@ -51,26 +51,26 @@ export const MobileFormSheet: React.FC<MobileFormSheetProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/20 sm:bg-slate-900/10 sm:backdrop-blur-none backdrop-blur-xs animate-fade-in overflow-y-auto">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/30 sm:bg-slate-900/20 backdrop-blur-xs animate-fade-in overflow-y-auto">
       {/* Backdrop overlay click handler */}
       <div className="fixed inset-0 cursor-pointer" onClick={onClose} />
 
-      {/* Floating Centered Narrow Sheet */}
+      {/* Floating Centered Container (Mobile Sheet / Desktop Modal) */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`relative bg-white rounded-[32px] shadow-2xl border animate-slide-up flex flex-col z-10 overflow-hidden w-[calc(100%-40px)] sm:w-[350px] max-w-[350px] mx-auto my-auto max-h-[90vh] shrink-0 ${
+        className={`relative bg-white rounded-[28px] sm:rounded-[24px] shadow-2xl border animate-slide-up flex flex-col z-10 overflow-hidden w-[calc(100%-32px)] max-w-[390px] sm:w-[540px] sm:max-w-[540px] mx-auto my-auto max-h-[90vh] shrink-0 ${
           isRedHeader ? 'border-red-200' : 'border-slate-100'
         }`}
-        style={{ paddingBottom: 'env(safe-area-inset-bottom, 16px)' }}
+        style={{ width: 'min(540px, calc(100vw - 32px))', paddingBottom: 'env(safe-area-inset-bottom, 16px)' }}
       >
-        {/* Mobile Drag Handle Bar */}
-        <div className="pt-2.5 pb-1 flex justify-center cursor-pointer shrink-0" onClick={onClose}>
+        {/* Mobile Drag Handle Bar (HIDDEN ON DESKTOP) */}
+        <div className="pt-2.5 pb-1 flex justify-center cursor-pointer shrink-0 sm:hidden" onClick={onClose}>
           <div className={`w-9 h-1 rounded-full transition-colors ${isRedHeader ? 'bg-red-300' : 'bg-slate-300/90'}`} />
         </div>
 
-        {/* Sheet Header */}
-        <div className={`flex items-center justify-between px-5 pt-1 pb-3 shrink-0 ${isRedHeader ? 'bg-red-50/40 border-b border-red-100/60' : ''}`}>
-          <h3 className={`text-xl font-bold tracking-tight truncate ${isRedHeader ? 'text-red-950' : 'text-slate-900'}`}>
+        {/* Sheet / Modal Header */}
+        <div className={`flex items-center justify-between px-5 py-3.5 sm:px-6 sm:py-4 shrink-0 ${isRedHeader ? 'bg-red-50/40 border-b border-red-100/60' : 'border-b border-slate-100/80'}`}>
+          <h3 className={`text-base sm:text-lg font-semibold tracking-tight truncate ${isRedHeader ? 'text-red-950' : 'text-[#182033]'}`}>
             {title}
           </h3>
           <button
@@ -79,12 +79,12 @@ export const MobileFormSheet: React.FC<MobileFormSheetProps> = ({
             className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 flex items-center justify-center transition-all cursor-pointer shrink-0 active:scale-95"
             title="Close"
           >
-            <X className="w-4 h-4 stroke-[2.5]" />
+            <X className="w-4 h-4 stroke-[2]" />
           </button>
         </div>
 
         {/* Scrollable Form Body */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 min-h-0 no-scrollbar">
+        <div className="flex-1 overflow-y-auto px-5 py-4 sm:px-6 sm:py-5 space-y-4 min-h-0 no-scrollbar">
           {children}
         </div>
       </div>
@@ -122,7 +122,7 @@ export const MobileFormField: React.FC<MobileFormFieldProps> = ({
 }) => {
   return (
     <div className="space-y-1.5 w-full">
-      <label className={`block text-xs font-bold tracking-tight ${isRed ? 'text-red-800' : 'text-slate-900'}`}>
+      <label className={`block text-xs font-semibold tracking-tight ${isRed ? 'text-red-800' : 'text-slate-700'}`}>
         {label}
       </label>
       <div
@@ -373,6 +373,7 @@ export const MobileSegmentedControl: React.FC<MobileSegmentedControlProps> = ({
 interface MobileFormActionProps {
   label: string;
   onClick?: () => void;
+  onCancel?: () => void;
   type?: 'submit' | 'button';
   isSaving?: boolean;
   isRed?: boolean;
@@ -381,17 +382,28 @@ interface MobileFormActionProps {
 export const MobileFormAction: React.FC<MobileFormActionProps> = ({
   label,
   onClick,
+  onCancel,
   type = 'submit',
   isSaving = false,
   isRed = false,
 }) => {
   return (
-    <div className="pt-2 w-full">
+    <div className="pt-3 w-full flex items-center gap-3">
+      {onCancel && (
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={isSaving}
+          className="hidden sm:flex flex-1 h-[48px] rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold transition-all items-center justify-center cursor-pointer border border-slate-200/80 active:scale-[0.98]"
+        >
+          Cancel
+        </button>
+      )}
       <button
         type={type}
         onClick={onClick}
         disabled={isSaving}
-        className={`w-full h-[52px] rounded-2xl text-white text-sm font-bold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-[0.98] ${
+        className={`w-full ${onCancel ? 'sm:flex-1' : ''} h-[52px] sm:h-[48px] rounded-2xl text-white text-sm font-semibold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-[0.98] ${
           isRed
             ? 'bg-red-600 hover:bg-red-700 shadow-red-500/20'
             : 'bg-[#0f172a] hover:bg-slate-800 shadow-slate-900/10'

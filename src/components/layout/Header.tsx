@@ -69,7 +69,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform">
               <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white stroke-[2.5]" />
             </div>
-            <span className="text-base sm:text-lg font-black tracking-tight text-slate-900">
+            <span className="text-base sm:text-lg font-bold tracking-tight text-slate-900">
               calender<span className="text-pink-500">.</span>
             </span>
           </button>
@@ -82,7 +82,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
                 <button
                   key={item.tab}
                   onClick={() => setActiveTab(item.tab)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                     isActive
                       ? 'bg-white text-slate-900 shadow-xs'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
@@ -100,7 +100,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
         <div className="hidden lg:flex flex-1 justify-center max-w-xs">
           <button
             onClick={onOpenAddModal}
-            className="flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-bold px-4 py-1.5 rounded-xl text-xs shadow-xs transition-all cursor-pointer"
+            className="flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-semibold px-4 py-1.5 rounded-xl text-xs shadow-xs transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
             <span>Add Item</span>
@@ -119,7 +119,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
                 <button
                   key={p}
                   onClick={() => setActiveProfile(p)}
-                  className={`flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg text-[10px] sm:text-xs font-bold transition-all cursor-pointer ${
+                  className={`flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg text-[10px] sm:text-xs font-semibold transition-all cursor-pointer ${
                     isSelected ? 'text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
                   }`}
                   style={isSelected ? { backgroundColor: currentColor } : undefined}

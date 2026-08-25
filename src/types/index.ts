@@ -48,6 +48,8 @@ export interface ClassItem {
   days_of_week: number[]; // 1=Mon, 2=Tue, ..., 7=Sun
   color?: string;
   profile?: ProfilePersona;
+  office_hours?: string;
+  office_hours_location?: string;
   created_at?: string;
   updated_at?: string;
 }

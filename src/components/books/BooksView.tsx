@@ -300,7 +300,7 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
                     📖
                   </div>
                   <div className="text-xs min-w-0">
-                    <span className="font-extrabold text-stone-900 block leading-tight truncate">{totalPagesRead}</span>
+                    <span className="font-bold text-stone-900 block leading-tight truncate">{totalPagesRead}</span>
                     <span className="text-[9px] text-stone-500 font-semibold block truncate">Pages</span>
                   </div>
                 </div>
@@ -310,7 +310,7 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
                     📚
                   </div>
                   <div className="text-xs min-w-0">
-                    <span className="font-extrabold text-stone-900 block leading-tight truncate">{readingCount}</span>
+                    <span className="font-bold text-stone-900 block leading-tight truncate">{readingCount}</span>
                     <span className="text-[9px] text-stone-500 font-semibold block truncate">Reading</span>
                   </div>
                 </div>
@@ -320,7 +320,7 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
                     ⭐
                   </div>
                   <div className="text-xs min-w-0">
-                    <span className="font-extrabold text-stone-900 block leading-tight truncate">{completedCount}</span>
+                    <span className="font-bold text-stone-900 block leading-tight truncate">{completedCount}</span>
                     <span className="text-[9px] text-stone-500 font-semibold block truncate">Finished</span>
                   </div>
                 </div>
@@ -329,7 +329,7 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
 
             <button
               onClick={() => onOpenAddBookModal(null)}
-              className="p-2 sm:px-4 sm:py-2.5 rounded-2xl bg-purple-950 hover:bg-purple-900 active:scale-95 text-white font-extrabold text-xs shadow-md transition-all cursor-pointer shrink-0 flex items-center gap-1.5"
+              className="p-2 sm:px-4 sm:py-2.5 rounded-2xl bg-purple-950 hover:bg-purple-900 active:scale-95 text-white font-semibold text-xs shadow-md transition-all cursor-pointer shrink-0 flex items-center gap-1.5"
               title="Add Book"
             >
               <Plus className="w-4 h-4 stroke-[2.5]" />

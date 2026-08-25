@@ -11,6 +11,7 @@ import {
   ChevronRight,
   ChevronDown,
 } from 'lucide-react';
+import { formatDateDisplay } from '../ui/MobileFormComponents';
 
 interface TodoViewProps {
   onOpenAddModal: () => void;
@@ -82,7 +83,7 @@ export const TodoView: React.FC<TodoViewProps> = ({ onOpenAddModal }) => {
           </div>
 
           <span
-            className={`text-sm font-semibold text-slate-900 truncate ${
+            className={`text-sm font-medium text-slate-900 truncate ${
               task.is_completed ? 'line-through text-slate-400 font-normal' : ''
             }`}
           >
@@ -92,22 +93,22 @@ export const TodoView: React.FC<TodoViewProps> = ({ onOpenAddModal }) => {
 
         <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
           {task.priority === 'high' && (
-            <span className="flex items-center gap-1 text-[11px] font-extrabold text-rose-700 bg-rose-50 border border-rose-200/60 px-2 py-0.5 rounded-lg">
+            <span className="flex items-center gap-1 text-[11px] font-semibold text-rose-700 bg-rose-50 border border-rose-200/60 px-2 py-0.5 rounded-lg">
               <AlertCircle className="w-3 h-3 text-rose-600" />
               High
             </span>
           )}
 
           {task.due_date && (
-            <span className="flex items-center gap-1 text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-lg">
+            <span className="flex items-center gap-1 text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-lg">
               <CalendarIcon className="w-3 h-3 text-slate-400" />
-              {task.due_date === todayStr ? 'Today' : task.due_date}
+              {task.due_date === todayStr ? 'Today' : formatDateDisplay(task.due_date)}
             </span>
           )}
 
           {activeProfile === 'Both' && (
             <span
-              className="text-[10px] font-extrabold text-white px-2 py-0.5 rounded-lg shadow-2xs"
+              className="text-[10px] font-semibold text-white px-2 py-0.5 rounded-lg shadow-2xs"
               style={{ backgroundColor: badgeColor }}
             >
               {ownerName}
@@ -130,12 +131,12 @@ export const TodoView: React.FC<TodoViewProps> = ({ onOpenAddModal }) => {
     <div className="space-y-6 max-w-4xl mx-auto px-4 md:px-8 py-6">
       <div className="flex items-center justify-between border-b border-slate-200/80 pb-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">To-Do List</h1>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">To-Do List</h1>
           <p className="text-xs text-slate-500 font-medium">Simple, clean task management</p>
         </div>
         <button
           onClick={onOpenAddModal}
-          className="p-2 sm:px-4 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs shadow-xs transition-all cursor-pointer active:scale-95 flex items-center gap-1.5"
+          className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-xs transition-all cursor-pointer active:scale-95 flex items-center gap-1.5"
           title="Add Details"
         >
           <Plus className="w-4 h-4 stroke-[2.5]" />
@@ -153,7 +154,7 @@ export const TodoView: React.FC<TodoViewProps> = ({ onOpenAddModal }) => {
         />
         <button
           type="submit"
-          className="absolute right-1.5 top-1.5 bottom-1.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold px-3 rounded-xl text-xs transition-all cursor-pointer active:scale-95"
+          className="absolute right-1.5 top-1.5 bottom-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold px-3 rounded-xl text-xs transition-all cursor-pointer active:scale-95"
         >
           Add
         </button>
@@ -162,7 +163,7 @@ export const TodoView: React.FC<TodoViewProps> = ({ onOpenAddModal }) => {
       <div className="space-y-6 pt-2">
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+            <h2 className="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-blue-600" />
               Today
             </h2>
@@ -181,7 +182,7 @@ export const TodoView: React.FC<TodoViewProps> = ({ onOpenAddModal }) => {
         {upcomingTasks.length > 0 && (
           <div className="space-y-3 pt-2">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+              <h2 className="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-amber-500" />
                 Upcoming
               </h2>
@@ -194,7 +195,7 @@ export const TodoView: React.FC<TodoViewProps> = ({ onOpenAddModal }) => {
         {noDateTasks.length > 0 && (
           <div className="space-y-3 pt-2">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+              <h2 className="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-slate-400" />
                 Someday / No Date
               </h2>

@@ -24,9 +24,39 @@ const MEAL_TYPES: { type: MealType; label: string; emoji: string }[] = [
   { type: 'snack', label: 'Snacks', emoji: '🍏' },
 ];
 
+const getMondayOfCurrentWeek = (offsetWeeks: number = 0) => {
+  const d = new Date();
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1) + offsetWeeks * 7;
+  const monday = new Date(d.setDate(diff));
+  monday.setHours(0, 0, 0, 0);
+  return monday;
+};
+
+const formatDateYYYYMMDD = (d: Date) => {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+};
+
 export const MealsView: React.FC<MealsViewProps> = ({ onOpenAddMealModal }) => {
   const { mealItems, addMealItem, deleteMealItem, addGroceryItem, filterByProfile, activeProfile, profileColors } = useStore();
   const [selectedMobileDay, setSelectedMobileDay] = useState<number>(1); // 1 = Mon
+  const [weekOffset, setWeekOffset] = useState<number>(0);
+
+  const mondayDate = useMemo(() => getMondayOfCurrentWeek(weekOffset), [weekOffset]);
+  const sundayDate = useMemo(() => {
+    const s = new Date(mondayDate);
+    s.setDate(s.getDate() + 6);
+    return s;
+  }, [mondayDate]);
+
+  const weekLabel = useMemo(() => {
+    const mStr = mondayDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const sStr = sundayDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return `${mStr} – ${sStr}`;
+  }, [mondayDate, sundayDate]);
 
   const handleDuplicateToNextDay = async (meal: MealItem) => {
     const nextDay = meal.day_of_week === 7 ? 1 : meal.day_of_week + 1;
@@ -36,10 +66,7 @@ export const MealsView: React.FC<MealsViewProps> = ({ onOpenAddMealModal }) => {
       if (parts.length === 3) {
         const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
         d.setDate(d.getDate() + 1);
-        const yyyy = d.getFullYear();
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const dd = String(d.getDate()).padStart(2, '0');
-        nextDate = `${yyyy}-${mm}-${dd}`;
+        nextDate = formatDateYYYYMMDD(d);
       }
     }
     await addMealItem({
@@ -50,7 +77,6 @@ export const MealsView: React.FC<MealsViewProps> = ({ onOpenAddMealModal }) => {
       notes: meal.notes,
       profile: meal.profile,
     });
-    alert(`Duplicated "${meal.title}" to ${DAYS.find((d) => d.num === nextDay)?.name}!`);
   };
 
   const handleSendToGrocery = async (meal: MealItem) => {
@@ -60,12 +86,18 @@ export const MealsView: React.FC<MealsViewProps> = ({ onOpenAddMealModal }) => {
       is_completed: false,
       profile: meal.profile,
     });
-    alert(`Added "${meal.title}" to your Grocery List!`);
   };
 
   const filteredMeals = useMemo(() => {
-    return filterByProfile(mealItems);
-  }, [mealItems, filterByProfile]);
+    const profileFiltered = filterByProfile(mealItems);
+    const mondayStr = formatDateYYYYMMDD(mondayDate);
+    const sundayStr = formatDateYYYYMMDD(sundayDate);
+
+    return profileFiltered.filter((meal) => {
+      if (!meal.meal_date) return weekOffset === 0;
+      return meal.meal_date >= mondayStr && meal.meal_date <= sundayStr;
+    });
+  }, [mealItems, filterByProfile, mondayDate, sundayDate, weekOffset]);
 
   // Group meals by day & type
   const mealsByDay = useMemo(() => {
@@ -89,19 +121,51 @@ export const MealsView: React.FC<MealsViewProps> = ({ onOpenAddMealModal }) => {
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-4 md:px-8 py-6">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-200/80 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200/80 pb-4 gap-3">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Meal Planner</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Meal Planner</h1>
           <p className="text-xs text-slate-500 font-medium">Weekly meals schedule (Breakfast, Lunch, Dinner, Snacks)</p>
         </div>
-        <button
-          onClick={() => onOpenAddMealModal()}
-          className="p-2 sm:px-4 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs shadow-xs transition-all cursor-pointer active:scale-95 flex items-center gap-1.5"
-          title="Add Meal"
-        >
-          <Plus className="w-4 h-4 stroke-[2.5]" />
-          <span className="hidden sm:inline">Add Meal</span>
-        </button>
+
+        <div className="flex items-center gap-2 flex-wrap justify-between sm:justify-end">
+          {/* Week Selector */}
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/60">
+            <button
+              onClick={() => setWeekOffset((w) => w - 1)}
+              className="px-2 py-1 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg transition-all cursor-pointer"
+              title="Previous Week"
+            >
+              ←
+            </button>
+            <span className="text-xs font-bold text-slate-800 px-2 min-w-[130px] text-center">
+              {weekLabel}
+            </span>
+            <button
+              onClick={() => setWeekOffset((w) => w + 1)}
+              className="px-2 py-1 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg transition-all cursor-pointer"
+              title="Next Week"
+            >
+              →
+            </button>
+            {weekOffset !== 0 && (
+              <button
+                onClick={() => setWeekOffset(0)}
+                className="ml-1 text-[11px] font-bold text-indigo-600 bg-white px-2 py-0.5 rounded-md hover:bg-indigo-50 border border-indigo-100 transition-all cursor-pointer"
+              >
+                Today
+              </button>
+            )}
+          </div>
+
+          <button
+            onClick={() => onOpenAddMealModal()}
+            className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-xs transition-all cursor-pointer active:scale-95 flex items-center gap-1.5"
+            title="Add Meal"
+          >
+            <Plus className="w-4 h-4 stroke-[2.5]" />
+            <span>Add Meal</span>
+          </button>
+        </div>
       </div>
 
       {/* MOBILE LAYOUT: Day Selector Tabs + Daily Meal List */}

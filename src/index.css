@@ -18,7 +18,7 @@
   body {
     background-color: var(--bg-main);
     color: var(--text-primary);
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     margin: 0;
@@ -27,10 +27,10 @@
   }
 }
 
-/* Font Styling for Class Titles */
+/* Font Styling for Class Titles & Headers */
 .font-class-title {
-  font-family: 'Outfit', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  letter-spacing: -0.015em;
+  font-family: 'Plus Jakarta Sans', 'Outfit', -apple-system, sans-serif;
+  letter-spacing: -0.018em;
 }
 
 /* Glassmorphism & Fun Card Utilities */

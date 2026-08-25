@@ -258,7 +258,7 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
 
                   <div className="min-w-0 space-y-1.5 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-base font-extrabold text-[#182238] truncate tracking-tight">{h.title}</h3>
+                      <h3 className="text-sm sm:text-base font-semibold text-[#182238] truncate tracking-tight">{h.title}</h3>
 
                       {/* EDIT HABIT BUTTON */}
                       <button
@@ -305,9 +305,9 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
                               }
                             : undefined
                         }
-                        className={`flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-xl transition-all cursor-pointer border min-h-[32px] ${
+                        className={`flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-xl transition-all cursor-pointer border min-h-[32px] ${
                           isShownInDailySchedule
-                            ? 'shadow-2xs'
+                            ? 'shadow-2xs font-bold'
                             : 'bg-[#F4F5F8] text-[#68748A] border-[#E7EAF0] hover:bg-[#E7EAF0]'
                         }`}
                         title={
@@ -340,7 +340,7 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
                 </div>
 
                 {/* Right: Mon..Sun Checkmark Buttons */}
-                <div className="flex items-center gap-2 overflow-x-auto justify-between md:justify-end border-t md:border-t-0 pt-3 md:pt-0 border-[#E7EAF0] shrink-0">
+                <div className="grid grid-cols-7 gap-1 sm:gap-1.5 w-full md:w-auto border-t md:border-t-0 pt-3 md:pt-0 border-[#E7EAF0] shrink-0 justify-items-center">
                   {currentWeekDates.map((w) => {
                     const isScheduledForDay = activeDays.includes(w.dayNum);
                     const completion = habitCompletions.find((hc) => hc.habit_id === h.id && hc.date === w.dateStr);
@@ -351,11 +351,11 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
                         key={w.dateStr}
                         onClick={() => handleToggleCheck(h, w.dateStr, isCompleted)}
                         disabled={!isScheduledForDay}
-                        className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all shrink-0 cursor-pointer ${
+                        className={`w-9 h-9 max-w-[36px] max-h-[36px] rounded-xl flex items-center justify-center transition-all shrink-0 cursor-pointer ${
                           !isScheduledForDay
                             ? 'bg-[#F9FAFB] text-[#D0D5DD] border border-dashed border-[#E7EAF0] cursor-not-allowed'
                             : isCompleted
-                            ? 'text-white font-black shadow-2xs scale-105'
+                            ? 'text-white font-bold shadow-2xs scale-105'
                             : w.isToday
                             ? 'bg-[#F4F5F8] text-[#182238] border-2 font-bold'
                             : 'bg-[#F4F5F8] text-[#68748A] hover:bg-[#E7EAF0]'
@@ -367,9 +367,9 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
                         title={`${w.label} ${w.dateStr}`}
                       >
                         {isCompleted ? (
-                          <Check className="w-4.5 h-4.5 stroke-[2.5]" />
+                          <Check className="w-4 h-4 stroke-[2.5]" />
                         ) : (
-                          <span className="text-xs font-bold">{w.label[0]}</span>
+                          <span className="text-[11px] font-semibold">{w.label[0]}</span>
                         )}
                       </button>
                     );
