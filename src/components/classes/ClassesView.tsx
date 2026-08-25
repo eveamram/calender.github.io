@@ -133,7 +133,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1 space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-sm font-semibold text-[#182238] tracking-tight truncate">{cls.name}</h3>
+                        <h3 className="text-sm font-semibold text-[#182238] tracking-tight break-words">{cls.name}</h3>
                         {activeProfile === 'Both' && (
                           <span
                             className="text-[10px] font-medium px-2 py-0.5 rounded-md shrink-0"
@@ -245,7 +245,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                         }}
                       >
                         <div className="flex items-start justify-between gap-1">
-                          <h4 className="text-sm font-semibold text-[#182238] tracking-tight truncate flex-1 min-w-0">{cls.name}</h4>
+                          <h4 className="text-sm font-semibold text-[#182238] tracking-tight break-words flex-1 min-w-0">{cls.name}</h4>
 
                           <div className="flex items-center gap-1 shrink-0">
                             {activeProfile === 'Both' && (
@@ -287,8 +287,8 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
 
                         {(cls.room || cls.instructor) && (
                           <div className="text-[11px] font-medium text-slate-500 space-y-0.5 pt-0.5">
-                            {cls.room && <div className="truncate flex items-center gap-1">📍 {cls.room}</div>}
-                            {cls.instructor && <div className="truncate flex items-center gap-1">👤 {cls.instructor}</div>}
+                            {cls.room && <div className="break-words flex items-center gap-1">📍 {cls.room}</div>}
+                            {cls.instructor && <div className="break-words flex items-center gap-1">👤 {cls.instructor}</div>}
                           </div>
                         )}
                       </div>
