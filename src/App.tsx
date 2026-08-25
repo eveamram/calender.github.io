@@ -71,7 +71,7 @@ const MainAppContent: React.FC = () => {
       <main className="flex-1 pb-28 lg:pb-8">
         {activeTab === 'calendar' && (
           <CalendarView
-            onOpenAddModal={(date, evtToEdit) => {
+            onOpenAddModal={(date?: string, evtToEdit?: CalendarEvent) => {
               setInitialModalDate(date);
               setInitialEventType(undefined);
               setEventToEdit(evtToEdit || null);

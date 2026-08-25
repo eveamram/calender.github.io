@@ -29,6 +29,7 @@ interface ClassCardProps {
 
 const ClassCardItem: React.FC<ClassCardProps> = ({
   cls,
+  dayNum,
   ownerName,
   ownerColor,
   cardColor,
@@ -36,9 +37,26 @@ const ClassCardItem: React.FC<ClassCardProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const isPast = useMemo(() => {
+    const todayDayNum = getTodayDayNum();
+    if (dayNum < todayDayNum) return true;
+    if (dayNum > todayDayNum) return false;
+
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const targetTimeStr = cls.end_time || cls.start_time;
+    if (!targetTimeStr) return false;
+
+    const [h, m] = targetTimeStr.split(':').map(Number);
+    if (isNaN(h) || isNaN(m)) return false;
+    return currentMinutes >= (h * 60 + m);
+  }, [cls.end_time, cls.start_time, dayNum]);
+
   return (
     <div
-      className="group relative bg-white rounded-2xl p-3.5 border transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 space-y-2.5 overflow-hidden"
+      className={`group relative bg-white rounded-2xl p-3.5 border transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 space-y-2.5 overflow-hidden ${
+        isPast ? 'opacity-65 bg-slate-50/50' : ''
+      }`}
       style={{
         borderColor: `${cardColor}30`,
         boxShadow: `0 4px 14px -3px ${cardColor}15`,
@@ -47,12 +65,14 @@ const ClassCardItem: React.FC<ClassCardProps> = ({
       {/* Top Accent Line */}
       <div
         className="absolute top-0 left-0 right-0 h-1.5"
-        style={{ backgroundColor: cardColor }}
+        style={{ backgroundColor: isPast ? '#94a3b8' : cardColor }}
       />
 
       {/* Header: Class Name + Action Buttons */}
       <div className="flex items-start justify-between gap-2 pt-0.5">
-        <h3 className="font-class-title text-[15px] font-bold text-slate-900 leading-snug break-words">
+        <h3 className={`font-class-title text-[15px] font-bold leading-snug break-words ${
+          isPast ? 'line-through text-slate-400' : 'text-slate-900'
+        }`}>
           {cls.name}
         </h3>
 

@@ -17,6 +17,26 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
+const isItemPastTime = (evt: any, dateStr: string): boolean => {
+  const todayStr = getTodayDateString();
+  if (dateStr < todayStr) return true;
+  if (dateStr > todayStr) return false;
+
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  const targetTimeStr = evt.end_time || evt.start_time || evt.due_time;
+  if (!targetTimeStr) return false;
+
+  const parts = targetTimeStr.split(':');
+  if (parts.length < 2) return false;
+  const eventHours = parseInt(parts[0], 10);
+  const eventMinutes = parseInt(parts[1], 10);
+  if (isNaN(eventHours) || isNaN(eventMinutes)) return false;
+
+  return currentMinutes >= (eventHours * 60 + eventMinutes);
+};
+
 interface CalendarViewProps {
   onOpenAddModal: (initialDate?: string, eventToEdit?: CalendarEvent) => void;
 }
@@ -329,7 +349,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                 const task = evt.task_id ? tasks.find((t) => t.id === evt.task_id) : null;
                 const ownerName = (evt.profile || 'Eve') as ProfilePersona;
                 const badgeColor = profileColors[ownerName] || '#2563eb';
-                const isCompleted = evt.is_completed || task?.is_completed || completedEventIds.includes(evt.id);
+                const isPast = isItemPastTime(evt, selectedDate);
+                const isCompleted = evt.is_completed || task?.is_completed || completedEventIds.includes(evt.id) || isPast;
 
                 return (
                   <div
@@ -337,7 +358,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                     onClick={() => {
                       if (!evt.is_habit_item) onOpenAddModal(evt.event_date, evt);
                     }}
-                    className="flex items-center justify-between p-3 rounded-xl bg-slate-50/60 hover:bg-slate-100/70 border border-slate-100 transition-all cursor-pointer group"
+                    className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer group ${
+                      isCompleted ? 'bg-slate-50/40 border-slate-100/70' : 'bg-slate-50/60 hover:bg-slate-100/70 border-slate-100'
+                    }`}
                     style={{ borderLeft: `3px solid ${evtColor}` }}
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -351,7 +374,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                         title={isCompleted ? 'Mark incomplete' : 'Mark complete'}
                       >
                         {isCompleted ? (
-                          <CheckCircle className="w-4 h-4 text-emerald-500 fill-emerald-50" />
+                          <CheckCircle className={`w-4 h-4 ${isPast && !evt.is_completed ? 'text-slate-400 fill-slate-100' : 'text-emerald-500 fill-emerald-50'}`} />
                         ) : (
                           <Circle className="w-4 h-4 text-slate-300" />
                         )}
@@ -360,8 +383,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                       {/* Content */}
                       <div className="min-w-0 flex-1">
                         <h4
-                          className={`text-xs font-semibold text-slate-900 truncate ${
-                            isCompleted ? 'line-through text-slate-400' : ''
+                          className={`text-xs font-semibold truncate ${
+                            isCompleted ? 'line-through text-slate-400 opacity-75' : 'text-slate-900'
                           }`}
                         >
                           {evt.title}
@@ -624,7 +647,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                     {dayEvts.slice(0, 2).map((e) => {
                       const meta = CATEGORY_METAS[e.event_type as EventType] || CATEGORY_METAS.personal;
                       const evtColor = e.color || meta.color || '#3b82f6';
-                      const isCompleted = e.is_completed || completedEventIds.includes(e.id);
+                      const isCompleted = e.is_completed || completedEventIds.includes(e.id) || isItemPastTime(e, dayObj.dateStr);
 
                       return (
                         <div
@@ -701,7 +724,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                 const task = evt.task_id ? tasks.find((t) => t.id === evt.task_id) : null;
                 const ownerName = (evt.profile || 'Eve') as ProfilePersona;
                 const badgeColor = profileColors[ownerName] || '#2563eb';
-                const isCompleted = evt.is_completed || task?.is_completed || completedEventIds.includes(evt.id);
+                const isPast = isItemPastTime(evt, selectedDate);
+                const isCompleted = evt.is_completed || task?.is_completed || completedEventIds.includes(evt.id) || isPast;
 
                 return (
                   <div
@@ -709,7 +733,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                     onClick={() => {
                       if (!evt.is_habit_item) onOpenAddModal(evt.event_date, evt);
                     }}
-                    className="flex items-center justify-between p-3 rounded-xl bg-slate-50/60 hover:bg-slate-100/70 border border-slate-100 transition-all cursor-pointer group"
+                    className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer group ${
+                      isCompleted ? 'bg-slate-50/40 border-slate-100/70' : 'bg-slate-50/60 hover:bg-slate-100/70 border-slate-100'
+                    }`}
                     style={{ borderLeft: `3px solid ${evtColor}` }}
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -723,7 +749,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                         title={isCompleted ? 'Mark incomplete' : 'Mark complete'}
                       >
                         {isCompleted ? (
-                          <CheckCircle className="w-4 h-4 text-emerald-500 fill-emerald-50" />
+                          <CheckCircle className={`w-4 h-4 ${isPast && !evt.is_completed ? 'text-slate-400 fill-slate-100' : 'text-emerald-500 fill-emerald-50'}`} />
                         ) : (
                           <Circle className="w-4 h-4 text-slate-300" />
                         )}
@@ -732,8 +758,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                       {/* Content */}
                       <div className="min-w-0 flex-1">
                         <h4
-                          className={`text-xs font-semibold text-slate-900 truncate ${
-                            isCompleted ? 'line-through text-slate-400' : ''
+                          className={`text-xs font-semibold truncate ${
+                            isCompleted ? 'line-through text-slate-400 opacity-75' : 'text-slate-900'
                           }`}
                         >
                           {evt.title}
