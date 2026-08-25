@@ -71,20 +71,10 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
         </button>
       </div>
 
-      {/* Unified Day Filter & View Selector */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-2 rounded-2xl border border-slate-200/80 shadow-xs">
-        <div className="flex items-center gap-1 overflow-x-auto w-full sm:w-auto no-scrollbar p-1">
-          {/* 'All Days' is ONLY visible on computer (sm:inline-flex) */}
-          <button
-            onClick={() => setSelectedMobileDay(0)} // 0 = All Days
-            className={`hidden sm:inline-flex px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-              selectedMobileDay === 0
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            All Days
-          </button>
+      {/* MOBILE ONLY: Mon–Fri Day Selector Bar & Single Day List */}
+      <div className="sm:hidden space-y-4">
+        {/* Day Selector Bar — Only Mon–Fri */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
           {DAY_NAMES.map((name, idx) => {
             const dayNum = idx + 1;
             const isSelected = selectedMobileDay === dayNum;
@@ -94,16 +84,16 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
               <button
                 key={dayNum}
                 onClick={() => setSelectedMobileDay(dayNum)}
-                className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                   isSelected
                     ? 'bg-blue-600 text-white shadow-xs'
-                    : 'text-slate-700 hover:bg-slate-100 bg-slate-50'
+                    : 'text-slate-700 hover:bg-slate-100 bg-white border border-slate-200/80'
                 }`}
               >
                 <span>{name}</span>
                 <span
                   className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                    isSelected ? 'bg-blue-500 text-white' : 'bg-slate-200/70 text-slate-600'
+                    isSelected ? 'bg-blue-500 text-white' : 'bg-slate-100 text-slate-500'
                   }`}
                 >
                   {count}
@@ -113,18 +103,11 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
           })}
         </div>
 
-        <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-slate-500 px-2">
-          <span>{filteredClasses.length} total courses</span>
-        </div>
-      </div>
-
-      {/* SCHEDULE VIEW: Single Day List or 5-Day Grid */}
-      {selectedMobileDay > 0 ? (
-        /* SINGLE DAY VIEW (Focused & Spacious) */
-        <div className="space-y-4 max-w-3xl mx-auto">
+        {/* Selected Day's Class Cards */}
+        <div className="space-y-4">
           <div className="flex items-center justify-between px-1">
             <h2 className="text-lg font-bold text-slate-900">
-              {DAY_NAMES[selectedMobileDay - 1]} Schedule
+              {DAY_NAMES[(selectedMobileDay > 0 ? selectedMobileDay : 1) - 1]} Schedule
             </h2>
             <span className="text-xs font-semibold text-slate-500">
               {selectedMobileClasses.length} {selectedMobileClasses.length === 1 ? 'class' : 'classes'}
@@ -134,12 +117,12 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
           {selectedMobileClasses.length === 0 ? (
             <div className="bg-white rounded-2xl p-10 border border-slate-200/80 text-center space-y-3 shadow-xs">
               <BookOpen className="w-10 h-10 mx-auto text-slate-300 stroke-[1.5]" />
-              <p className="text-sm font-semibold text-slate-600">No classes scheduled for {DAY_NAMES[selectedMobileDay - 1]}</p>
+              <p className="text-sm font-semibold text-slate-600">No classes scheduled for {DAY_NAMES[(selectedMobileDay > 0 ? selectedMobileDay : 1) - 1]}</p>
               <button
-                onClick={() => onOpenAddClassModal(selectedMobileDay)}
+                onClick={() => onOpenAddClassModal(selectedMobileDay > 0 ? selectedMobileDay : 1)}
                 className="text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-4 py-2 rounded-xl inline-flex items-center gap-1 transition-all cursor-pointer"
               >
-                <Plus className="w-4 h-4 stroke-[2.5]" /> Add class to {DAY_NAMES[selectedMobileDay - 1]}
+                <Plus className="w-4 h-4 stroke-[2.5]" /> Add class
               </button>
             </div>
           ) : (
@@ -152,7 +135,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                 return (
                   <div
                     key={cls.id}
-                    className="bg-white rounded-2xl p-4 sm:p-5 border-l-4 border border-slate-200/80 shadow-xs space-y-2.5 relative group hover:shadow-md transition-all"
+                    className="bg-white rounded-2xl p-4 border-l-4 border border-slate-200/80 shadow-xs space-y-2.5 relative group hover:shadow-md transition-all"
                     style={{
                       borderLeftColor: cardColor,
                     }}
@@ -184,7 +167,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                         </div>
 
                         {/* Class Name */}
-                        <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight break-words pt-1">{cls.name}</h3>
+                        <h3 className="text-base font-bold text-slate-900 tracking-tight break-words pt-1">{cls.name}</h3>
                       </div>
 
                       <div className="flex items-center gap-1 shrink-0 pt-0.5">
@@ -228,8 +211,15 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
             </div>
           )}
         </div>
-      ) : (
-        /* ALL DAYS VIEW (Desktop Weekly Timetable - Soft Apple/Notion Cards Grid) */
+      </div>
+
+      {/* COMPUTER ONLY: All Days 5-Column Weekly Schedule (No filter buttons) */}
+      <div className="hidden sm:block space-y-4">
+        <div className="flex items-center justify-between px-1">
+          <h2 className="text-lg font-bold text-slate-900 tracking-tight">Weekly Schedule</h2>
+          <span className="text-xs font-semibold text-slate-500">{filteredClasses.length} total courses</span>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {DAY_NAMES.slice(0, 5).map((name, idx) => {
             const dayNum = idx + 1;
@@ -346,7 +336,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
             );
           })}
         </div>
-      )}
+      </div>
 
       {/* UPCOMING EXAMS SECTION */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs space-y-4">
