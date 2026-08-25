@@ -115,18 +115,18 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
           </div>
 
           {selectedMobileClasses.length === 0 ? (
-            <div className="bg-white rounded-2xl p-10 border border-slate-200/80 text-center space-y-3 shadow-xs">
-              <BookOpen className="w-10 h-10 mx-auto text-slate-300 stroke-[1.5]" />
-              <p className="text-sm font-semibold text-slate-600">No classes scheduled for {DAY_NAMES[(selectedMobileDay > 0 ? selectedMobileDay : 1) - 1]}</p>
+            <div className="bg-white rounded-2xl p-8 border border-slate-200/80 text-center space-y-3 shadow-2xs">
+              <BookOpen className="w-8 h-8 mx-auto text-slate-300 stroke-[1.5]" />
+              <p className="text-xs font-medium text-slate-500">No classes scheduled for {DAY_NAMES[(selectedMobileDay > 0 ? selectedMobileDay : 1) - 1]}</p>
               <button
                 onClick={() => onOpenAddClassModal(selectedMobileDay > 0 ? selectedMobileDay : 1)}
-                className="text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-4 py-2 rounded-xl inline-flex items-center gap-1 transition-all cursor-pointer"
+                className="text-xs font-medium text-teal-700 hover:text-teal-800 bg-teal-50 px-3.5 py-1.5 rounded-lg inline-flex items-center gap-1 transition-all cursor-pointer"
               >
-                <Plus className="w-4 h-4 stroke-[2.5]" /> Add class
+                <Plus className="w-3.5 h-3.5 stroke-[2]" /> Add class
               </button>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {selectedMobileClasses.map((cls) => {
                 const ownerName = cls.profile || 'Eve';
                 const badgeColor = profileColors[ownerName] || '#2563eb';
@@ -135,74 +135,55 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                 return (
                   <div
                     key={cls.id}
-                    className="bg-white rounded-2xl p-4 border-l-4 border border-slate-200/80 shadow-xs space-y-2.5 relative group hover:shadow-md transition-all"
+                    className="bg-white rounded-xl py-2.5 px-3 border border-slate-200/70 shadow-2xs space-y-1.5 relative group hover:border-slate-300 transition-all"
                     style={{
-                      borderLeftColor: cardColor,
+                      borderLeft: `3px solid ${cardColor}`,
                     }}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1 space-y-1">
-                        {/* Time & Persona Badges */}
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span
-                            className="text-xs font-bold px-2.5 py-1 rounded-full inline-flex items-center gap-1.5"
-                            style={{
-                              backgroundColor: `${cardColor}18`,
-                              color: cardColor,
-                              border: `1px solid ${cardColor}35`,
-                            }}
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: cardColor }} />
-                            {formatTime12Hour(cls.start_time)} – {formatTime12Hour(cls.end_time)}
+                    <div className="flex items-center justify-between gap-2">
+                      {/* Time Badge (Extremely pale teal background with teal text) */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[13px] font-medium px-2 py-0.5 rounded-md bg-teal-50 text-teal-700 border border-teal-100/80 inline-flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-teal-500 shrink-0" />
+                          {formatTime12Hour(cls.start_time)} – {formatTime12Hour(cls.end_time)}
+                        </span>
+                        {activeProfile === 'Both' && (
+                          <span className="text-[12px] font-medium text-slate-500 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: badgeColor }} />
+                            {ownerName}
                           </span>
-                          {activeProfile === 'Both' && (
-                            <span
-                              className="text-[10px] font-semibold px-2 py-0.5 rounded-full inline-flex items-center gap-1 shrink-0"
-                              style={{ backgroundColor: `${badgeColor}18`, color: badgeColor }}
-                            >
-                              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: badgeColor }} />
-                              {ownerName}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Class Name */}
-                        <h3 className="text-base font-bold text-slate-900 tracking-tight break-words pt-1">{cls.name}</h3>
+                        )}
                       </div>
 
-                      <div className="flex items-center gap-1 shrink-0 pt-0.5">
+                      {/* Visually quiet edit/delete icons */}
+                      <div className="flex items-center gap-1 shrink-0 text-slate-400">
                         <button
                           onClick={() => onOpenAddClassModal(selectedMobileDay, cls)}
-                          className="text-slate-400 hover:text-blue-600 p-1.5 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
+                          className="hover:text-slate-600 p-1 transition-colors cursor-pointer"
                           title="Edit Class"
                         >
-                          <Edit3 className="w-4 h-4" />
+                          <Edit3 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => deleteClass(cls.id)}
-                          className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
+                          className="hover:text-rose-600 p-1 transition-colors cursor-pointer"
                           title="Delete Class"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
 
-                    {(cls.room || cls.instructor) && (
-                      <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-700 pt-1">
-                        {cls.room && (
-                          <span className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/60 px-2.5 py-1 rounded-xl break-words">
-                            <MapPin className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                            {cls.room}
-                          </span>
-                        )}
+                    {/* Class Name (16-17px, weight 600, -0.01em spacing, #182033 charcoal) */}
+                    <h3 className="text-[16px] font-semibold text-[#182033] tracking-[-0.01em] break-words">
+                      {cls.name}
+                    </h3>
 
-                        {cls.instructor && (
-                          <span className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/60 px-2.5 py-1 rounded-xl break-words">
-                            <User className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-                            {cls.instructor}
-                          </span>
-                        )}
+                    {/* Secondary Information */}
+                    {(cls.room || cls.instructor) && (
+                      <div className="flex flex-wrap items-center gap-2.5 text-[13px] font-normal text-slate-500 pt-0.5">
+                        {cls.room && <span>📍 {cls.room}</span>}
+                        {cls.instructor && <span>👤 {cls.instructor}</span>}
                       </div>
                     )}
                   </div>
@@ -248,7 +229,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                 </div>
 
                 {/* Class List */}
-                <div className="p-3 space-y-3 flex-1 overflow-y-auto">
+                <div className="p-3 space-y-2.5 flex-1 overflow-y-auto">
                   {dayClasses.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400">
                       <BookOpen className="w-6 h-6 stroke-[1.5] text-slate-300 mb-2" />
@@ -263,45 +244,34 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                       return (
                         <div
                           key={cls.id}
-                          className="p-3.5 rounded-2xl border-l-4 bg-white border border-slate-200/80 shadow-xs transition-all space-y-2 relative group hover:shadow-md"
+                          className="py-2.5 px-3 rounded-xl bg-white border border-slate-200/70 shadow-2xs transition-all space-y-1.5 relative group hover:border-slate-300"
                           style={{
-                            borderLeftColor: cardColor,
+                            borderLeft: `3px solid ${cardColor}`,
                           }}
                         >
-                          {/* Time & Actions */}
+                          {/* Time & Persona Badges */}
                           <div className="flex items-center justify-between gap-1 flex-wrap">
-                            <span
-                              className="text-[11px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1.5"
-                              style={{
-                                backgroundColor: `${cardColor}15`,
-                                color: cardColor,
-                                border: `1px solid ${cardColor}30`,
-                              }}
-                            >
-                              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: cardColor }} />
+                            <span className="text-[13px] font-medium px-2 py-0.5 rounded-md bg-teal-50 text-teal-700 border border-teal-100/80 inline-flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-teal-500 shrink-0" />
                               {formatTime12Hour(cls.start_time)} – {formatTime12Hour(cls.end_time)}
                             </span>
 
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1 text-slate-400">
                               {activeProfile === 'Both' && (
-                                <span
-                                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full inline-flex items-center gap-1 shrink-0"
-                                  style={{ backgroundColor: `${badgeColor}18`, color: badgeColor }}
-                                >
-                                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: badgeColor }} />
+                                <span className="text-[11px] font-medium text-slate-500 mr-1">
                                   {ownerName}
                                 </span>
                               )}
                               <button
                                 onClick={() => onOpenAddClassModal(dayNum, cls)}
-                                className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-blue-600 transition-opacity cursor-pointer p-0.5"
+                                className="opacity-0 group-hover:opacity-100 hover:text-slate-600 transition-opacity cursor-pointer p-0.5"
                                 title="Edit Class"
                               >
                                 <Edit3 className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 onClick={() => deleteClass(cls.id)}
-                                className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-600 transition-opacity cursor-pointer p-0.5"
+                                className="opacity-0 group-hover:opacity-100 hover:text-rose-600 transition-opacity cursor-pointer p-0.5"
                                 title="Delete Class"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -309,22 +279,16 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                             </div>
                           </div>
 
-                          {/* Class Title */}
-                          <h4 className="text-sm font-bold text-slate-900 tracking-tight break-words pt-0.5">{cls.name}</h4>
+                          {/* Class Title (17-18px desktop, font weight 600, -0.01em, #182033 charcoal) */}
+                          <h4 className="text-[17px] font-semibold text-[#182033] tracking-[-0.01em] break-words">
+                            {cls.name}
+                          </h4>
 
-                          {/* Room / Instructor Details */}
+                          {/* Secondary Information (Room / Instructor) */}
                           {(cls.room || cls.instructor) && (
-                            <div className="flex flex-wrap gap-1 text-[11px] font-medium text-slate-600 pt-1">
-                              {cls.room && (
-                                <span className="inline-flex items-center gap-1 bg-slate-50 border border-slate-200/60 px-2 py-0.5 rounded-lg break-words">
-                                  📍 {cls.room}
-                                </span>
-                              )}
-                              {cls.instructor && (
-                                <span className="inline-flex items-center gap-1 bg-slate-50 border border-slate-200/60 px-2 py-0.5 rounded-lg break-words">
-                                  👤 {cls.instructor}
-                                </span>
-                              )}
+                            <div className="flex flex-wrap gap-2 text-[13px] font-normal text-slate-500 pt-0.5">
+                              {cls.room && <span>📍 {cls.room}</span>}
+                              {cls.instructor && <span>👤 {cls.instructor}</span>}
                             </div>
                           )}
                         </div>

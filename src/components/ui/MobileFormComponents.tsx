@@ -51,7 +51,7 @@ export const MobileFormSheet: React.FC<MobileFormSheetProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/40 backdrop-blur-md animate-fade-in overflow-y-auto">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/20 sm:bg-slate-900/10 sm:backdrop-blur-none backdrop-blur-xs animate-fade-in overflow-y-auto">
       {/* Backdrop overlay click handler */}
       <div className="fixed inset-0 cursor-pointer" onClick={onClose} />
 
