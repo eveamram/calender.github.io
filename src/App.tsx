@@ -8,7 +8,6 @@ import { CalendarView } from './components/calendar/CalendarView';
 import { ClassesView } from './components/classes/ClassesView';
 import { TodoView } from './components/todo/TodoView';
 import { HabitsView } from './components/habits/HabitsView';
-import { GroceryView } from './components/grocery/GroceryView';
 import { MealsView } from './components/meals/MealsView';
 import { BooksView } from './components/books/BooksView';
 import { CreationModalContainer } from './components/modals/CreationModalContainer';
@@ -19,7 +18,7 @@ const MainAppContent: React.FC = () => {
   const { activeTab, syncStatus } = useStore();
 
   const [activeModal, setActiveModal] = useState<
-    'event' | 'class' | 'task' | 'habit' | 'grocery' | 'meal' | 'book' | null
+    'event' | 'class' | 'task' | 'habit' | 'meal' | 'book' | null
   >(null);
 
   const [initialModalDate, setInitialModalDate] = useState<string | undefined>(undefined);
@@ -51,9 +50,6 @@ const MainAppContent: React.FC = () => {
         break;
       case 'habits':
         setActiveModal('habit');
-        break;
-      case 'grocery':
-        setActiveModal('grocery');
         break;
       case 'meals':
         setActiveModal('meal');
@@ -107,9 +103,6 @@ const MainAppContent: React.FC = () => {
               setActiveModal('habit');
             }}
           />
-        )}
-        {activeTab === 'grocery' && (
-          <GroceryView />
         )}
         {activeTab === 'meals' && (
           <MealsView

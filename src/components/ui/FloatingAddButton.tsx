@@ -15,7 +15,6 @@ export const FloatingAddButton: React.FC<FloatingAddButtonProps> = ({ onClick })
       case 'classes': return 'Class';
       case 'todo': return 'Task';
       case 'habits': return 'Habit';
-      case 'grocery': return 'Item';
       case 'meals': return 'Meal';
       case 'books': return 'Book';
       default: return 'Item';

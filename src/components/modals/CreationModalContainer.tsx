@@ -10,7 +10,6 @@ import {
   BookItem,
   HabitItem,
   CATEGORY_METAS,
-  GroceryCategory,
 } from '../../types';
 import {
   ChevronDown,
@@ -40,7 +39,7 @@ import {
 } from '../ui/MobileFormComponents';
 
 interface CreationModalContainerProps {
-  modalType: 'event' | 'class' | 'task' | 'habit' | 'grocery' | 'meal' | 'book' | null;
+  modalType: 'event' | 'class' | 'task' | 'habit' | 'meal' | 'book' | null;
   onClose: () => void;
   initialDate?: string;
   initialEventType?: EventType;
@@ -84,7 +83,6 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
     addTask,
     addHabit,
     updateHabit,
-    addGroceryItem,
     addMealItem,
     addBookItem,
     updateBookItem,
@@ -103,7 +101,6 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   const [showClsMore, setShowClsMore] = useState(false);
   const [showHbtMore, setShowHbtMore] = useState(false);
   const [showTskMore, setShowTskMore] = useState(false);
-  const [showGrcMore, setShowGrcMore] = useState(false);
   const [showMelMore, setShowMelMore] = useState(false);
   const [showBokMore, setShowBokMore] = useState(false);
 
@@ -242,23 +239,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
     }
   }, [modalType, habitToEdit, defaultProfile]);
 
-  // 5. GROCERY FORM STATE
-  const [grcTitle, setGrcTitle] = useState('');
-  const [grcQty, setGrcQty] = useState('');
-  const [grcCategory, setGrcCategory] = useState<GroceryCategory>('Produce');
-  const [grcProfile, setGrcProfile] = useState<ProfilePersona>(defaultProfile);
 
-  useEffect(() => {
-    if (modalType === 'grocery') {
-      setIsSaving(false);
-      setErrorMsg(null);
-      setShowGrcMore(false);
-      setGrcTitle('');
-      setGrcQty('');
-      setGrcCategory('Produce');
-      setGrcProfile(defaultProfile);
-    }
-  }, [modalType, defaultProfile]);
 
   // 6. MEAL FORM STATE
   const [melTitle, setMelTitle] = useState('');
@@ -509,28 +490,6 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
     }
   };
 
-  const handleGrcSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!grcTitle.trim() || isSaving) return;
-    setIsSaving(true);
-    setErrorMsg(null);
-    try {
-      const ok = await addGroceryItem({
-        name: grcTitle.trim(),
-        quantity: grcQty.trim() || undefined,
-        category: grcCategory,
-        is_completed: false,
-        profile: grcProfile,
-      });
-      if (ok) onClose();
-      else setErrorMsg('Could not save grocery item. Please try again.');
-    } catch (err: any) {
-      setErrorMsg(err?.message || 'Save failed.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const handleMelSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!melTitle.trim() || isSaving) return;
@@ -604,8 +563,6 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         return habitToEdit ? 'Edit Habit' : 'Add Habit';
       case 'task':
         return 'Add Task';
-      case 'grocery':
-        return 'Add Grocery Item';
       case 'meal':
         return 'Add Meal';
       case 'book':
@@ -1231,74 +1188,6 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
           <MobileFormAction
             label={bookToEdit ? 'Save Changes' : 'Add Book'}
-            isSaving={isSaving}
-            onCancel={onClose}
-          />
-        </form>
-      )}
-
-      {/* 7. ADD GROCERY FORM */}
-      {modalType === 'grocery' && (
-        <form onSubmit={handleGrcSubmit} className="space-y-4 md:space-y-5 w-full">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 md:gap-4">
-            <MobileFormField
-              label="Item Name"
-              value={grcTitle}
-              onChange={(e) => setGrcTitle(e.target.value)}
-              placeholder="e.g. Milk, Bananas"
-              required
-            />
-            <MobileSelectField
-              label="Category"
-              type="select"
-              displayValue={grcCategory}
-              value={grcCategory}
-              onChange={(e) => setGrcCategory(e.target.value as GroceryCategory)}
-              options={[
-                { value: 'Produce', label: 'Produce', emoji: '🥬' },
-                { value: 'Dairy', label: 'Dairy', emoji: '🧀' },
-                { value: 'Pantry', label: 'Pantry', emoji: '🌾' },
-                { value: 'Bakery', label: 'Bakery', emoji: '🍞' },
-                { value: 'Meat', label: 'Meat', emoji: '🥩' },
-                { value: 'Frozen', label: 'Frozen', emoji: '🧊' },
-                { value: 'Beverages', label: 'Beverages', emoji: '🧃' },
-                { value: 'Other', label: 'Other', emoji: '📦' },
-              ]}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 md:gap-4 items-start">
-            <MobileSegmentedControl
-              label="For"
-              options={profileOptions}
-              value={grcProfile}
-              onChange={(val) => setGrcProfile(val as ProfilePersona)}
-            />
-            <div>
-              <button
-                type="button"
-                onClick={() => setShowGrcMore(!showGrcMore)}
-                className="flex items-center justify-center gap-1.5 w-full text-xs font-bold text-slate-600 hover:text-slate-900 py-1 transition-colors cursor-pointer"
-              >
-                <span>{showGrcMore ? 'Fewer options' : 'More options'}</span>
-                {showGrcMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              </button>
-
-              {showGrcMore && (
-                <div className="pt-2">
-                  <MobileFormField
-                    label="Quantity / Details"
-                    value={grcQty}
-                    onChange={(e) => setGrcQty(e.target.value)}
-                    placeholder="e.g. 2 gal, 1 lb"
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-
-          <MobileFormAction
-            label="Add Grocery Item"
             isSaving={isSaving}
             onCancel={onClose}
           />

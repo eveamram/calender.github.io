@@ -41,7 +41,7 @@ const formatDateYYYYMMDD = (d: Date) => {
 };
 
 export const MealsView: React.FC<MealsViewProps> = ({ onOpenAddMealModal }) => {
-  const { mealItems, addMealItem, deleteMealItem, addGroceryItem, filterByProfile, activeProfile, profileColors } = useStore();
+  const { mealItems, addMealItem, deleteMealItem, filterByProfile, activeProfile, profileColors } = useStore();
   const [selectedMobileDay, setSelectedMobileDay] = useState<number>(1); // 1 = Mon
   const [weekOffset, setWeekOffset] = useState<number>(0);
 
@@ -75,15 +75,6 @@ export const MealsView: React.FC<MealsViewProps> = ({ onOpenAddMealModal }) => {
       day_of_week: nextDay,
       meal_date: nextDate,
       notes: meal.notes,
-      profile: meal.profile,
-    });
-  };
-
-  const handleSendToGrocery = async (meal: MealItem) => {
-    await addGroceryItem({
-      name: meal.title,
-      category: 'Pantry',
-      is_completed: false,
       profile: meal.profile,
     });
   };
@@ -296,13 +287,6 @@ export const MealsView: React.FC<MealsViewProps> = ({ onOpenAddMealModal }) => {
                               )}
                             </div>
                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button
-                                onClick={() => handleSendToGrocery(item)}
-                                className="text-slate-400 hover:text-emerald-600"
-                                title="Add to Grocery List"
-                              >
-                                <ShoppingBag className="w-3 h-3" />
-                              </button>
                               <button
                                 onClick={() => handleDuplicateToNextDay(item)}
                                 className="text-slate-400 hover:text-blue-600"

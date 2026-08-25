@@ -5,7 +5,6 @@ export type AppTab =
   | 'classes'
   | 'todo'
   | 'habits'
-  | 'grocery'
   | 'meals'
   | 'books';
 
