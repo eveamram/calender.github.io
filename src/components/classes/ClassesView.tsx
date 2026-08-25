@@ -125,13 +125,14 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
               return (
                 <div
                   key={cls.id}
-                  className="bg-white rounded-2xl p-4 border-l-4 border border-slate-200/80 shadow-xs space-y-2.5 relative group hover:shadow-md transition-all"
+                  className="bg-white rounded-2xl p-4 border-l-4 border border-slate-200/80 shadow-xs space-y-2 relative group hover:shadow-md transition-all"
                   style={{
                     borderLeftColor: cardColor,
                   }}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1 space-y-1.5">
+                    <div className="min-w-0 flex-1 space-y-1">
+                      {/* Time & Persona Badges */}
                       <div className="flex items-center gap-2 flex-wrap">
                         <span
                           className="text-xs font-bold px-2.5 py-1 rounded-full inline-flex items-center gap-1.5"
@@ -144,19 +145,22 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                           <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: cardColor }} />
                           {formatTime12Hour(cls.start_time)} – {formatTime12Hour(cls.end_time)}
                         </span>
-                        <h3 className="text-base font-semibold text-slate-900 tracking-tight break-words">{cls.name}</h3>
                         {activeProfile === 'Both' && (
                           <span
-                            className="text-[10px] font-bold text-white px-2 py-0.5 rounded-md shrink-0"
-                            style={{ backgroundColor: badgeColor }}
+                            className="text-[10px] font-semibold px-2 py-0.5 rounded-full inline-flex items-center gap-1 shrink-0"
+                            style={{ backgroundColor: `${badgeColor}18`, color: badgeColor }}
                           >
+                            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: badgeColor }} />
                             {ownerName}
                           </span>
                         )}
                       </div>
+
+                      {/* Class Name */}
+                      <h3 className="text-base font-bold text-slate-800 tracking-tight break-words pt-1">{cls.name}</h3>
                     </div>
 
-                    <div className="flex items-center gap-1 shrink-0">
+                    <div className="flex items-center gap-1 shrink-0 pt-0.5">
                       <button
                         onClick={() => onOpenAddClassModal(selectedMobileDay, cls)}
                         className="text-slate-400 hover:text-blue-600 p-1 transition-colors cursor-pointer"
@@ -175,7 +179,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                   </div>
 
                   {(cls.room || cls.instructor) && (
-                    <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-700 pt-0.5">
+                    <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-700 pt-1">
                       {cls.room && (
                         <span className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/60 px-2.5 py-1 rounded-xl break-words">
                           <MapPin className="w-3.5 h-3.5 text-blue-600 shrink-0" />
@@ -260,9 +264,10 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                           <div className="flex items-center gap-1">
                             {activeProfile === 'Both' && (
                               <span
-                                className="text-[10px] font-bold text-white px-1.5 py-0.5 rounded-md"
-                                style={{ backgroundColor: badgeColor }}
+                                className="text-[10px] font-semibold px-2 py-0.5 rounded-full inline-flex items-center gap-1 shrink-0"
+                                style={{ backgroundColor: `${badgeColor}18`, color: badgeColor }}
                               >
+                                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: badgeColor }} />
                                 {ownerName}
                               </span>
                             )}
@@ -283,7 +288,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                           </div>
                         </div>
 
-                        <h4 className="text-sm font-semibold text-slate-900 tracking-tight break-words">{cls.name}</h4>
+                        <h4 className="text-sm font-bold text-slate-800 tracking-tight break-words pt-0.5">{cls.name}</h4>
 
                         <div className="text-[11px] font-semibold text-slate-600 space-y-1">
                           {cls.room && <div className="break-words flex items-center gap-1">📍 {cls.room}</div>}
