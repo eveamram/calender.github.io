@@ -403,16 +403,18 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                         </button>
                       )}
 
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteAnyEvent(evt);
-                        }}
-                        className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                        title={evt.is_habit_item ? 'Remove habit from daily calendar' : 'Delete Event'}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {!evt.is_class_item && evt.event_type !== 'class' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteAnyEvent(evt);
+                          }}
+                          className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                          title={evt.is_habit_item ? 'Remove habit from daily calendar' : 'Delete Event'}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
 
                       <button
                         onClick={(e) => {
@@ -789,16 +791,18 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                         </button>
                       )}
 
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteAnyEvent(evt);
-                        }}
-                        className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                        title={evt.is_habit_item ? 'Remove habit from daily schedule' : 'Delete Event'}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {!evt.is_class_item && evt.event_type !== 'class' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteAnyEvent(evt);
+                          }}
+                          className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                          title={evt.is_habit_item ? 'Remove habit from daily schedule' : 'Delete Event'}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
 
                       <button
                         onClick={(e) => {
