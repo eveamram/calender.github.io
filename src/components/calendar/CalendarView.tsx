@@ -745,9 +745,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
 
                     {/* Event Content */}
                     <div className="flex-1 min-w-0 pb-0.5">
-                      <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
                         <h4
-                          className={`text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors ${
+                          className={`text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors truncate ${
                             isCompleted ? 'line-through text-slate-400 opacity-60' : ''
                           }`}
                         >
@@ -755,7 +755,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                         </h4>
                         {activeProfile === 'Both' && (
                           <span
-                            className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md text-white shrink-0"
+                            className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md text-white shrink-0 inline-block"
                             style={{ backgroundColor: badgeColor }}
                           >
                             {ownerName}

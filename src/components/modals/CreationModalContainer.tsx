@@ -320,7 +320,12 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   };
 
   // Day of Week Segmented Control
-  const renderDaySelector = (selectedDays: number[], toggleDay: (n: number) => void, showWeekends = true) => {
+  const renderDaySelector = (
+    selectedDays: number[],
+    toggleDay: (n: number) => void,
+    showWeekends = true,
+    activeColor?: string
+  ) => {
     const days = showWeekends ? WEEK_DAYS : WEEK_DAYS.slice(0, 5);
     return (
       <div className="space-y-1.5 w-full">
@@ -335,9 +340,10 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                 type="button"
                 key={d.num}
                 onClick={() => toggleDay(d.num)}
+                style={isSelected && activeColor ? { backgroundColor: activeColor } : undefined}
                 className={`h-10 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center cursor-pointer ${
                   isSelected
-                    ? 'bg-[#0f172a] text-white shadow-xs'
+                    ? activeColor ? 'text-white shadow-sm scale-[1.02]' : 'bg-[#0f172a] text-white shadow-xs'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
@@ -810,65 +816,77 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
       {/* 3. ADD HABIT FORM */}
       {modalType === 'habit' && (
-        <form onSubmit={handleHbtSubmit} className="space-y-4 w-full">
-          <div className="space-y-1.5 w-full">
-            <label className="block text-xs font-bold text-slate-900 tracking-tight">Habit Name & Emoji</label>
-            <div className="flex gap-2 w-full">
-              <input
-                type="text"
-                value={hbtEmoji}
-                onChange={(e) => setHbtEmoji(e.target.value)}
-                className="w-13 h-[52px] bg-slate-50/80 border border-slate-200/80 rounded-2xl text-center text-lg font-bold focus:bg-white focus:border-slate-900 transition-all shrink-0"
-                title="Emoji"
-              />
+        <form onSubmit={handleHbtSubmit} className="space-y-3.5 w-full">
+          {/* Title & Emoji Header */}
+          <div className="space-y-2 w-full">
+            <label className="block text-xs font-bold text-slate-900 tracking-tight">Habit Name & Icon</label>
+            <div className="flex gap-2.5 items-center w-full">
+              <div
+                style={{ backgroundColor: `${hbtColor || '#ec4899'}20`, border: `2px solid ${hbtColor || '#ec4899'}` }}
+                className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 shadow-2xs font-extrabold"
+              >
+                {hbtEmoji || '✨'}
+              </div>
               <input
                 type="text"
                 required
                 value={hbtTitle}
                 onChange={(e) => setHbtTitle(e.target.value)}
                 placeholder="e.g. Drink Water"
-                className="flex-1 h-[52px] bg-slate-50/80 border border-slate-200/80 rounded-2xl px-4 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
+                className="flex-1 h-[48px] bg-slate-50/80 border border-slate-200/80 rounded-2xl px-4 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
               />
             </div>
 
-            {/* Quick Emoji Bar */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pt-1 pb-0.5 no-scrollbar">
-              {['⚡', '💧', '🏋️', '📚', '🧘', '🍎', '💻', '🎨', '🏃', '😴'].map((em) => (
-                <button
-                  type="button"
-                  key={em}
-                  onClick={() => setHbtEmoji(em)}
-                  className={`w-8 h-8 rounded-lg text-sm flex items-center justify-center transition-all cursor-pointer shrink-0 ${
-                    hbtEmoji === em ? 'bg-slate-900 text-white shadow-xs scale-105' : 'bg-slate-100 hover:bg-slate-200'
-                  }`}
-                >
-                  {em}
-                </button>
-              ))}
+            {/* Quick Emoji Selector */}
+            <div className="flex items-center gap-1.5 overflow-x-auto py-1 no-scrollbar">
+              {['⚡', '💧', '🏋️', '📚', '🧘', '🍎', '💻', '🎨', '🏃', '😴', '✨', '🎯'].map((em) => {
+                const isSelected = hbtEmoji === em;
+                return (
+                  <button
+                    type="button"
+                    key={em}
+                    onClick={() => setHbtEmoji(em)}
+                    style={isSelected ? { backgroundColor: hbtColor || '#ec4899' } : undefined}
+                    className={`w-8 h-8 rounded-xl text-base flex items-center justify-center transition-all cursor-pointer shrink-0 active:scale-95 ${
+                      isSelected
+                        ? 'text-white shadow-xs scale-105'
+                        : 'bg-slate-100 hover:bg-slate-200'
+                    }`}
+                  >
+                    {em}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {renderDaySelector(hbtDays, (n) =>
-            setHbtDays((prev) => (prev.includes(n) ? prev.filter((d) => d !== n) : [...prev, n]))
+          {/* Active Days Selector */}
+          {renderDaySelector(
+            hbtDays,
+            (n) => setHbtDays((prev) => (prev.includes(n) ? prev.filter((d) => d !== n) : [...prev, n])),
+            true,
+            hbtColor || '#ec4899'
           )}
 
+          {/* Color Swatches Grid */}
           <MobileColorGrid
             selectedColor={hbtColor}
             onSelectColor={(hex) => setHbtColor(hex)}
           />
 
           {/* Show in Daily Schedule Toggle */}
-          <div className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-3.5 flex items-center justify-between gap-2 w-full">
+          <div className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-3 flex items-center justify-between gap-2 w-full">
             <div className="space-y-0.5">
               <span className="text-xs font-bold text-slate-900 block">Show in Daily Schedule</span>
-              <p className="text-[11px] text-slate-500 font-medium">Display on calendar agenda</p>
+              <p className="text-[10px] text-slate-500 font-medium">Display on daily calendar agenda</p>
             </div>
             <button
               type="button"
               onClick={() => setHbtShowInDailySchedule(!hbtShowInDailySchedule)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer border shrink-0 ${
+              style={hbtShowInDailySchedule ? { backgroundColor: hbtColor || '#ec4899', borderColor: hbtColor || '#ec4899' } : undefined}
+              className={`px-3 py-1 rounded-xl text-xs font-extrabold transition-all cursor-pointer border shrink-0 ${
                 hbtShowInDailySchedule
-                  ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                  ? 'text-white shadow-2xs'
                   : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
               }`}
             >
@@ -876,6 +894,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             </button>
           </div>
 
+          {/* Profile Owner */}
           <MobileSegmentedControl
             label="For"
             options={profileOptions}
@@ -883,6 +902,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             onChange={(val) => setHbtProfile(val as ProfilePersona)}
           />
 
+          {/* Target Goal (More options) */}
           <div>
             <button
               type="button"
@@ -906,6 +926,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             )}
           </div>
 
+          {/* Submit Action */}
           <MobileFormAction
             label={habitToEdit ? 'Save Habit' : 'Add Habit'}
             isSaving={isSaving}
@@ -924,13 +945,34 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             required
           />
 
-          <MobileSelectField
-            label="Due Date"
-            type="date"
-            displayValue={formatDateDisplay(tskDueDate)}
-            value={tskDueDate}
-            onChange={(e) => setTskDueDate(e.target.value)}
-          />
+          <div className="flex items-center gap-2 w-full">
+            <div className="flex-1 min-w-0">
+              <MobileSelectField
+                label="Due Date"
+                type="date"
+                displayValue={tskDueDate ? formatDateDisplay(tskDueDate) : 'N/A (No Due Date)'}
+                value={tskDueDate}
+                onChange={(e) => setTskDueDate(e.target.value)}
+              />
+            </div>
+            {tskDueDate ? (
+              <button
+                type="button"
+                onClick={() => setTskDueDate('')}
+                className="text-xs font-bold text-slate-500 hover:text-rose-600 bg-slate-100 hover:bg-rose-50 px-3 py-2 rounded-xl transition-all cursor-pointer mt-5 shrink-0"
+              >
+                Clear (N/A)
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setTskDueDate(getTodayDateString())}
+                className="text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-xl transition-all cursor-pointer mt-5 shrink-0"
+              >
+                Set Today
+              </button>
+            )}
+          </div>
 
           <MobileSelectField
             label="Due Time"
@@ -947,41 +989,28 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             onChange={(val) => setTskProfile(val as ProfilePersona)}
           />
 
-          <div>
-            <button
-              type="button"
-              onClick={() => setShowTskMore(!showTskMore)}
-              className="flex items-center justify-center gap-1.5 w-full text-xs font-bold text-slate-600 hover:text-slate-900 py-1 transition-colors cursor-pointer"
-            >
-              <span>{showTskMore ? 'Fewer options' : 'More options'}</span>
-              {showTskMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-            </button>
-
-            {showTskMore && (
-              <div className="pt-2 space-y-1.5">
-                <label className="block text-xs font-bold text-slate-900 tracking-tight">Priority</label>
-                <div className="grid grid-cols-3 gap-1.5 w-full">
-                  {[
-                    { key: 'low', label: '🟢 Low' },
-                    { key: 'normal', label: '🟡 Normal' },
-                    { key: 'high', label: '🔴 High' },
-                  ].map((p) => (
-                    <button
-                      type="button"
-                      key={p.key}
-                      onClick={() => setTskPriority(p.key as any)}
-                      className={`h-10 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
-                        tskPriority === p.key
-                          ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                      }`}
-                    >
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+          <div className="space-y-1.5 w-full">
+            <label className="block text-xs font-bold text-slate-900 tracking-tight">Priority</label>
+            <div className="grid grid-cols-3 gap-1.5 w-full">
+              {[
+                { key: 'low', label: '🟢 Low' },
+                { key: 'normal', label: '🟡 Normal' },
+                { key: 'high', label: '🔴 High' },
+              ].map((p) => (
+                <button
+                  type="button"
+                  key={p.key}
+                  onClick={() => setTskPriority(p.key as any)}
+                  className={`h-10 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                    tskPriority === p.key
+                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                      : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <MobileFormAction

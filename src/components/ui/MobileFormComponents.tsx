@@ -236,18 +236,23 @@ export const MobileSelectField: React.FC<MobileSelectFieldProps> = ({
   );
 };
 
-// 4. MOBILE COLOR GRID (Compact 5 per row circular swatches)
+// 4. MOBILE COLOR GRID (Expanded 5-per-row circular swatches + Custom Color Picker)
 export const DEFAULT_COLOR_SWATCHES = [
   { label: 'Blue', hex: '#2563eb' },
-  { label: 'Soft Indigo', hex: '#6366f1' },
+  { label: 'Indigo', hex: '#6366f1' },
   { label: 'Purple', hex: '#a855f7' },
   { label: 'Pink', hex: '#ec4899' },
   { label: 'Red', hex: '#ef4444' },
   { label: 'Orange', hex: '#f97316' },
   { label: 'Amber', hex: '#d97706' },
   { label: 'Emerald', hex: '#10b981' },
+  { label: 'Teal', hex: '#0d9488' },
   { label: 'Cyan', hex: '#06b6d4' },
+  { label: 'Violet', hex: '#7c3aed' },
+  { label: 'Rose', hex: '#f43f5e' },
+  { label: 'Lime', hex: '#84cc16' },
   { label: 'Slate', hex: '#6b7280' },
+  { label: 'Dark Slate', hex: '#334155' },
 ];
 
 interface MobileColorGridProps {
@@ -262,10 +267,15 @@ export const MobileColorGrid: React.FC<MobileColorGridProps> = ({
   swatches = DEFAULT_COLOR_SWATCHES,
 }) => {
   const activeColor = selectedColor || swatches[0].hex;
+  const isCustomColor = !swatches.some((s) => s.hex.toLowerCase() === activeColor.toLowerCase());
 
   return (
     <div className="space-y-1.5 w-full">
-      <label className="block text-xs font-bold text-slate-900 tracking-tight">Color</label>
+      <div className="flex items-center justify-between">
+        <label className="block text-xs font-bold text-slate-900 tracking-tight">Color</label>
+        <span className="text-[11px] font-semibold text-slate-400">15 Preset Swatches</span>
+      </div>
+
       <div className="grid grid-cols-5 gap-3 justify-items-center w-full py-1">
         {swatches.map((c) => {
           const isSelected = activeColor.toLowerCase() === c.hex.toLowerCase();
@@ -286,10 +296,38 @@ export const MobileColorGrid: React.FC<MobileColorGridProps> = ({
             </button>
           );
         })}
+
+        {/* Custom Color Picker Swatch Button */}
+        <div className="relative w-8 h-8">
+          <button
+            type="button"
+            className={`w-8 h-8 rounded-full transition-all cursor-pointer flex items-center justify-center relative active:scale-95 ${
+              isCustomColor
+                ? 'ring-2 ring-slate-900 ring-offset-2 scale-105 shadow-xs'
+                : 'bg-gradient-to-tr from-pink-500 via-purple-500 to-indigo-500 hover:scale-105'
+            }`}
+            style={isCustomColor ? { backgroundColor: activeColor } : undefined}
+            title="Custom Color"
+          >
+            {isCustomColor ? (
+              <Check className="w-4 h-4 text-white stroke-[3]" />
+            ) : (
+              <span className="text-white text-xs font-extrabold">+</span>
+            )}
+          </button>
+          <input
+            type="color"
+            value={activeColor}
+            onChange={(e) => onSelectColor(e.target.value)}
+            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
+            title="Choose custom color"
+          />
+        </div>
       </div>
     </div>
   );
 };
+
 
 // 5. MOBILE SEGMENTED CONTROL (Profile "For")
 interface MobileSegmentedControlProps {

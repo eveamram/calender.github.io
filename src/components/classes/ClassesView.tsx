@@ -140,16 +140,16 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                         {formatTime12Hour(cls.start_time)} - {formatTime12Hour(cls.end_time)}
                       </span>
                       <h3 className="text-base font-black text-slate-900 tracking-tight">{cls.name}</h3>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
                       {activeProfile === 'Both' && (
                         <span
-                          className="text-[10px] font-bold text-white px-2 py-0.5 rounded-md"
+                          className="text-[10px] font-bold text-white px-2 py-0.5 rounded-md shrink-0"
                           style={{ backgroundColor: badgeColor }}
                         >
                           {ownerName}
                         </span>
                       )}
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
                       <button
                         onClick={() => onOpenAddClassModal(selectedMobileDay, cls)}
                         className="text-slate-400 hover:text-blue-600 p-1 transition-colors cursor-pointer"
