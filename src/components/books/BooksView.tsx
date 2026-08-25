@@ -267,13 +267,7 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
   };
 
   const handleDeleteBook = async (bookId: string) => {
-    if (deletingBookId === bookId) {
-      await deleteBookItem(bookId);
-      setDeletingBookId(null);
-    } else {
-      setDeletingBookId(bookId);
-      setTimeout(() => setDeletingBookId(null), 4000);
-    }
+    await deleteBookItem(bookId);
   };
 
   return (
@@ -460,14 +454,10 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
                         </button>
                         <button
                           onClick={() => handleDeleteBook(featuredBook.id)}
-                          className={`p-1.5 rounded-xl transition-all cursor-pointer ${
-                            deletingBookId === featuredBook.id
-                              ? 'bg-rose-600 text-white font-bold text-[10px] px-2'
-                              : 'text-stone-400 hover:text-rose-600 hover:bg-rose-50'
-                          }`}
+                          className="text-stone-400 hover:text-rose-600 hover:bg-rose-50 p-1.5 rounded-xl transition-all cursor-pointer"
                           title="Delete Book"
                         >
-                          {deletingBookId === featuredBook.id ? 'Confirm?' : <Trash2 className="w-4 h-4" />}
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </div>

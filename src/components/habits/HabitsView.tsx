@@ -34,6 +34,11 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
 
   const [weekOffset, setWeekOffset] = useState<number>(0);
 
+  // Dynamic persona color for page-level controls (Add Habit, banner, today pill, week selector)
+  const activePersonColor = useMemo(() => {
+    return profileColors[activeProfile] || (activeProfile === 'Eve' ? '#8B7CF6' : activeProfile === 'Abbie' ? '#E98BAF' : '#83B79A');
+  }, [activeProfile, profileColors]);
+
   const toggleHabitDailySchedule = async (h: HabitItem) => {
     const isNowOn = !h.show_in_daily_schedule;
     if (isNowOn) {
@@ -78,6 +83,13 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
     return filterByProfile(habits);
   }, [habits, filterByProfile]);
 
+  // Compute today's completed count
+  const todayDoneCount = useMemo(() => {
+    return filteredHabits.filter((h) =>
+      habitCompletions.some((hc) => hc.habit_id === h.id && hc.date === todayStr && hc.completed)
+    ).length;
+  }, [filteredHabits, habitCompletions, todayStr]);
+
   const [confirmResetWeek, setConfirmResetWeek] = useState(false);
 
   const handleToggleCheck = async (habit: HabitItem, dateStr: string, isCompleted: boolean) => {
@@ -100,12 +112,21 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto px-4 md:px-8 py-6 pb-20">
+    <div className="space-y-6 max-w-5xl mx-auto px-4 md:px-8 py-6 pb-20 bg-[#FAFAFC] min-h-screen text-[#182238]">
       {/* Clean Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 pb-4 gap-3">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Habit Tracker</h1>
-          <p className="text-xs text-slate-500 font-medium mt-0.5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#E7EAF0] pb-4 gap-3">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-black text-[#182238] tracking-tight">Habit Tracker</h1>
+            <span
+              style={{ backgroundColor: `${activePersonColor}18`, color: activePersonColor }}
+              className="text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5 shadow-2xs"
+            >
+              <span>{todayDoneCount} done today</span>
+              <span>✨</span>
+            </span>
+          </div>
+          <p className="text-xs text-[#68748A] font-medium">
             Track weekly habit progress and choose which ones appear on your Daily Schedule.
           </p>
         </div>
@@ -113,47 +134,49 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => onOpenAddModal(null)}
-            className="p-2 sm:px-4 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs shadow-xs transition-all cursor-pointer active:scale-95 flex items-center gap-1.5"
+            style={{ backgroundColor: activePersonColor }}
+            className="px-4 py-2 rounded-xl text-white font-bold text-xs shadow-xs transition-all cursor-pointer active:scale-95 flex items-center gap-1.5 hover:opacity-90"
             title="Add Habit"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span className="hidden sm:inline">Add Habit</span>
+            <span>Add Habit</span>
           </button>
         </div>
       </div>
 
-      {/* Simple Clean Banner */}
-      <div className="bg-slate-100/90 border border-slate-200/80 rounded-2xl p-4 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-slate-200 text-slate-700 flex items-center justify-center shrink-0">
-            <Sparkles className="w-4 h-4 text-slate-700" />
-          </div>
-          <div>
-            <h4 className="text-xs font-bold text-slate-900">Weekly Habit Tracker</h4>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">
-              Checkmarks reset every Monday. Toggle "Schedule" to view habit items on your daily calendar agenda.
-            </p>
-          </div>
+      {/* Quiet Helpful Note Banner */}
+      <div
+        style={{ backgroundColor: `${activePersonColor}12`, borderColor: `${activePersonColor}30` }}
+        className="border rounded-2xl p-3.5 flex items-center gap-3"
+      >
+        <div
+          style={{ backgroundColor: `${activePersonColor}25`, color: activePersonColor }}
+          className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0"
+        >
+          <Sparkles className="w-3.5 h-3.5" />
         </div>
+        <p className="text-xs text-[#182238] font-medium">
+          Checkmarks reset every Monday. Toggle <span className="font-bold" style={{ color: activePersonColor }}>Schedule</span> to view habit items on your daily calendar agenda.
+        </p>
       </div>
 
-      {/* Week Navigation & Reset */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+      {/* Week Navigation Bar */}
+      <div className="bg-white rounded-2xl p-4 border border-[#E7EAF0] shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
-            <CalendarIcon className="w-4 h-4 text-slate-700" />
+          <div className="flex items-center gap-2 text-xs font-bold text-[#182238]">
+            <CalendarIcon className="w-4 h-4" style={{ color: activePersonColor }} />
             <span>{weekOffset === 0 ? 'This Week' : weekRangeLabel}</span>
           </div>
           <button
             onClick={handleResetThisWeek}
-            className={`flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-xl transition-all cursor-pointer border min-h-[44px] ${
+            className={`flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-xl transition-all cursor-pointer border min-h-[38px] ${
               confirmResetWeek
-                ? 'bg-rose-600 text-white border-rose-600'
-                : 'text-slate-600 bg-slate-50 hover:bg-slate-100 border-slate-200'
+                ? 'bg-rose-500 text-white border-rose-500'
+                : 'text-[#182238] bg-[#F4F5F8] hover:bg-[#E7EAF0] border-[#E7EAF0]'
             }`}
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>{confirmResetWeek ? 'Click again to confirm' : 'Reset Checkmarks'}</span>
+            <span>{confirmResetWeek ? 'Click to confirm' : 'Reset Checkmarks'}</span>
           </button>
         </div>
 
@@ -161,8 +184,9 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
           {currentWeekDates.map((w) => (
             <div
               key={w.dateStr}
-              className={`flex flex-col items-center justify-center px-3 py-1 rounded-xl text-xs font-bold transition-all min-w-[44px] min-h-[44px] ${
-                w.isToday ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 bg-slate-50'
+              style={w.isToday ? { backgroundColor: activePersonColor, color: '#ffffff' } : undefined}
+              className={`flex flex-col items-center justify-center px-3 py-1 rounded-xl text-xs font-bold transition-all min-w-[42px] min-h-[42px] ${
+                w.isToday ? 'shadow-2xs' : 'text-[#68748A] bg-[#F4F5F8]'
               }`}
             >
               <span className="text-[10px] opacity-80">{w.label}</span>
@@ -174,7 +198,7 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
 
       {/* Habits List Header */}
       {filteredHabits.length > 0 && (
-        <div className="hidden md:flex items-center justify-between px-4 text-xs font-bold text-slate-400">
+        <div className="hidden md:flex items-center justify-between px-4 text-xs font-bold text-[#68748A]">
           <span>Habit Name & Schedule Setting</span>
           <div className="flex items-center gap-2 pr-8">
             {currentWeekDates.map((w) => (
@@ -188,21 +212,22 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
 
       {/* Habits List */}
       {filteredHabits.length === 0 ? (
-        <div className="bg-white rounded-2xl p-10 border border-slate-200 text-center space-y-3">
-          <Sparkles className="w-8 h-8 mx-auto text-slate-400" />
-          <p className="text-sm font-bold text-slate-700">No habits added yet</p>
+        <div className="bg-white rounded-2xl p-10 border border-[#E7EAF0] text-center space-y-3">
+          <Sparkles className="w-8 h-8 mx-auto" style={{ color: `${activePersonColor}90` }} />
+          <p className="text-sm font-bold text-[#182238]">No habits added yet</p>
           <button
             onClick={() => onOpenAddModal(null)}
-            className="text-xs font-bold text-slate-900 bg-slate-100 px-4 py-2 rounded-xl transition-all cursor-pointer min-h-[44px]"
+            style={{ backgroundColor: activePersonColor }}
+            className="text-xs font-bold text-white px-4 py-2 rounded-xl transition-all cursor-pointer shadow-xs hover:opacity-90"
           >
             + Add a habit
           </button>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3.5">
           {filteredHabits.map((h) => {
             const ownerName = h.profile || 'Eve';
-            const habitAccentColor = h.color || profileColors[ownerName] || (ownerName === 'Both' ? '#059669' : '#2563eb');
+            const habitAccentColor = profileColors[ownerName] || (ownerName === 'Eve' ? '#8B7CF6' : ownerName === 'Abbie' ? '#E98BAF' : '#83B79A');
             const activeDays = h.active_days && h.active_days.length > 0 ? h.active_days : [1, 2, 3, 4, 5, 6, 7];
             const isShownInDailySchedule = Boolean(h.show_in_daily_schedule);
 
@@ -211,30 +236,34 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
               habitCompletions.some((hc) => hc.habit_id === h.id && hc.date === w.dateStr && hc.completed)
             ).length;
             const targetTotal = activeDays.length;
+            const progressPercent = Math.min(100, Math.round((weekCompletedCount / (targetTotal || 1)) * 100));
 
             return (
               <div
                 key={h.id}
                 style={{ borderLeftColor: habitAccentColor, borderLeftWidth: '4px' }}
-                className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:shadow-md hover:border-slate-300"
+                className="bg-white rounded-2xl p-4 border border-[#E7EAF0] shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:shadow-xs hover:border-[#D0D5DD]"
               >
                 {/* Left: Habit Info */}
                 <div className="flex items-center gap-3.5 min-w-0 flex-1">
                   <div
-                    className="w-11 h-11 rounded-2xl flex items-center justify-center text-xl shrink-0 shadow-2xs font-bold"
-                    style={{ backgroundColor: `${habitAccentColor}15`, color: habitAccentColor }}
+                    className="w-11 h-11 rounded-2xl flex items-center justify-center text-xl shrink-0 shadow-2xs font-bold border"
+                    style={{
+                      backgroundColor: `${habitAccentColor}18`,
+                      borderColor: `${habitAccentColor}40`,
+                    }}
                   >
                     {h.emoji || '✨'}
                   </div>
 
-                  <div className="min-w-0 space-y-1">
+                  <div className="min-w-0 space-y-1.5 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-base font-extrabold text-slate-900 truncate tracking-tight">{h.title}</h3>
+                      <h3 className="text-base font-extrabold text-[#182238] truncate tracking-tight">{h.title}</h3>
 
                       {/* EDIT HABIT BUTTON */}
                       <button
                         onClick={() => onOpenAddModal(h)}
-                        className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                        className="p-1 text-[#68748A] hover:text-[#182238] hover:bg-[#F4F5F8] rounded-lg transition-colors cursor-pointer"
                         title="Edit Habit"
                       >
                         <Pencil className="w-3.5 h-3.5" />
@@ -243,33 +272,43 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
                       {/* DELETE HABIT BUTTON */}
                       <button
                         onClick={() => deleteHabit(h.id)}
-                        className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                        className="p-1 text-[#68748A] hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                         title="Delete Habit"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
 
+                      {/* Quiet Profile Badges */}
                       {activeProfile === 'Both' && (
                         <span
-                          className="text-[10px] font-extrabold text-white px-2 py-0.5 rounded-full shadow-2xs"
-                          style={{ backgroundColor: habitAccentColor }}
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            ownerName === 'Eve'
+                              ? 'bg-[#FCEEF3] text-[#B0456E]'
+                              : ownerName === 'Abbie'
+                              ? 'bg-[#F1EEFF] text-[#5B4FC4]'
+                              : 'bg-[#EDF7F1] text-[#2E6B4B]'
+                          }`}
                         >
                           {ownerName}
                         </span>
                       )}
 
-                      {/* PERSISTENT SUPABASE DAILY SCHEDULE TOGGLE BUTTON */}
+                      {/* Subtle Schedule Button */}
                       <button
                         onClick={() => toggleHabitDailySchedule(h)}
                         style={
                           isShownInDailySchedule
-                            ? { backgroundColor: habitAccentColor, borderColor: habitAccentColor }
+                            ? {
+                                backgroundColor: `${habitAccentColor}18`,
+                                color: habitAccentColor,
+                                borderColor: `${habitAccentColor}50`,
+                              }
                             : undefined
                         }
-                        className={`flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-xl transition-all cursor-pointer border min-h-[34px] ${
+                        className={`flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-xl transition-all cursor-pointer border min-h-[32px] ${
                           isShownInDailySchedule
-                            ? 'text-white shadow-2xs'
-                            : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+                            ? 'shadow-2xs'
+                            : 'bg-[#F4F5F8] text-[#68748A] border-[#E7EAF0] hover:bg-[#E7EAF0]'
                         }`}
                         title={
                           isShownInDailySchedule
@@ -282,14 +321,26 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
                       </button>
                     </div>
 
-                    <p className="text-xs text-slate-500 font-semibold">
-                      {weekCompletedCount} of {targetTotal} completed this week
-                    </p>
+                    {/* Progress Bar & Subtext */}
+                    <div className="flex items-center gap-3 max-w-xs">
+                      <div className="flex-1 bg-[#F4F5F8] h-1.5 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${progressPercent}%`,
+                            backgroundColor: habitAccentColor,
+                          }}
+                        />
+                      </div>
+                      <span className="text-[11px] text-[#68748A] font-medium shrink-0">
+                        {weekCompletedCount} of {targetTotal}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
                 {/* Right: Mon..Sun Checkmark Buttons */}
-                <div className="flex items-center gap-2 overflow-x-auto justify-between md:justify-end border-t md:border-t-0 pt-3 md:pt-0 border-slate-100 shrink-0">
+                <div className="flex items-center gap-2 overflow-x-auto justify-between md:justify-end border-t md:border-t-0 pt-3 md:pt-0 border-[#E7EAF0] shrink-0">
                   {currentWeekDates.map((w) => {
                     const isScheduledForDay = activeDays.includes(w.dayNum);
                     const completion = habitCompletions.find((hc) => hc.habit_id === h.id && hc.date === w.dateStr);
@@ -300,16 +351,19 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
                         key={w.dateStr}
                         onClick={() => handleToggleCheck(h, w.dateStr, isCompleted)}
                         disabled={!isScheduledForDay}
-                        style={isCompleted ? { backgroundColor: habitAccentColor, borderColor: habitAccentColor } : undefined}
                         className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all shrink-0 cursor-pointer ${
                           !isScheduledForDay
-                            ? 'bg-slate-50 text-slate-200 border border-dashed border-slate-200 cursor-not-allowed'
+                            ? 'bg-[#F9FAFB] text-[#D0D5DD] border border-dashed border-[#E7EAF0] cursor-not-allowed'
                             : isCompleted
                             ? 'text-white font-black shadow-2xs scale-105'
                             : w.isToday
-                            ? 'bg-slate-50 text-slate-900 border-2 border-slate-400 font-bold'
-                            : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                            ? 'bg-[#F4F5F8] text-[#182238] border-2 font-bold'
+                            : 'bg-[#F4F5F8] text-[#68748A] hover:bg-[#E7EAF0]'
                         }`}
+                        style={{
+                          ...(isCompleted ? { backgroundColor: habitAccentColor, borderColor: habitAccentColor } : {}),
+                          ...(!isCompleted && w.isToday ? { borderColor: habitAccentColor } : {}),
+                        }}
                         title={`${w.label} ${w.dateStr}`}
                       >
                         {isCompleted ? (

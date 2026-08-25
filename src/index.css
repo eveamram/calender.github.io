@@ -154,3 +154,16 @@
   scrollbar-width: none;
 }
 
+/* Prevent iOS Mobile Safari auto-zoom on input focus */
+@media screen and (max-width: 768px) {
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
