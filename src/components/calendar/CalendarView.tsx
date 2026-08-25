@@ -164,7 +164,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
       })
       .map((cls) => {
         const ownerProf = cls.profile || 'Eve';
-        const classColor = cls.color || profileColors[ownerProf] || '#2563eb';
+        const classColor = profileColors[ownerProf] || cls.color || '#2563eb';
         return {
           id: `class-item-${cls.id}`,
           title: `📚 ${cls.name}${cls.room ? ` (${cls.room})` : ''}`,
