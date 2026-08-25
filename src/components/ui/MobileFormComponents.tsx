@@ -238,21 +238,21 @@ export const MobileSelectField: React.FC<MobileSelectFieldProps> = ({
 
 // 4. MOBILE COLOR GRID (Expanded 5-per-row circular swatches + Custom Color Picker)
 export const DEFAULT_COLOR_SWATCHES = [
-  { label: 'Lavender', hex: '#8B7CF6' },
-  { label: 'Dusty Rose', hex: '#E98BAF' },
-  { label: 'Sage', hex: '#83B79A' },
-  { label: 'Warm Peach', hex: '#E9A27F' },
-  { label: 'Butter Yellow', hex: '#E9C66A' },
-  { label: 'Dusty Blue', hex: '#7BA4D5' },
-  { label: 'Soft Teal', hex: '#65B8A6' },
-  { label: 'Soft Violet', hex: '#A07CF6' },
-  { label: 'Soft Coral', hex: '#EE8B8B' },
-  { label: 'Warm Sand', hex: '#D4A373' },
-  { label: 'Slate Blue', hex: '#6C8EA4' },
-  { label: 'Soft Mint', hex: '#76C893' },
-  { label: 'Soft Plum', hex: '#B37D97' },
-  { label: 'Muted Slate', hex: '#64748B' },
-  { label: 'Soft Charcoal', hex: '#475569' },
+  { label: 'Vibrant Purple', hex: '#8B5CF6' },
+  { label: 'Bright Pink', hex: '#EC4899' },
+  { label: 'Fresh Green', hex: '#10B981' },
+  { label: 'Bright Orange', hex: '#F97316' },
+  { label: 'Sunny Yellow', hex: '#F59E0B' },
+  { label: 'Bright Blue', hex: '#3B82F6' },
+  { label: 'Vibrant Teal', hex: '#14B8A6' },
+  { label: 'Electric Violet', hex: '#A855F7' },
+  { label: 'Coral Red', hex: '#F43F5E' },
+  { label: 'Golden Amber', hex: '#D97706' },
+  { label: 'Sky Cyan', hex: '#06B6D4' },
+  { label: 'Mint Green', hex: '#34D399' },
+  { label: 'Vibrant Magenta', hex: '#D946EF' },
+  { label: 'Indigo', hex: '#6366F1' },
+  { label: 'Royal Blue', hex: '#2563EB' },
 ];
 
 interface MobileColorGridProps {

@@ -134,10 +134,10 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                     <div className="min-w-0 flex-1 space-y-1.5">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span
-                          className="text-xs font-semibold text-white px-2.5 py-0.5 rounded-lg shadow-2xs"
-                          style={{ backgroundColor: cardColor }}
+                          className="text-xs font-semibold tracking-tight"
+                          style={{ color: cardColor }}
                         >
-                          {formatTime12Hour(cls.start_time)} - {formatTime12Hour(cls.end_time)}
+                          {formatTime12Hour(cls.start_time)} – {formatTime12Hour(cls.end_time)}
                         </span>
                         <h3 className="text-base font-semibold text-slate-900 tracking-tight break-words">{cls.name}</h3>
                         {activeProfile === 'Both' && (
@@ -239,12 +239,12 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                           borderLeftColor: cardColor,
                         }}
                       >
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between gap-1">
                           <span
-                            className="text-[11px] font-medium text-white px-2 py-0.5 rounded-md shadow-2xs"
-                            style={{ backgroundColor: cardColor }}
+                            className="text-xs font-semibold tracking-tight"
+                            style={{ color: cardColor }}
                           >
-                            {formatTime12Hour(cls.start_time)}
+                            {formatTime12Hour(cls.start_time)} – {formatTime12Hour(cls.end_time)}
                           </span>
 
                           <div className="flex items-center gap-1">
