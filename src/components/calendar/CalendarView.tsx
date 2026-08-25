@@ -360,7 +360,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                     <div className="flex-1 min-w-0 pb-0.5">
                       <div className="flex items-center gap-1.5 min-w-0 flex-1">
                         <h4
-                          className={`text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors truncate flex-1 min-w-0 ${
+                          className={`text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors break-words flex-1 min-w-0 ${
                             isCompleted ? 'line-through text-slate-400 opacity-60' : ''
                           }`}
                         >
@@ -376,13 +376,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                         )}
                       </div>
 
-                      <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-0.5">
+                      <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-0.5 flex-wrap">
                         {evt.end_time && (
                           <span className="font-semibold text-slate-500">Until {formatTime12Hour(evt.end_time)}</span>
                         )}
                         {evt.location && (
-                          <span className="flex items-center gap-1 font-medium text-slate-400 truncate">
-                            <MapPin className="w-3 h-3 text-slate-400" />
+                          <span className="flex items-center gap-1 font-medium text-slate-400 break-words">
+                            <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
                             {evt.location}
                           </span>
                         )}
@@ -747,7 +747,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                     <div className="flex-1 min-w-0 pb-0.5">
                       <div className="flex items-center gap-1.5 min-w-0 flex-1">
                         <h4
-                          className={`text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors truncate flex-1 min-w-0 ${
+                          className={`text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors break-words flex-1 min-w-0 ${
                             isCompleted ? 'line-through text-slate-400 opacity-60' : ''
                           }`}
                         >
@@ -763,13 +763,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                         )}
                       </div>
 
-                      <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-0.5">
+                      <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-0.5 flex-wrap">
                         {evt.end_time && (
                           <span className="font-semibold text-slate-500">Until {formatTime12Hour(evt.end_time)}</span>
                         )}
                         {evt.location && (
-                          <span className="flex items-center gap-1 font-medium text-slate-400 truncate">
-                            <MapPin className="w-3 h-3 text-slate-400" />
+                          <span className="flex items-center gap-1 font-medium text-slate-400 break-words">
+                            <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
                             {evt.location}
                           </span>
                         )}
