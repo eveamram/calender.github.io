@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && rm -rf assets && cp -r dist/assets . && cp dist/index.html . && cp public/apple-touch-icon* . && cp public/icon* . && cp public/manifest.json .",
+    "build": "node -e \"const fs = require('fs'); let h = fs.readFileSync('index.html', 'utf8').replace(/<script type=\\\"module\\\".*?src=\\\"[^\\\"]+\\\"><\\/script>/s, '<script type=\\\"module\\\" src=\\\"/src/main.tsx\\\"><\\/script>').replace(/<link rel=\\\"stylesheet\\\" crossorigin href=\\\"[^\\\"]+\\\">/g, ''); fs.writeFileSync('index.html', h);\" && tsc && vite build && rm -rf assets && cp -r dist/assets . && cp dist/index.html .",
     "preview": "vite preview",
     "lint": "tsc",
     "predeploy": "npm run build",
