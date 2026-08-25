@@ -304,7 +304,7 @@ export const MobileColorGrid: React.FC<MobileColorGridProps> = ({
             className={`w-8 h-8 rounded-full transition-all cursor-pointer flex items-center justify-center relative active:scale-95 ${
               isCustomColor
                 ? 'ring-2 ring-slate-900 ring-offset-2 scale-105 shadow-xs'
-                : 'bg-gradient-to-tr from-pink-500 via-purple-500 to-indigo-500 hover:scale-105'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-600 hover:scale-105'
             }`}
             style={isCustomColor ? { backgroundColor: activeColor } : undefined}
             title="Custom Color"
