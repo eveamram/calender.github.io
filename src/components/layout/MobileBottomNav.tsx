@@ -119,18 +119,25 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = () => {
                       setActiveTab(item.tab);
                       setShowMoreMenu(false);
                     }}
-                    className={`w-full flex items-center gap-3.5 p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                    className={`w-full flex items-center gap-3.5 p-3.5 rounded-2xl text-left transition-all cursor-pointer ${
                       isActive
-                        ? 'bg-slate-900 border-slate-900 text-white shadow-xs font-bold'
-                        : 'bg-slate-50/80 border-slate-200/80 hover:bg-slate-100 text-slate-800'
+                        ? 'bg-slate-50 border-2 border-slate-900 text-slate-900 font-bold shadow-xs ring-1 ring-slate-900/10'
+                        : 'bg-slate-50/80 border border-slate-200/80 hover:bg-slate-100 text-slate-800'
                     }`}
                   >
-                    <div className="p-2 rounded-xl bg-white shadow-2xs border border-slate-200/60 shrink-0">
+                    <div className={`p-2 rounded-xl bg-white shadow-2xs border shrink-0 ${isActive ? 'border-slate-900' : 'border-slate-200/60'}`}>
                       {item.icon}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className={`text-sm font-extrabold ${isActive ? 'text-white' : 'text-slate-900'}`}>{item.label}</div>
-                      <div className={`text-[11px] font-medium truncate ${isActive ? 'text-slate-300' : 'text-slate-500'}`}>{item.desc}</div>
+                      <div className="text-sm font-extrabold text-slate-900 flex items-center justify-between">
+                        <span>{item.label}</span>
+                        {isActive && (
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-900 bg-slate-200/80 px-2 py-0.5 rounded-full border border-slate-300">
+                            Active
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] font-medium truncate text-slate-500">{item.desc}</div>
                     </div>
                   </button>
                 );
