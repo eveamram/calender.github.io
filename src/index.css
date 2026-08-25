@@ -27,6 +27,12 @@
   }
 }
 
+/* Font Styling for Class Titles */
+.font-class-title {
+  font-family: 'Outfit', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  letter-spacing: -0.015em;
+}
+
 /* Glassmorphism & Fun Card Utilities */
 .glass-card {
   background: rgba(255, 255, 255, 0.85);

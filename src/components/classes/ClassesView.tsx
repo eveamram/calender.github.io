@@ -157,7 +157,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                       </div>
 
                       {/* Class Name */}
-                      <h3 className="text-base font-bold text-slate-800 tracking-tight break-words pt-1">{cls.name}</h3>
+                      <h3 className="font-class-title text-lg font-semibold text-slate-900 tracking-tight break-words pt-1">{cls.name}</h3>
                     </div>
 
                     <div className="flex items-center gap-1 shrink-0 pt-0.5">
@@ -288,7 +288,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                           </div>
                         </div>
 
-                        <h4 className="text-sm font-bold text-slate-800 tracking-tight break-words pt-0.5">{cls.name}</h4>
+                        <h4 className="font-class-title text-base font-semibold text-slate-900 tracking-tight break-words pt-0.5">{cls.name}</h4>
 
                         <div className="text-[11px] font-semibold text-slate-600 space-y-1">
                           {cls.room && <div className="break-words flex items-center gap-1">📍 {cls.room}</div>}
