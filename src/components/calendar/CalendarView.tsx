@@ -283,27 +283,27 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
   return (
     <div className="min-h-screen bg-[#faf9f6] text-slate-800 px-3 sm:px-6 md:px-8 py-4 sm:py-6 relative pb-20">
       {/* MOBILE LAYOUT (< lg screens) */}
-      <div className="lg:hidden space-y-5">
+      <div className="lg:hidden space-y-4">
         {/* 1. SELECTED DAY SCHEDULE FIRST */}
-        <div id="daily-schedule-panel" className="bg-white rounded-3xl p-5 border border-slate-200/70 shadow-xs space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div id="daily-schedule-panel" className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">
+                <h2 className="text-lg font-bold text-slate-900 tracking-tight">
                   {formattedSelectedDateHeader}
                 </h2>
                 {selectedDate === todayStr && (
-                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 uppercase tracking-wider">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 uppercase tracking-wider">
                     Today
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-400 font-medium mt-0.5">Daily Schedule</p>
+              <p className="text-xs text-slate-400 font-medium">Daily Schedule</p>
             </div>
 
             <button
               onClick={() => onOpenAddModal(selectedDate)}
-              className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-xs transition-all cursor-pointer"
+              className="p-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-2xs transition-all cursor-pointer"
               title="Add Event"
             >
               <Plus className="w-4 h-4 stroke-[2.5]" />
@@ -312,17 +312,17 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
 
           {/* Agenda Vertical Timeline */}
           {selectedDayItems.length === 0 ? (
-            <div className="py-8 text-center space-y-2">
-              <p className="text-xs font-semibold text-slate-400">Your day is clear.</p>
+            <div className="py-6 text-center space-y-1.5">
+              <p className="text-xs font-medium text-slate-400">Your day is clear.</p>
               <button
                 onClick={() => onOpenAddModal(selectedDate)}
-                className="text-xs font-bold text-slate-800 bg-slate-100 px-3 py-1.5 rounded-xl hover:bg-slate-200 transition-colors cursor-pointer"
+                className="text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/70 border border-slate-200/50 px-3 py-1 rounded-lg transition-colors cursor-pointer"
               >
                 + Add event
               </button>
             </div>
           ) : (
-            <div className="space-y-3 pt-1">
+            <div className="space-y-2 pt-0.5">
               {selectedDayItems.map((evt: any) => {
                 const meta = CATEGORY_METAS[evt.event_type as EventType] || CATEGORY_METAS.personal;
                 const evtColor = evt.color || meta.color || '#3b82f6';
@@ -337,69 +337,72 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                     onClick={() => {
                       if (!evt.is_habit_item) onOpenAddModal(evt.event_date, evt);
                     }}
-                    className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50/70 border border-slate-100 hover:bg-slate-100/80 transition-all cursor-pointer group"
+                    className="flex items-center justify-between p-3 rounded-xl bg-slate-50/60 hover:bg-slate-100/70 border border-slate-100 transition-all cursor-pointer group"
+                    style={{ borderLeft: `3px solid ${evtColor}` }}
                   >
-                    {/* Time Column */}
-                    <div className="w-16 shrink-0 text-right text-xs font-bold text-slate-500 pt-0.5">
-                      {evt.start_time ? formatTime12Hour(evt.start_time) : 'All Day'}
-                    </div>
-
-                    {/* Timeline Accent Dot & Line */}
-                    <div className="flex flex-col items-center self-stretch shrink-0">
-                      <div
-                        className="w-3 h-3 rounded-full border-2 border-white shadow-xs shrink-0 mt-0.5"
-                        style={{ backgroundColor: evtColor }}
-                      />
-                      <div
-                        className="w-0.5 flex-1 mt-1 rounded-full opacity-30"
-                        style={{ backgroundColor: evtColor }}
-                      />
-                    </div>
-
-                    {/* Event Content */}
-                    <div className="flex-1 min-w-0 pb-0.5">
-                      <h4
-                        className={`text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors break-words ${
-                          isCompleted ? 'line-through text-slate-400 opacity-60' : ''
-                        }`}
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      {/* Completion Toggle */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleAnyEventComplete(evt);
+                        }}
+                        className="p-1 text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer shrink-0"
+                        title={isCompleted ? 'Mark incomplete' : 'Mark complete'}
                       >
-                        {evt.title}
-                      </h4>
+                        {isCompleted ? (
+                          <CheckCircle className="w-4 h-4 text-emerald-500 fill-emerald-50" />
+                        ) : (
+                          <Circle className="w-4 h-4 text-slate-300" />
+                        )}
+                      </button>
 
-                      <div className="flex items-center gap-2.5 text-[11px] text-slate-500 mt-0.5 flex-wrap">
-                        {activeProfile === 'Both' && (
-                          <span
-                            className="text-[10px] font-semibold px-2 py-0.5 rounded-full inline-flex items-center gap-1 shrink-0"
-                            style={{ backgroundColor: `${badgeColor}15`, color: badgeColor }}
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: badgeColor }} />
-                            {ownerName}
+                      {/* Content */}
+                      <div className="min-w-0 flex-1">
+                        <h4
+                          className={`text-xs font-semibold text-slate-900 truncate ${
+                            isCompleted ? 'line-through text-slate-400' : ''
+                          }`}
+                        >
+                          {evt.title}
+                        </h4>
+
+                        <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5 flex-wrap">
+                          <span className="font-medium text-slate-500">
+                            {evt.start_time ? formatTime12Hour(evt.start_time) : 'All Day'}
+                            {evt.end_time ? ` – ${formatTime12Hour(evt.end_time)}` : ''}
                           </span>
-                        )}
-                        {evt.end_time && (
-                          <span className="font-semibold text-slate-500">Until {formatTime12Hour(evt.end_time)}</span>
-                        )}
-                        {evt.location && (
-                          <span className="flex items-center gap-1 font-medium text-slate-400 break-words">
-                            <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
-                            {evt.location}
-                          </span>
-                        )}
+
+                          {activeProfile === 'Both' && (
+                            <span
+                              className="text-[10px] font-bold text-white px-1.5 py-0.2 rounded shrink-0"
+                              style={{ backgroundColor: badgeColor }}
+                            >
+                              {ownerName}
+                            </span>
+                          )}
+
+                          {evt.location && (
+                            <span className="truncate max-w-[120px] text-slate-400">
+                              📍 {evt.location}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
 
-                    {/* ALWAYS VISIBLE ACTION BUTTONS */}
-                    <div className="flex items-center gap-2 shrink-0">
+                    {/* Compact Actions */}
+                    <div className="flex items-center gap-1 shrink-0 ml-2">
                       {!evt.is_habit_item && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             onOpenAddModal(evt.event_date, evt);
                           }}
-                          className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
+                          className="p-1 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
                           title="Edit Event"
                         >
-                          <Pencil className="w-4 h-4" />
+                          <Pencil className="w-3.5 h-3.5" />
                         </button>
                       )}
 
@@ -409,27 +412,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                             e.stopPropagation();
                             handleDeleteAnyEvent(evt);
                           }}
-                          className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                          title={evt.is_habit_item ? 'Remove habit from daily calendar' : 'Delete Event'}
+                          className="p-1 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                          title="Delete Event"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       )}
-
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleAnyEventComplete(evt);
-                        }}
-                        className="p-1.5 text-slate-500 hover:text-emerald-600 rounded-lg cursor-pointer"
-                        title={isCompleted ? 'Mark incomplete' : 'Mark complete'}
-                      >
-                        {isCompleted ? (
-                          <CheckCircle className="w-5 h-5 text-emerald-500 fill-emerald-50" />
-                        ) : (
-                          <Circle className="w-5 h-5 text-slate-400" />
-                        )}
-                      </button>
                     </div>
                   </div>
                 );
@@ -671,13 +659,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
         </div>
 
         {/* Desktop Schedule Sidebar */}
-        <div className="col-span-4 bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs space-y-5 sticky top-20">
+        <div className="col-span-4 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-2xs space-y-4 sticky top-20">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-xl font-black text-slate-900">{formattedSelectedDateHeader}</h3>
+                <h3 className="text-lg font-bold text-slate-900">{formattedSelectedDateHeader}</h3>
                 {selectedDate === todayStr && (
-                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 uppercase tracking-wider">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 uppercase tracking-wider">
                     Today
                   </span>
                 )}
@@ -687,7 +675,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
 
             <button
               onClick={() => onOpenAddModal(selectedDate)}
-              className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-xs transition-all cursor-pointer"
+              className="p-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-2xs transition-all cursor-pointer"
               title="Add Event"
             >
               <Plus className="w-4 h-4 stroke-[2.5]" />
@@ -696,17 +684,17 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
 
           {/* Agenda Timeline List */}
           {selectedDayItems.length === 0 ? (
-            <div className="py-12 text-center space-y-2">
-              <p className="text-xs font-semibold text-slate-400">Your day is clear.</p>
+            <div className="py-8 text-center space-y-2">
+              <p className="text-xs font-medium text-slate-400">Your day is clear.</p>
               <button
                 onClick={() => onOpenAddModal(selectedDate)}
-                className="text-xs font-bold text-slate-800 bg-slate-100 px-3 py-1.5 rounded-xl hover:bg-slate-200 transition-colors cursor-pointer"
+                className="text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/70 border border-slate-200/50 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
               >
                 + Add event
               </button>
             </div>
           ) : (
-            <div className="space-y-3 pt-1">
+            <div className="space-y-2 pt-0.5">
               {selectedDayItems.map((evt: any) => {
                 const meta = CATEGORY_METAS[evt.event_type as EventType] || CATEGORY_METAS.personal;
                 const evtColor = evt.color || meta.color || '#3b82f6';
@@ -718,76 +706,75 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                 return (
                   <div
                     key={evt.id}
-                    onDoubleClick={(e) => {
-                      e.stopPropagation();
-                      if (!evt.is_habit_item) onOpenAddModal(evt.event_date, evt);
-                    }}
                     onClick={() => {
                       if (!evt.is_habit_item) onOpenAddModal(evt.event_date, evt);
                     }}
-                    className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50/70 border border-slate-100 hover:bg-slate-100/80 transition-all cursor-pointer group"
+                    className="flex items-center justify-between p-3 rounded-xl bg-slate-50/60 hover:bg-slate-100/70 border border-slate-100 transition-all cursor-pointer group"
+                    style={{ borderLeft: `3px solid ${evtColor}` }}
                   >
-                    {/* Time Column */}
-                    <div className="w-20 shrink-0 text-right text-xs font-bold text-slate-500 pt-0.5">
-                      {evt.start_time ? formatTime12Hour(evt.start_time) : 'All Day'}
-                    </div>
-
-                    {/* Timeline Accent Dot & Line */}
-                    <div className="flex flex-col items-center self-stretch shrink-0">
-                      <div
-                        className="w-3 h-3 rounded-full border-2 border-white shadow-xs shrink-0 mt-0.5"
-                        style={{ backgroundColor: evtColor }}
-                      />
-                      <div
-                        className="w-0.5 flex-1 mt-1 rounded-full opacity-30"
-                        style={{ backgroundColor: evtColor }}
-                      />
-                    </div>
-
-                    {/* Event Content */}
-                    <div className="flex-1 min-w-0 pb-0.5">
-                      <h4
-                        className={`text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors break-words ${
-                          isCompleted ? 'line-through text-slate-400 opacity-60' : ''
-                        }`}
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      {/* Completion Toggle */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleAnyEventComplete(evt);
+                        }}
+                        className="p-1 text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer shrink-0"
+                        title={isCompleted ? 'Mark incomplete' : 'Mark complete'}
                       >
-                        {evt.title}
-                      </h4>
+                        {isCompleted ? (
+                          <CheckCircle className="w-4 h-4 text-emerald-500 fill-emerald-50" />
+                        ) : (
+                          <Circle className="w-4 h-4 text-slate-300" />
+                        )}
+                      </button>
 
-                      <div className="flex items-center gap-2.5 text-[11px] text-slate-500 mt-0.5 flex-wrap">
-                        {activeProfile === 'Both' && (
-                          <span
-                            className="text-[10px] font-semibold px-2 py-0.5 rounded-full inline-flex items-center gap-1 shrink-0"
-                            style={{ backgroundColor: `${badgeColor}15`, color: badgeColor }}
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: badgeColor }} />
-                            {ownerName}
+                      {/* Content */}
+                      <div className="min-w-0 flex-1">
+                        <h4
+                          className={`text-xs font-semibold text-slate-900 truncate ${
+                            isCompleted ? 'line-through text-slate-400' : ''
+                          }`}
+                        >
+                          {evt.title}
+                        </h4>
+
+                        <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5 flex-wrap">
+                          <span className="font-medium text-slate-500">
+                            {evt.start_time ? formatTime12Hour(evt.start_time) : 'All Day'}
+                            {evt.end_time ? ` – ${formatTime12Hour(evt.end_time)}` : ''}
                           </span>
-                        )}
-                        {evt.end_time && (
-                          <span className="font-semibold text-slate-500">Until {formatTime12Hour(evt.end_time)}</span>
-                        )}
-                        {evt.location && (
-                          <span className="flex items-center gap-1 font-medium text-slate-400 break-words">
-                            <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
-                            {evt.location}
-                          </span>
-                        )}
+
+                          {activeProfile === 'Both' && (
+                            <span
+                              className="text-[10px] font-bold text-white px-1.5 py-0.2 rounded shrink-0"
+                              style={{ backgroundColor: badgeColor }}
+                            >
+                              {ownerName}
+                            </span>
+                          )}
+
+                          {evt.location && (
+                            <span className="truncate max-w-[120px] text-slate-400">
+                              📍 {evt.location}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
 
-                    {/* ALWAYS VISIBLE ACTION BUTTONS */}
-                    <div className="flex items-center gap-2 shrink-0">
+                    {/* Compact Actions */}
+                    <div className="flex items-center gap-1 shrink-0 ml-2">
                       {!evt.is_habit_item && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             onOpenAddModal(evt.event_date, evt);
                           }}
-                          className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
+                          className="p-1 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
                           title="Edit Event"
                         >
-                          <Pencil className="w-4 h-4" />
+                          <Pencil className="w-3.5 h-3.5" />
                         </button>
                       )}
 
@@ -797,27 +784,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                             e.stopPropagation();
                             handleDeleteAnyEvent(evt);
                           }}
-                          className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                          title={evt.is_habit_item ? 'Remove habit from daily schedule' : 'Delete Event'}
+                          className="p-1 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                          title="Delete Event"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       )}
-
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleAnyEventComplete(evt);
-                        }}
-                        className="p-1.5 text-slate-500 hover:text-emerald-600 rounded-lg cursor-pointer"
-                        title={isCompleted ? 'Mark incomplete' : 'Mark complete'}
-                      >
-                        {isCompleted ? (
-                          <CheckCircle className="w-5 h-5 text-emerald-500 fill-emerald-50" />
-                        ) : (
-                          <Circle className="w-5 h-5 text-slate-400" />
-                        )}
-                      </button>
                     </div>
                   </div>
                 );
