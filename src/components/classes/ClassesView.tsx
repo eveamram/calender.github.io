@@ -133,10 +133,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1 space-y-1.5">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span
-                          className="text-xs font-semibold tracking-tight"
-                          style={{ color: cardColor }}
-                        >
+                        <span className="text-xs font-bold text-slate-800 tracking-tight">
                           {formatTime12Hour(cls.start_time)} – {formatTime12Hour(cls.end_time)}
                         </span>
                         <h3 className="text-base font-semibold text-slate-900 tracking-tight break-words">{cls.name}</h3>
@@ -240,10 +237,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                         }}
                       >
                         <div className="flex items-center justify-between gap-1">
-                          <span
-                            className="text-xs font-semibold tracking-tight"
-                            style={{ color: cardColor }}
-                          >
+                          <span className="text-xs font-bold text-slate-800 tracking-tight">
                             {formatTime12Hour(cls.start_time)} – {formatTime12Hour(cls.end_time)}
                           </span>
 
