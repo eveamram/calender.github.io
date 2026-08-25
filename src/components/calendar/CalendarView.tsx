@@ -358,25 +358,24 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
 
                     {/* Event Content */}
                     <div className="flex-1 min-w-0 pb-0.5">
-                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                        <h4
-                          className={`text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors break-words flex-1 min-w-0 ${
-                            isCompleted ? 'line-through text-slate-400 opacity-60' : ''
-                          }`}
-                        >
-                          {evt.title}
-                        </h4>
+                      <h4
+                        className={`text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors break-words ${
+                          isCompleted ? 'line-through text-slate-400 opacity-60' : ''
+                        }`}
+                      >
+                        {evt.title}
+                      </h4>
+
+                      <div className="flex items-center gap-2.5 text-[11px] text-slate-500 mt-0.5 flex-wrap">
                         {activeProfile === 'Both' && (
                           <span
-                            className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md text-white shrink-0"
-                            style={{ backgroundColor: badgeColor }}
+                            className="text-[10px] font-semibold px-2 py-0.5 rounded-full inline-flex items-center gap-1 shrink-0"
+                            style={{ backgroundColor: `${badgeColor}15`, color: badgeColor }}
                           >
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: badgeColor }} />
                             {ownerName}
                           </span>
                         )}
-                      </div>
-
-                      <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-0.5 flex-wrap">
                         {evt.end_time && (
                           <span className="font-semibold text-slate-500">Until {formatTime12Hour(evt.end_time)}</span>
                         )}
@@ -745,25 +744,24 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
 
                     {/* Event Content */}
                     <div className="flex-1 min-w-0 pb-0.5">
-                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                        <h4
-                          className={`text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors break-words flex-1 min-w-0 ${
-                            isCompleted ? 'line-through text-slate-400 opacity-60' : ''
-                          }`}
-                        >
-                          {evt.title}
-                        </h4>
+                      <h4
+                        className={`text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors break-words ${
+                          isCompleted ? 'line-through text-slate-400 opacity-60' : ''
+                        }`}
+                      >
+                        {evt.title}
+                      </h4>
+
+                      <div className="flex items-center gap-2.5 text-[11px] text-slate-500 mt-0.5 flex-wrap">
                         {activeProfile === 'Both' && (
                           <span
-                            className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md text-white shrink-0"
-                            style={{ backgroundColor: badgeColor }}
+                            className="text-[10px] font-semibold px-2 py-0.5 rounded-full inline-flex items-center gap-1 shrink-0"
+                            style={{ backgroundColor: `${badgeColor}15`, color: badgeColor }}
                           >
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: badgeColor }} />
                             {ownerName}
                           </span>
                         )}
-                      </div>
-
-                      <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-0.5 flex-wrap">
                         {evt.end_time && (
                           <span className="font-semibold text-slate-500">Until {formatTime12Hour(evt.end_time)}</span>
                         )}
