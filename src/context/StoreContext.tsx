@@ -505,23 +505,15 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const factoryResetAllData = async () => {
-    const tables: (keyof typeof TABLE_MAP)[] = [
-      'events',
-      'classes',
-      'tasks',
-      'habits',
-      'habitCompletions',
-      'groceryItems',
-      'mealItems',
-      'bookItems',
-      'profileColors',
-      'dateColors',
-    ];
-    for (const table of tables) {
-      await syncEngine.clearTable(table);
-    }
+    // Local cache only — never wipe the shared household cloud database.
+    Object.keys(localStorage)
+      .filter((key) => key.startsWith('calender_app_table_'))
+      .forEach((key) => localStorage.removeItem(key));
     localStorage.removeItem('calender_profile');
     localStorage.removeItem('calender_tab');
+    localStorage.removeItem('calender_time_formats');
+    localStorage.removeItem('calender_completed_event_ids');
+    await syncEngine.fetchAll();
   };
 
   return (

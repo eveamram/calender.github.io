@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { StoreProvider, useStore } from './context/StoreContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { Header } from './components/layout/Header';
 import { MobileBottomNav } from './components/layout/MobileBottomNav';
-import { FloatingAddButton } from './components/ui/FloatingAddButton';
 import { CalendarView } from './components/calendar/CalendarView';
 import { ClassesView } from './components/classes/ClassesView';
 import { TodoView } from './components/todo/TodoView';
@@ -12,6 +12,7 @@ import { MealsView } from './components/meals/MealsView';
 import { BooksView } from './components/books/BooksView';
 import { CreationModalContainer } from './components/modals/CreationModalContainer';
 import { SettingsModal } from './components/modals/SettingsModal';
+import { LoginScreen } from './components/auth/LoginScreen';
 import { MealType, CalendarEvent, ClassItem, BookItem, HabitItem, EventType } from './types';
 
 const MainAppContent: React.FC = () => {
@@ -77,15 +78,6 @@ const MainAppContent: React.FC = () => {
               setEventToEdit(evtToEdit || null);
               setActiveModal('event');
             }}
-            onOpenEditClass={(cls, day) => {
-              setInitialClassDay(day);
-              setClassToEdit(cls);
-              setActiveModal('class');
-            }}
-            onOpenEditHabit={(habit) => {
-              setHabitToEdit(habit);
-              setActiveModal('habit');
-            }}
           />
         )}
         {activeTab === 'classes' && (
@@ -132,9 +124,6 @@ const MainAppContent: React.FC = () => {
         )}
       </main>
 
-      {/* Mobile floating add — Header Add Item is desktop-only */}
-      <FloatingAddButton onClick={handleOpenAddForTab} />
-
       {/* Mobile Bottom Navigation with centered + Add button */}
       <MobileBottomNav onOpenAddModal={handleOpenAddForTab} />
 
@@ -170,12 +159,42 @@ const MainAppContent: React.FC = () => {
   );
 };
 
+const AuthLoadingScreen: React.FC = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-purple-200/90 via-pink-200/85 via-amber-100/90 to-yellow-100/90">
+    <div className="flex flex-col items-center gap-3">
+      <div
+        className="w-8 h-8 rounded-full border-2 border-white/70 border-t-slate-900 animate-spin"
+        aria-hidden="true"
+      />
+      <p className="text-sm font-medium text-slate-600">Loading…</p>
+    </div>
+  </div>
+);
+
+const AuthGate: React.FC = () => {
+  const { session, loading } = useAuth();
+
+  if (loading) {
+    return <AuthLoadingScreen />;
+  }
+
+  if (!session) {
+    return <LoginScreen />;
+  }
+
+  return (
+    <StoreProvider>
+      <MainAppContent />
+    </StoreProvider>
+  );
+};
+
 export const App: React.FC = () => {
   return (
     <ErrorBoundary>
-      <StoreProvider>
-        <MainAppContent />
-      </StoreProvider>
+      <AuthProvider>
+        <AuthGate />
+      </AuthProvider>
     </ErrorBoundary>
   );
 };

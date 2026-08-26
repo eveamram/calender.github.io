@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
+import { useAuth } from '../../context/AuthContext';
 import { ProfilePersona } from '../../types';
 import {
   Settings,
@@ -9,6 +10,7 @@ import {
   Cloud,
   RefreshCw,
   Database,
+  LogOut,
 } from 'lucide-react';
 const PERSONA_COLORS = [
   { label: 'Royal Blue', hex: '#2563eb' },
@@ -33,13 +35,16 @@ export const SettingsModal: React.FC = () => {
     syncStatus,
   } = useStore();
 
+  const { user, signOut } = useAuth();
+
   const [colorPickerTarget, setColorPickerTarget] = useState<ProfilePersona | null>(null);
   const [customHex, setCustomHex] = useState<string>('#2563eb');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const [confirmResetHolidays, setConfirmResetHolidays] = useState(false);
   const [confirmResetEvents, setConfirmResetEvents] = useState(false);
-  const [confirmResetAllData, setConfirmResetAllData] = useState(false);
+  const [resetConfirmText, setResetConfirmText] = useState('');
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   if (!isSettingsOpen) return null;
 
@@ -88,6 +93,30 @@ export const SettingsModal: React.FC = () => {
           <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 flex items-center gap-2.5 text-xs font-bold text-emerald-800 animate-slide-down">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>{toastMessage}</span>
+          </div>
+        )}
+
+        {user?.email && (
+          <div className="flex items-center justify-between p-3.5 rounded-2xl border border-slate-200 bg-slate-50/60">
+            <div className="min-w-0">
+              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Signed in</p>
+              <p className="text-xs font-bold text-slate-900 truncate">{user.email}</p>
+            </div>
+            <button
+              onClick={async () => {
+                if (isSigningOut) return;
+                setIsSigningOut(true);
+                try {
+                  await signOut();
+                } finally {
+                  setIsSigningOut(false);
+                }
+              }}
+              className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 px-3 py-1.5 rounded-xl cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              {isSigningOut ? 'Signing out…' : 'Sign out'}
+            </button>
           </div>
         )}
 
@@ -191,34 +220,36 @@ export const SettingsModal: React.FC = () => {
             </button>
           </div>
 
-          <div className="flex items-center justify-between pt-2 border-t border-slate-100/60">
+          <div className="pt-2 border-t border-slate-100/60 space-y-2">
             <div>
               <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
-                Reset All App Data
+                Clear this device
               </h3>
               <p className="text-xs text-slate-500 font-medium mt-0.5">
-                Clear stored calendar events and restore initial app state.
+                Clears this browser&apos;s local cache only. Household data in the cloud is not deleted.
               </p>
             </div>
-            <button
-              onClick={async () => {
-                if (!confirmResetAllData) {
-                  setConfirmResetAllData(true);
-                  setTimeout(() => setConfirmResetAllData(false), 4000);
-                  return;
-                }
-                await factoryResetAllData();
-                setConfirmResetAllData(false);
-                showToast("App data has been reset to defaults!");
-              }}
-              className={`font-extrabold px-4 py-2 rounded-2xl text-xs transition-all cursor-pointer shrink-0 shadow-xs ${
-                confirmResetAllData
-                  ? 'bg-rose-600 text-white animate-pulse'
-                  : 'bg-rose-50 hover:bg-rose-100 text-rose-600'
-              }`}
-            >
-              {confirmResetAllData ? '⚠️ Are you sure? Click to confirm' : 'Reset All Data'}
-            </button>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={resetConfirmText}
+                onChange={(e) => setResetConfirmText(e.target.value)}
+                placeholder='Type RESET'
+                className="flex-1 text-xs font-bold px-3 py-2 border border-slate-200 rounded-xl bg-white"
+              />
+              <button
+                onClick={async () => {
+                  if (resetConfirmText.trim() !== 'RESET') return;
+                  await factoryResetAllData();
+                  setResetConfirmText('');
+                  showToast('This device cache was cleared. Cloud data is unchanged.');
+                }}
+                disabled={resetConfirmText.trim() !== 'RESET'}
+                className="font-extrabold px-4 py-2 rounded-2xl text-xs shrink-0 shadow-xs bg-rose-50 hover:bg-rose-100 text-rose-600 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              >
+                Clear cache
+              </button>
+            </div>
           </div>
         </div>
 

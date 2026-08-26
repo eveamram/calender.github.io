@@ -180,7 +180,9 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
   const totalPagesRead = useMemo(() => {
     return filteredByPersona.reduce((acc, b) => {
       if (b.status === 'completed' && b.total_pages) return acc + b.total_pages;
-      if (b.status === 'reading' && b.current_page) return acc + b.current_page;
+      if (b.status === 'reading') {
+        return acc + Math.max(b.current_page || 0, b.eve_page || 0, b.abbie_page || 0);
+      }
       return acc;
     }, 0);
   }, [filteredByPersona]);

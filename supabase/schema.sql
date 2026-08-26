@@ -39,12 +39,9 @@ CREATE TABLE IF NOT EXISTS public.events (
   color TEXT,
   task_id TEXT,
   profile TEXT DEFAULT 'Eve',
-  is_completed BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
-
-ALTER TABLE public.events ADD COLUMN IF NOT EXISTS is_completed BOOLEAN DEFAULT FALSE;
 
 -- 2. Classes Table
 CREATE TABLE IF NOT EXISTS public.classes (
@@ -57,14 +54,9 @@ CREATE TABLE IF NOT EXISTS public.classes (
   days_of_week INT[] NOT NULL,
   color TEXT,
   profile TEXT DEFAULT 'Eve',
-  office_hours TEXT,
-  office_hours_location TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
-
-ALTER TABLE public.classes ADD COLUMN IF NOT EXISTS office_hours TEXT;
-ALTER TABLE public.classes ADD COLUMN IF NOT EXISTS office_hours_location TEXT;
 
 -- 3. Tasks Table
 CREATE TABLE IF NOT EXISTS public.tasks (
@@ -168,9 +160,6 @@ CREATE TABLE IF NOT EXISTS public.date_colors (
 -- ====================================================================
 
 -- Enable RLS on all 10 tables
-GRANT USAGE ON SCHEMA public TO anon, authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO anon, authenticated;
-
 ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.classes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
@@ -194,17 +183,11 @@ DROP POLICY IF EXISTS "Anon public access for book_items" ON public.book_items;
 DROP POLICY IF EXISTS "Anon public access for profile_colors" ON public.profile_colors;
 DROP POLICY IF EXISTS "Anon public access for date_colors" ON public.date_colors;
 
--- Create shared RLS policies for anonymous/public access
-CREATE POLICY "Anon public access for events" ON public.events FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "Anon public access for classes" ON public.classes FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "Anon public access for tasks" ON public.tasks FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "Anon public access for habits" ON public.habits FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "Anon public access for habit_completions" ON public.habit_completions FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "Anon public access for grocery_items" ON public.grocery_items FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "Anon public access for meal_items" ON public.meal_items FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "Anon public access for book_items" ON public.book_items FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "Anon public access for profile_colors" ON public.profile_colors FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "Anon public access for date_colors" ON public.date_colors FOR ALL TO anon USING (true) WITH CHECK (true);
+-- Anon (logged-out) visitors must have no table access.
+-- Do not recreate "Anon public access for ..." policies.
+-- Household rows are shared among signed-in members via authenticated
+-- policies below (USING (true)), so existing Eve/Abbie/Both profile
+-- text continues to show without per-user auth.uid() filtering.
 
 -- Also allow authenticated role access
 CREATE POLICY "Authenticated access for events" ON public.events FOR ALL TO authenticated USING (true) WITH CHECK (true);

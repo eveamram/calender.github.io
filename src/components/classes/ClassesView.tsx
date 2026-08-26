@@ -148,6 +148,11 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
     return filterByProfile(classes);
   }, [classes, filterByProfile]);
 
+  const officeHoursClasses = useMemo(
+    () => filteredClasses.filter((c) => Boolean(c.office_hours) || Boolean(c.office_hours_location)),
+    [filteredClasses]
+  );
+
   const filteredExams = useMemo(() => {
     const today = getTodayDateString();
     const allExams = events.filter((e) => e.event_type === 'exam' && e.event_date >= today);
@@ -473,24 +478,18 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100/80">
-              {filteredClasses.filter((c) => Boolean(c.office_hours)).length} Configured
+              {officeHoursClasses.length} Configured
             </span>
           </div>
         </div>
 
-        {filteredClasses.length === 0 ? (
+        {officeHoursClasses.length === 0 ? (
           <div className="py-8 text-center space-y-2">
-            <p className="text-xs font-medium text-slate-400">No classes scheduled yet.</p>
-            <button
-              onClick={() => onOpenAddClassModal(selectedMobileDay)}
-              className="text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3.5 py-1.5 rounded-xl inline-flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
-            >
-              <Plus className="w-4 h-4 stroke-[2]" /> Add class & office hours
-            </button>
+            <p className="text-xs font-medium text-slate-400">No office hours added yet</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-            {filteredClasses.map((cls) => {
+            {officeHoursClasses.map((cls) => {
               const ownerName = cls.profile || 'Eve';
               const ownerColor = profileColors[ownerName] || cls.color || '#2563eb';
               const cardColor = classPersonaColor(cls.profile, activeProfile, profileColors, cls.color);

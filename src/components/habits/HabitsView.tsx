@@ -85,10 +85,16 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
   }, [habits, filterByProfile]);
 
   // Compute today's completed count
+  const isHabitDoneOn = (habitId: string, dateStr: string) =>
+    habitCompletions.some(
+      (hc) =>
+        hc.habit_id === habitId &&
+        hc.date === dateStr &&
+        (hc.completed || (hc.current_quantity ?? 0) > 0)
+    );
+
   const todayDoneCount = useMemo(() => {
-    return filteredHabits.filter((h) =>
-      habitCompletions.some((hc) => hc.habit_id === h.id && hc.date === todayStr && hc.completed)
-    ).length;
+    return filteredHabits.filter((h) => isHabitDoneOn(h.id, todayStr)).length;
   }, [filteredHabits, habitCompletions, todayStr]);
 
   const [confirmResetWeek, setConfirmResetWeek] = useState(false);
@@ -234,7 +240,7 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
 
             // Compute completed count for this week
             const weekCompletedCount = currentWeekDates.filter((w) =>
-              habitCompletions.some((hc) => hc.habit_id === h.id && hc.date === w.dateStr && hc.completed)
+              isHabitDoneOn(h.id, w.dateStr)
             ).length;
             const targetTotal = activeDays.length;
             const progressPercent = Math.min(100, Math.round((weekCompletedCount / (targetTotal || 1)) * 100));

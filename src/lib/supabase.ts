@@ -1,31 +1,37 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const DEFAULT_SUPABASE_URL = 'https://rfvhqhlfrpaswgexrjqz.supabase.co';
-const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_gDiT6Wk52sGIpO0i2twPJA_JRIyRm_B';
+const FALLBACK_SUPABASE_URL = 'https://rfvhqhlfrpaswgexrjqz.supabase.co';
+const FALLBACK_SUPABASE_ANON_KEY = 'sb_publishable_gDiT6Wk52sGIpO0i2twPJA_JRIyRm_B';
 
-export const getSupabaseUrl = (): string =>
-  import.meta.env.VITE_SUPABASE_URL?.trim() || DEFAULT_SUPABASE_URL;
-export const getSupabaseAnonKey = (): string =>
-  import.meta.env.VITE_SUPABASE_ANON_KEY?.trim() || DEFAULT_SUPABASE_ANON_KEY;
+const readEnv = (value: unknown): string => {
+  if (typeof value === 'string' && value.trim().length > 0) {
+    return value.trim();
+  }
+  return '';
+};
+
+export const getSupabaseUrl = (): string => {
+  return readEnv(import.meta.env.VITE_SUPABASE_URL) || FALLBACK_SUPABASE_URL;
+};
+
+export const getSupabaseAnonKey = (): string => {
+  return readEnv(import.meta.env.VITE_SUPABASE_ANON_KEY) || FALLBACK_SUPABASE_ANON_KEY;
+};
 
 export const supabaseUrl = getSupabaseUrl();
 export const supabaseAnonKey = getSupabaseAnonKey();
 
 export const isSupabaseConfigured = (): boolean => {
-  try {
-    return Boolean(new URL(getSupabaseUrl()).protocol === 'https:' && getSupabaseAnonKey());
-  } catch {
-    return false;
-  }
+  return Boolean(getSupabaseUrl() && getSupabaseAnonKey());
 };
 
 export const getSupabaseConfigStatus = () => {
-  const isConfigured = isSupabaseConfigured();
+  const configured = isSupabaseConfigured();
   return {
-    isConfigured,
-    message: isConfigured
+    isConfigured: configured,
+    message: configured
       ? 'Connected to shared Supabase Cloud database.'
-      : 'Supabase configuration is missing or invalid.',
+      : 'Supabase is not configured.',
     url: getSupabaseUrl(),
   };
 };

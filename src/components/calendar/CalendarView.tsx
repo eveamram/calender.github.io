@@ -244,12 +244,24 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
   const todayStr = useMemo(() => getTodayDateString(), []);
 
+  const selectMonth = (newMonthDate: Date) => {
+    setCurrentMonthDate(newMonthDate);
+    const now = new Date();
+    if (newMonthDate.getFullYear() === now.getFullYear() && newMonthDate.getMonth() === now.getMonth()) {
+      setSelectedDate(todayStr);
+    } else {
+      const y = newMonthDate.getFullYear();
+      const m = String(newMonthDate.getMonth() + 1).padStart(2, '0');
+      setSelectedDate(`${y}-${m}-01`);
+    }
+  };
+
   const handlePrevMonth = () => {
-    setCurrentMonthDate(new Date(year, month - 1, 1));
+    selectMonth(new Date(year, month - 1, 1));
   };
 
   const handleNextMonth = () => {
-    setCurrentMonthDate(new Date(year, month + 1, 1));
+    selectMonth(new Date(year, month + 1, 1));
   };
 
   const handleTodayClick = () => {
@@ -405,8 +417,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 const isPast = isItemPastTime(evt, selectedDate);
                 const isCompleted = isClassItem
                   ? false
-                  : Boolean(evt.is_completed || task?.is_completed || completedEventIds.includes(evt.id) || isPast);
-                const isMuted = isClassItem ? isPast : isCompleted;
+                  : Boolean(evt.is_completed || task?.is_completed || completedEventIds.includes(evt.id));
+                const isMuted = isPast || isCompleted;
 
                 return (
                   <div
@@ -443,11 +455,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           className={`text-xs font-semibold truncate ${
                             isClassItem
                               ? isPast
-                                ? 'text-slate-400'
+                                ? 'text-slate-900 opacity-70'
                                 : 'text-slate-900'
                               : isCompleted
                                 ? 'line-through text-slate-400 opacity-75'
-                                : 'text-slate-900'
+                                : isPast
+                                  ? 'text-slate-900 opacity-70'
+                                  : 'text-slate-900'
                           }`}
                         >
                           {evt.title}
@@ -633,12 +647,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
                 <button
                   onClick={handlePrevMonth}
+                  aria-label="Previous month"
                   className="p-1.5 rounded-lg hover:bg-white text-slate-600 transition-colors cursor-pointer"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 <button
                   onClick={handleNextMonth}
+                  aria-label="Next month"
                   className="p-1.5 rounded-lg hover:bg-white text-slate-600 transition-colors cursor-pointer"
                 >
                   <ChevronRight className="w-4 h-4" />
@@ -712,20 +728,22 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                         onOpenAddModal(dayObj.dateStr);
                       }}
                       className="opacity-70 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-slate-200 text-slate-500 transition-opacity cursor-pointer"
-                      title="Add event on date"
+                      title={`Add event on ${dayObj.dateStr}`}
+                      aria-label={`Add event on ${dayObj.dateStr}`}
                     >
                       <Plus className="w-3.5 h-3.5" />
                     </button>
                   </div>
 
                   <div className="space-y-1 mt-1 flex-1">
-                    {dayEvts.slice(0, 2).map((e) => {
+                    {dayEvts.slice(0, 3).map((e) => {
                       const meta = CATEGORY_METAS[e.event_type as EventType] || CATEGORY_METAS.personal;
                       const evtColor = e.color || meta.color || '#3b82f6';
                       const isClassChip = isClassScheduleItem(e);
                       const isCompleted = isClassChip
                         ? false
-                        : Boolean(e.is_completed || completedEventIds.includes(e.id) || isItemPastTime(e, dayObj.dateStr));
+                        : Boolean(e.is_completed || completedEventIds.includes(e.id));
+                      const isPastChip = isItemPastTime(e, dayObj.dateStr);
                       const isPastClass = isClassChip && isItemPastTime(e, dayObj.dateStr);
 
                       return (
@@ -739,24 +757,28 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             evt.stopPropagation();
                             onOpenAddModal(e.event_date, e);
                           }}
+                          title={e.title}
+                          aria-label={e.title}
                           className={`text-[11px] font-bold px-2 py-1 rounded-xl flex items-start justify-between transition-all cursor-pointer text-slate-900 hover:scale-[1.02] shadow-2xs ${
                             isClassChip
                               ? isPastClass
-                                ? 'opacity-60'
+                                ? 'opacity-70'
                                 : ''
                               : isCompleted
                                 ? 'line-through opacity-50'
-                                : ''
+                                : isPastChip
+                                  ? 'opacity-70'
+                                  : ''
                           }`}
                           style={{ backgroundColor: `${evtColor}25`, borderLeft: `3.5px solid ${evtColor}` }}
                         >
-                          <span className="break-words whitespace-normal leading-tight">{e.title}</span>
+                          <span className="truncate leading-tight">{e.title}</span>
                         </div>
                       );
                     })}
-                    {dayEvts.length > 2 && (
+                    {dayEvts.length > 3 && (
                       <div className="text-[10px] font-extrabold pl-1 text-blue-700">
-                        +{dayEvts.length - 2} more
+                        +{dayEvts.length - 3} more
                       </div>
                     )}
                   </div>
@@ -813,8 +835,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 const isPast = isItemPastTime(evt, selectedDate);
                 const isCompleted = isClassItem
                   ? false
-                  : Boolean(evt.is_completed || task?.is_completed || completedEventIds.includes(evt.id) || isPast);
-                const isMuted = isClassItem ? isPast : isCompleted;
+                  : Boolean(evt.is_completed || task?.is_completed || completedEventIds.includes(evt.id));
+                const isMuted = isPast || isCompleted;
 
                 return (
                   <div
@@ -851,11 +873,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           className={`text-xs font-semibold truncate ${
                             isClassItem
                               ? isPast
-                                ? 'text-slate-400'
+                                ? 'text-slate-900 opacity-70'
                                 : 'text-slate-900'
                               : isCompleted
                                 ? 'line-through text-slate-400 opacity-75'
-                                : 'text-slate-900'
+                                : isPast
+                                  ? 'text-slate-900 opacity-70'
+                                  : 'text-slate-900'
                           }`}
                         >
                           {evt.title}

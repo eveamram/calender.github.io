@@ -294,6 +294,15 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
     }
   }, [modalType, bookToEdit, defaultProfile]);
 
+  useEffect(() => {
+    if (!modalType) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [modalType, onClose]);
+
   if (!modalType) return null;
 
   const getDayOfWeekFromDateStr = (dateStr: string): number => {
@@ -584,6 +593,8 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
   return (
     <MobileFormSheet
+      role="dialog"
+      aria-modal="true"
       isOpen={Boolean(modalType)}
       onClose={onClose}
       title={getSheetTitle()}
@@ -695,12 +706,14 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
           </div>
 
           {/* Action Buttons */}
+          <div className="sticky bottom-0 z-10 bg-white pt-2">
           <MobileFormAction
             label={eventToEdit ? (isExamModal ? 'Save Exam' : 'Save Changes') : (isExamModal ? 'Add Exam' : 'Add Event')}
             isSaving={isSaving}
             isRed={isExamModal}
             onCancel={onClose}
           />
+          </div>
         </form>
       )}
 
@@ -795,11 +808,13 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             )}
           </div>
 
+          <div className="sticky bottom-0 z-10 bg-white pt-2">
           <MobileFormAction
             label={classToEdit ? 'Save Changes' : 'Add Class'}
             isSaving={isSaving}
             onCancel={onClose}
           />
+          </div>
         </form>
       )}
 
@@ -916,11 +931,13 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
           </div>
 
           {/* Submit Action */}
+          <div className="sticky bottom-0 z-10 bg-white pt-2">
           <MobileFormAction
             label={habitToEdit ? 'Save Habit' : 'Add Habit'}
             isSaving={isSaving}
             onCancel={onClose}
           />
+          </div>
         </form>
       )}
 
@@ -1007,11 +1024,13 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             />
           </div>
 
+          <div className="sticky bottom-0 z-10 bg-white pt-2">
           <MobileFormAction
             label="Add Task"
             isSaving={isSaving}
             onCancel={onClose}
           />
+          </div>
         </form>
       )}
 
@@ -1095,11 +1114,13 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             )}
           </div>
 
+          <div className="sticky bottom-0 z-10 bg-white pt-2">
           <MobileFormAction
             label="Add Meal"
             isSaving={isSaving}
             onCancel={onClose}
           />
+          </div>
         </form>
       )}
 
@@ -1188,11 +1209,13 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             )}
           </div>
 
+          <div className="sticky bottom-0 z-10 bg-white pt-2">
           <MobileFormAction
             label={bookToEdit ? 'Save Changes' : 'Add Book'}
             isSaving={isSaving}
             onCancel={onClose}
           />
+          </div>
         </form>
       )}
     </MobileFormSheet>
