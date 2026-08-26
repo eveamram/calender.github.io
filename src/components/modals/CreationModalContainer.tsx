@@ -26,7 +26,6 @@ import {
   Utensils,
   Plus,
 } from 'lucide-react';
-import { insertGoogleEvent } from '../../lib/googleCalendar';
 import {
   MobileFormSheet,
   MobileFormField,
@@ -89,10 +88,6 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
     updateBookItem,
     activeProfile,
     profileColors,
-    googleConnected,
-    googleCanWrite,
-    selectedGoogleCalendarId,
-    refreshGoogleEvents,
   } = useStore();
 
   const defaultProfile: ProfilePersona = activeProfile === 'Both' ? 'Eve' : activeProfile;
@@ -379,20 +374,6 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
           color: finalColor,
           profile: evtProfile,
         });
-        if (ok && googleConnected && googleCanWrite) {
-          try {
-            await insertGoogleEvent(selectedGoogleCalendarId || 'primary', {
-              title: evtTitle.trim(),
-              event_date: evtDate,
-              start_time: evtStartTime,
-              end_time: evtEndTime,
-              location: evtLocation.trim() || undefined,
-            });
-            void refreshGoogleEvents();
-          } catch (gerr) {
-            console.warn('Google Calendar insert failed', gerr);
-          }
-        }
       }
       if (ok) onClose();
       else setErrorMsg('Could not save event. Please try again.');
