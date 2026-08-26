@@ -599,16 +599,15 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                       >
                         <Edit3 className="w-4 h-4" />
                       </button>
-                      {hasHours && (
-                        <button
-                          type="button"
-                          onClick={() => clearClassOfficeHours(cls)}
-                          className="flex items-center justify-center min-h-[36px] min-w-[36px] text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
-                          title="Remove all office hours"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => clearClassOfficeHours(cls)}
+                        className="inline-flex items-center justify-center gap-1 min-h-[36px] px-2.5 text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
+                        title="Delete office hours"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Delete
+                      </button>
                     </div>
                   </div>
 
