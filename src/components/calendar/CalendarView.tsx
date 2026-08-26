@@ -453,13 +453,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       <div className="min-w-0 flex-1">
                         <h4
                           className={`text-xs font-semibold truncate ${
-                            isClassItem
-                              ? isPast
-                                ? 'text-slate-900 opacity-70'
-                                : 'text-slate-900'
-                              : isCompleted || isPast
-                                ? 'line-through text-slate-400 opacity-75'
-                                : 'text-slate-900'
+                            isCompleted || isPast
+                              ? 'line-through text-slate-400 opacity-75'
+                              : 'text-slate-900'
                           }`}
                         >
                           {evt.title}
@@ -855,13 +851,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       <div className="min-w-0 flex-1">
                         <h4
                           className={`text-xs font-semibold truncate ${
-                            isClassItem
-                              ? isPast
-                                ? 'text-slate-900 opacity-70'
-                                : 'text-slate-900'
-                              : isCompleted || isPast
-                                ? 'line-through text-slate-400 opacity-75'
-                                : 'text-slate-900'
+                            isCompleted || isPast
+                              ? 'line-through text-slate-400 opacity-75'
+                              : 'text-slate-900'
                           }`}
                         >
                           {evt.title}

@@ -153,6 +153,20 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
     [filteredClasses]
   );
 
+  const classesWithOfficeHours = useMemo(
+    () =>
+      classes.filter(
+        (cls) => Boolean((cls.office_hours || '').trim() || (cls.office_hours_location || '').trim())
+      ),
+    [classes]
+  );
+
+  const clearAllOfficeHours = () => {
+    classesWithOfficeHours.forEach((cls) => {
+      updateClass(cls.id, { office_hours: '', office_hours_location: '' });
+    });
+  };
+
   const filteredExams = useMemo(() => {
     const today = getTodayDateString();
     const allExams = events.filter((e) => e.event_type === 'exam' && e.event_date >= today);
@@ -476,7 +490,16 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
               <p className="text-xs text-slate-500 font-medium hidden sm:block">Instructor availability, meeting times, and office locations</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {classesWithOfficeHours.length > 0 && (
+              <button
+                type="button"
+                onClick={clearAllOfficeHours}
+                className="text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+              >
+                Remove all office hours
+              </button>
+            )}
             <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100/80">
               {officeHoursClasses.length} classes
             </span>
