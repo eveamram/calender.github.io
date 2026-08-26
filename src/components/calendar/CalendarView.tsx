@@ -750,7 +750,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                   ? 'opacity-70'
                                   : ''
                           }`}
-                          style={{ backgroundColor: `${evtColor}25`, borderLeft: `3.5px solid ${evtColor}` }}
+                          style={e.event_type === 'exam' ? { backgroundColor: '#ffffff', borderLeft: `3.5px solid ${evtColor}` } : { backgroundColor: `${evtColor}25`, borderLeft: `3.5px solid ${evtColor}` }}
                         >
                           <span className="truncate leading-tight">{e.title}</span>
                         </div>

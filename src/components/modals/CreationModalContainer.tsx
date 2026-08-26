@@ -133,14 +133,14 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         setEvtStartTime(eventToEdit.start_time || '09:00');
         setEvtEndTime(eventToEdit.end_time || '10:00');
         setEvtLocation(eventToEdit.location || '');
-        setEvtColor(eventToEdit.color || DEFAULT_COLOR_SWATCHES[0].hex);
+        setEvtColor(eventToEdit.color || (eventToEdit.event_type === 'exam' ? CATEGORY_METAS.exam.color : DEFAULT_COLOR_SWATCHES[0].hex));
         setEvtProfile(eventToEdit.profile || defaultProfile);
       } else {
         setEvtDate(initialDate || getTodayDateString());
         setEvtTitle('');
         setEvtType(initialEventType || 'personal');
         setEvtLocation('');
-        setEvtColor(DEFAULT_COLOR_SWATCHES[0].hex);
+        setEvtColor(initialEventType === 'exam' ? CATEGORY_METAS.exam.color : DEFAULT_COLOR_SWATCHES[0].hex);
         setEvtStartTime('09:00');
         setEvtEndTime('10:00');
         setEvtProfile(defaultProfile);
@@ -363,7 +363,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
     setIsSaving(true);
     setErrorMsg(null);
     try {
-      const finalColor = evtType === 'exam' ? '#f43f5e' : (evtColor || undefined);
+      const finalColor = evtColor || (evtType === 'exam' ? CATEGORY_METAS.exam.color : undefined);
       let ok = false;
       if (eventToEdit) {
         ok = await updateEvent(eventToEdit.id, {
@@ -667,12 +667,10 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
           {/* Color & Persona */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 md:gap-4 items-start">
-            {!isExamModal ? (
-              <MobileColorGrid
-                selectedColor={evtColor}
-                onSelectColor={(hex) => setEvtColor(hex)}
-              />
-            ) : <div />}
+            <MobileColorGrid
+              selectedColor={evtColor}
+              onSelectColor={(hex) => setEvtColor(hex)}
+            />
             <MobileSegmentedControl
               label="For"
               options={profileOptions}

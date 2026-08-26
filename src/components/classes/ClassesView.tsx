@@ -473,10 +473,12 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
               if (diffDays === 0) countdownLabel = 'Today!';
               else if (diffDays === 1) countdownLabel = 'Tomorrow';
 
+              const barColor = exam.color || '#ef4444';
+
               return (
                 <div
                   key={exam.id}
-                  className="p-4 rounded-xl border border-red-100 bg-red-50/30 hover:bg-red-50/60 transition-all space-y-2 relative group cursor-pointer"
+                  className="p-4 pt-5 rounded-xl border border-slate-200/80 bg-white hover:bg-slate-50/80 transition-all space-y-2 relative group cursor-pointer overflow-hidden"
                   onClick={() => onOpenAddExamModal?.(exam)}
                   role="button"
                   tabIndex={0}
@@ -487,12 +489,19 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                     }
                   }}
                 >
+                  <div
+                    className="absolute top-0 left-0 right-0 h-1.5"
+                    style={{ backgroundColor: barColor }}
+                  />
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-xs font-bold text-red-600 bg-red-100 px-2.5 py-0.5 rounded-md">
+                      <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-md">
                         {exam.event_date}
                       </span>
-                      <span className="text-[10px] font-bold text-white bg-red-500 px-2 py-0.5 rounded-md shadow-xs animate-pulse">
+                      <span
+                        className="text-[10px] font-bold text-white px-2 py-0.5 rounded-md shadow-xs"
+                        style={{ backgroundColor: barColor }}
+                      >
                         {countdownLabel}
                       </span>
                     </div>
@@ -536,7 +545,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                   <div className="flex items-center gap-3 text-xs font-semibold text-slate-600 pt-1">
                     {exam.start_time && (
                       <span className="flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-red-500" />
+                        <Clock className="w-3.5 h-3.5 shrink-0" style={{ color: barColor }} />
                         {formatTime12Hour(exam.start_time)} {exam.end_time ? `- ${formatTime12Hour(exam.end_time)}` : ''}
                       </span>
                     )}
