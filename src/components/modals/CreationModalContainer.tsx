@@ -12,6 +12,11 @@ import {
   CATEGORY_METAS,
 } from '../../types';
 import {
+  parseOfficeHourSlots,
+  serializeOfficeHourSlots,
+  OfficeHourSlot,
+} from '../../utils/officeHours';
+import {
   ChevronDown,
   ChevronUp,
   Palette,
@@ -25,6 +30,7 @@ import {
   ListTodo,
   Utensils,
   Plus,
+  Trash2,
 } from 'lucide-react';
 import {
   MobileFormSheet,
@@ -150,8 +156,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   const [clsDays, setClsDays] = useState<number[]>([1, 3]);
   const [clsProfile, setClsProfile] = useState<ProfilePersona>(defaultProfile);
   const [clsColor, setClsColor] = useState(DEFAULT_COLOR_SWATCHES[0].hex);
-  const [clsOfficeHours, setClsOfficeHours] = useState('');
-  const [clsOfficeHoursLocation, setClsOfficeHoursLocation] = useState('');
+  const [clsOfficeSlots, setClsOfficeSlots] = useState<OfficeHourSlot[]>([]);
 
   useEffect(() => {
     if (modalType === 'class') {
@@ -166,9 +171,8 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         setClsDays(classToEdit.days_of_week && classToEdit.days_of_week.length > 0 ? classToEdit.days_of_week : [1, 3]);
         setClsProfile(classToEdit.profile || defaultProfile);
         setClsColor(classToEdit.color || DEFAULT_COLOR_SWATCHES[0].hex);
-        setClsOfficeHours(classToEdit.office_hours || '');
-        setClsOfficeHoursLocation(classToEdit.office_hours_location || '');
-        setShowClsMore(Boolean(classToEdit.room || classToEdit.instructor || classToEdit.office_hours || classToEdit.office_hours_location));
+        setClsOfficeSlots(parseOfficeHourSlots(classToEdit.office_hours, classToEdit.office_hours_location));
+        setShowClsMore(Boolean(classToEdit.room || classToEdit.instructor));
       } else {
         setShowClsMore(false);
         setClsName('');
@@ -179,8 +183,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         setClsDays(initialClassDay ? [initialClassDay] : [1, 3]);
         setClsProfile(defaultProfile);
         setClsColor(DEFAULT_COLOR_SWATCHES[0].hex);
-        setClsOfficeHours('');
-        setClsOfficeHoursLocation('');
+        setClsOfficeSlots([]);
       }
     }
   }, [modalType, classToEdit, initialClassDay, defaultProfile]);
@@ -415,8 +418,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
           days_of_week: clsDays,
           profile: clsProfile,
           color: personaColor,
-          office_hours: clsOfficeHours.trim(),
-          office_hours_location: clsOfficeHoursLocation.trim(),
+          ...serializeOfficeHourSlots(clsOfficeSlots),
         });
       } else {
         ok = await addClass({
@@ -428,8 +430,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
           days_of_week: clsDays,
           profile: clsProfile,
           color: personaColor,
-          office_hours: clsOfficeHours.trim(),
-          office_hours_location: clsOfficeHoursLocation.trim(),
+          ...serializeOfficeHourSlots(clsOfficeSlots),
         });
       }
       if (ok) onClose();
@@ -762,19 +763,61 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 md:gap-4">
-            <MobileFormField
-              label="Office hours time"
-              value={clsOfficeHours}
-              onChange={(e) => setClsOfficeHours(e.target.value)}
-              placeholder="e.g. Mon & Wed 2:00 – 4:00 PM"
-            />
-            <MobileFormField
-              label="Office room"
-              value={clsOfficeHoursLocation}
-              onChange={(e) => setClsOfficeHoursLocation(e.target.value)}
-              placeholder="e.g. Science 304"
-            />
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-bold text-slate-600">Office hours</span>
+              <button
+                type="button"
+                onClick={() =>
+                  setClsOfficeSlots((prev) => [
+                    ...prev,
+                    { time: '', location: prev[prev.length - 1]?.location || clsRoom || '' },
+                  ])
+                }
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1.5 rounded-lg cursor-pointer border border-indigo-200/60"
+              >
+                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                Add time
+              </button>
+            </div>
+            {clsOfficeSlots.length === 0 ? (
+              <p className="text-xs text-slate-400 font-medium">No office hours yet. Add as many times as you need.</p>
+            ) : (
+              <div className="space-y-2.5">
+                {clsOfficeSlots.map((slot, index) => (
+                  <div key={index} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 items-end">
+                    <MobileFormField
+                      label={clsOfficeSlots.length > 1 ? `Time ${index + 1}` : 'Time'}
+                      value={slot.time}
+                      onChange={(e) =>
+                        setClsOfficeSlots((prev) =>
+                          prev.map((row, i) => (i === index ? { ...row, time: e.target.value } : row))
+                        )
+                      }
+                      placeholder="e.g. Mon 2:00 – 4:00 PM"
+                    />
+                    <MobileFormField
+                      label={clsOfficeSlots.length > 1 ? `Room ${index + 1}` : 'Room'}
+                      value={slot.location}
+                      onChange={(e) =>
+                        setClsOfficeSlots((prev) =>
+                          prev.map((row, i) => (i === index ? { ...row, location: e.target.value } : row))
+                        )
+                      }
+                      placeholder="e.g. Science 304"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setClsOfficeSlots((prev) => prev.filter((_, i) => i !== index))}
+                      className="flex items-center justify-center min-h-[44px] min-w-[44px] text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                      title="Remove this time"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div>
@@ -807,7 +850,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             )}
           </div>
 
-          {classToEdit && (clsOfficeHours.trim() || clsOfficeHoursLocation.trim()) && (
+          {classToEdit && clsOfficeSlots.some((slot) => slot.time.trim() || slot.location.trim()) && (
             <button
               type="button"
               onClick={async () => {

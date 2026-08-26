@@ -2,6 +2,12 @@ import React, { useState, useMemo } from 'react';
 import { useStore, getTodayDateString, formatTime12Hour } from '../../context/StoreContext';
 import { ClassItem } from '../../types';
 import { classPersonaColor } from '../../utils/personaColor';
+import {
+  parseOfficeHourSlots,
+  serializeOfficeHourSlots,
+  classHasOfficeHours,
+  OfficeHourSlot,
+} from '../../utils/officeHours';
 import { Plus, Clock, MapPin, Trash2, Edit3, AlertCircle, GraduationCap, UserCheck } from 'lucide-react';
 
 interface ClassesViewProps {
@@ -141,6 +147,9 @@ const ClassCardItem: React.FC<ClassCardProps> = ({
 export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, onOpenAddExamModal }) => {
   const { classes, events, deleteClass, deleteEvent, updateClass, filterByProfile, activeProfile, profileColors } = useStore();
   const [selectedMobileDay, setSelectedMobileDay] = useState<number>(getTodayDayNum());
+  const [addingOfficeId, setAddingOfficeId] = useState<string | null>(null);
+  const [officeDraftTime, setOfficeDraftTime] = useState('');
+  const [officeDraftRoom, setOfficeDraftRoom] = useState('');
 
   const todayDayNum = getTodayDayNum();
 
@@ -153,10 +162,51 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
     [filteredClasses]
   );
 
+  const classesWithOfficeHours = useMemo(
+    () => officeHoursClasses.filter(classHasOfficeHours),
+    [officeHoursClasses]
+  );
+
+  const saveOfficeSlots = (cls: ClassItem, slots: OfficeHourSlot[]) => {
+    updateClass(cls.id, serializeOfficeHourSlots(slots));
+  };
+
+  const beginAddOfficeHours = (cls: ClassItem) => {
+    const slots = parseOfficeHourSlots(cls.office_hours, cls.office_hours_location);
+    setAddingOfficeId(cls.id);
+    setOfficeDraftTime('');
+    setOfficeDraftRoom(
+      slots[slots.length - 1]?.location || (cls.office_hours_location || cls.room || '').trim()
+    );
+  };
+
+  const commitOfficeHourDraft = (cls: ClassItem) => {
+    const time = officeDraftTime.trim();
+    const location = officeDraftRoom.trim();
+    if (!time && !location) return;
+    const slots = parseOfficeHourSlots(cls.office_hours, cls.office_hours_location);
+    slots.push({ time, location });
+    saveOfficeSlots(cls, slots);
+    setAddingOfficeId(null);
+    setOfficeDraftTime('');
+    setOfficeDraftRoom('');
+  };
+
+  const removeOfficeHourSlot = (cls: ClassItem, index: number) => {
+    const slots = parseOfficeHourSlots(cls.office_hours, cls.office_hours_location);
+    saveOfficeSlots(cls, slots.filter((_, i) => i !== index));
+  };
+
+  const clearClassOfficeHours = (cls: ClassItem) => {
+    updateClass(cls.id, { office_hours: '', office_hours_location: '' });
+    if (addingOfficeId === cls.id) setAddingOfficeId(null);
+  };
+
   const clearAllOfficeHours = () => {
-    officeHoursClasses.forEach((cls) => {
+    classesWithOfficeHours.forEach((cls) => {
       updateClass(cls.id, { office_hours: '', office_hours_location: '' });
     });
+    setAddingOfficeId(null);
   };
 
   const filteredExams = useMemo(() => {
@@ -483,7 +533,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {officeHoursClasses.length > 0 && (
+            {classesWithOfficeHours.length > 0 && (
               <button
                 type="button"
                 onClick={clearAllOfficeHours}
@@ -509,24 +559,15 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
               const ownerName = cls.profile || 'Eve';
               const ownerColor = profileColors[ownerName] || cls.color || '#2563eb';
               const cardColor = classPersonaColor(cls.profile, activeProfile, profileColors, cls.color);
-              const officeTime = (cls.office_hours || '').trim();
-              const officeRoom = (cls.office_hours_location || '').trim() || (officeTime ? (cls.room || '').trim() : '');
-              const hasHours = Boolean(officeTime || (cls.office_hours_location || '').trim());
+              const slots = parseOfficeHourSlots(cls.office_hours, cls.office_hours_location);
+              const hasHours = slots.length > 0;
+              const isAdding = addingOfficeId === cls.id;
 
               return (
                 <div
                   key={cls.id}
-                  className="p-4 rounded-xl border border-slate-200/80 bg-slate-50/40 hover:bg-slate-50/90 transition-all space-y-2.5 relative group cursor-pointer"
+                  className="p-4 rounded-xl border border-slate-200/80 bg-slate-50/40 hover:bg-slate-50/90 transition-all space-y-2.5 relative group"
                   style={{ borderLeft: `3px solid ${cardColor}` }}
-                  onClick={() => onOpenAddClassModal(cls.days_of_week[0] || 1, cls)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      onOpenAddClassModal(cls.days_of_week[0] || 1, cls);
-                    }
-                  }}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
@@ -552,24 +593,18 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                       )}
                       <button
                         type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onOpenAddClassModal(cls.days_of_week[0] || 1, cls);
-                        }}
+                        onClick={() => onOpenAddClassModal(cls.days_of_week[0] || 1, cls)}
                         className="flex items-center justify-center min-h-[36px] min-w-[36px] text-slate-400 hover:text-indigo-600 transition-colors cursor-pointer"
-                        title="Edit Office Hours"
+                        title="Edit class"
                       >
                         <Edit3 className="w-4 h-4" />
                       </button>
                       {hasHours && (
                         <button
                           type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            updateClass(cls.id, { office_hours: '', office_hours_location: '' });
-                          }}
+                          onClick={() => clearClassOfficeHours(cls)}
                           className="flex items-center justify-center min-h-[36px] min-w-[36px] text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
-                          title="Remove office hours"
+                          title="Remove all office hours"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -577,46 +612,90 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                     </div>
                   </div>
 
-                  {hasHours ? (
-                    <div className="space-y-1.5 pt-2 border-t border-slate-200/60">
-                      <div className="flex items-center gap-1.5 text-xs font-medium text-slate-700">
-                        <Clock className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                        <span className={officeTime ? 'text-slate-800 font-semibold' : 'text-slate-400'}>
-                          {officeTime || 'No time set'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-xs font-medium text-slate-700">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span className={officeRoom ? 'text-slate-800 font-semibold' : 'text-slate-400'}>
-                          {officeRoom || 'No room set'}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          updateClass(cls.id, { office_hours: '', office_hours_location: '' });
-                        }}
-                        className="mt-1 text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2 py-1.5 rounded-lg transition-colors cursor-pointer"
-                      >
-                        Remove office hours
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between">
+                  <div className="space-y-2 pt-2 border-t border-slate-200/60">
+                    {hasHours ? (
+                      slots.map((slot, index) => (
+                        <div key={`${cls.id}-oh-${index}`} className="flex items-start gap-2">
+                          <div className="min-w-0 flex-1 space-y-0.5">
+                            <div className="flex items-center gap-1.5 text-xs font-medium text-slate-700">
+                              <Clock className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                              <span className={slot.time ? 'text-slate-800 font-semibold' : 'text-slate-400'}>
+                                {slot.time || 'No time set'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs font-medium text-slate-700">
+                              <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <span className={slot.location ? 'text-slate-800 font-semibold' : 'text-slate-400'}>
+                                {slot.location || 'No room set'}
+                              </span>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeOfficeHourSlot(cls, index)}
+                            className="flex items-center justify-center min-h-[36px] min-w-[36px] text-slate-400 hover:text-rose-600 transition-colors cursor-pointer shrink-0"
+                            title="Remove this time"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))
+                    ) : (
                       <span className="text-xs text-slate-400 font-medium">No office hours set</span>
+                    )}
+
+                    {isAdding ? (
+                      <form
+                        className="space-y-2 pt-1"
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          commitOfficeHourDraft(cls);
+                        }}
+                      >
+                        <input
+                          type="text"
+                          value={officeDraftTime}
+                          onChange={(e) => setOfficeDraftTime(e.target.value)}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          placeholder="Time, e.g. Mon 2:00 – 4:00 PM"
+                          className="w-full text-xs font-medium text-slate-800 bg-white border border-slate-200 rounded-lg px-2.5 py-2 min-h-[36px]"
+                          autoFocus
+                        />
+                        <input
+                          type="text"
+                          value={officeDraftRoom}
+                          onChange={(e) => setOfficeDraftRoom(e.target.value)}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          placeholder="Room, e.g. Science 304"
+                          className="w-full text-xs font-medium text-slate-800 bg-white border border-slate-200 rounded-lg px-2.5 py-2 min-h-[36px]"
+                        />
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="submit"
+                            className="text-[11px] font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-1.5 rounded-lg transition-all cursor-pointer"
+                          >
+                            Save time
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setAddingOfficeId(null)}
+                            className="text-[11px] font-semibold text-slate-500 hover:text-slate-700 px-2 py-1.5 rounded-lg cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
                       <button
                         type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onOpenAddClassModal(cls.days_of_week[0] || 1, cls);
-                        }}
-                        className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg transition-all cursor-pointer border border-indigo-200/60"
+                        onClick={() => beginAddOfficeHours(cls)}
+                        className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1.5 rounded-lg transition-all cursor-pointer border border-indigo-200/60 inline-flex items-center gap-1"
                       >
-                        + Set Hours
+                        <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                        {hasHours ? 'Add time' : 'Add office hours'}
                       </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               );
             })}
