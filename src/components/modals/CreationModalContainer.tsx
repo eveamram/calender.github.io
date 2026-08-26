@@ -807,6 +807,32 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             )}
           </div>
 
+          {classToEdit && (clsOfficeHours.trim() || clsOfficeHoursLocation.trim()) && (
+            <button
+              type="button"
+              onClick={async () => {
+                if (isSaving) return;
+                setIsSaving(true);
+                setErrorMsg(null);
+                try {
+                  const ok = await updateClass(classToEdit.id, {
+                    office_hours: '',
+                    office_hours_location: '',
+                  });
+                  if (ok) onClose();
+                  else setErrorMsg('Could not remove office hours. Please try again.');
+                } catch (err: any) {
+                  setErrorMsg(err?.message || 'Save failed.');
+                } finally {
+                  setIsSaving(false);
+                }
+              }}
+              className="w-full text-sm font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 min-h-[40px] rounded-xl transition-colors cursor-pointer"
+            >
+              Remove office hours
+            </button>
+          )}
+
           <div className="sticky bottom-0 z-10 bg-white pt-2">
           <MobileFormAction
             label={classToEdit ? 'Save Changes' : 'Add Class'}

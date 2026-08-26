@@ -575,6 +575,16 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                           {officeRoom || 'No room set'}
                         </span>
                       </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateClass(cls.id, { office_hours: '', office_hours_location: '' });
+                        }}
+                        className="mt-1 text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2 py-1.5 rounded-lg transition-colors cursor-pointer"
+                      >
+                        Remove office hours
+                      </button>
                     </div>
                   ) : (
                     <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between">
