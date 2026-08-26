@@ -6,7 +6,7 @@ on:
       - main
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -41,6 +41,21 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
         run: npm run build
+
+      - name: Publish built assets for branch Pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -rf assets
+          mkdir -p assets
+          cp -R dist/assets/. assets/
+          git add assets
+          if git diff --staged --quiet; then
+            echo "assets unchanged"
+          else
+            git commit -m "deploy assets [skip ci]"
+            git push
+          fi
 
       - name: Upload Artifact
         uses: actions/upload-pages-artifact@v3
