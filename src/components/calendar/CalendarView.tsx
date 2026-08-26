@@ -15,7 +15,9 @@ import {
   Pencil,
   Trash2,
   Sparkles,
+  ExternalLink,
 } from 'lucide-react';
+import { isGoogleEventId } from '../../lib/googleCalendar';
 import confetti from 'canvas-confetti';
 
 const isItemPastTime = (evt: any, dateStr: string): boolean => {
@@ -40,6 +42,12 @@ const isItemPastTime = (evt: any, dateStr: string): boolean => {
 
 const isClassScheduleItem = (evt: { is_class_item?: boolean; event_type?: string }) =>
   Boolean(evt.is_class_item || evt.event_type === 'class');
+
+const openGoogleEventLink = (evt: { htmlLink?: string; google_html_link?: string }) => {
+  const url = evt.htmlLink || evt.google_html_link;
+  if (url) window.open(url, '_blank', 'noopener,noreferrer');
+};
+
 
 interface CalendarViewProps {
   onOpenAddModal: (initialDate?: string, eventToEdit?: CalendarEvent) => void;
@@ -67,6 +75,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     filterByProfile,
     activeProfile,
     profileColors,
+    googleEvents,
+    googleConnected,
+    refreshGoogleEvents,
   } = useStore();
 
   const [currentMonthDate, setCurrentMonthDate] = useState(() => new Date());
@@ -100,8 +111,23 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const monthName = currentMonthDate.toLocaleString('default', { month: 'long', year: 'numeric' });
 
   const filteredEvents = useMemo(() => {
-    return filterByProfile(events);
-  }, [events, filterByProfile]);
+    const local = filterByProfile(events);
+    const keys = new Set(local.map((e) => `${e.title}|${e.event_date}|${e.start_time || ''}`));
+    const overlay = googleEvents.filter(
+      (g) => !keys.has(`${g.title}|${g.event_date}|${g.start_time || ''}`)
+    );
+    return [...local, ...overlay];
+  }, [events, googleEvents, filterByProfile]);
+
+  useEffect(() => {
+    if (!googleConnected) return;
+    const handle = window.setTimeout(() => {
+      const start = new Date(year, month - 1, 1);
+      const end = new Date(year, month + 2, 1);
+      void refreshGoogleEvents({ timeMin: start.toISOString(), timeMax: end.toISOString() });
+    }, 450);
+    return () => window.clearTimeout(handle);
+  }, [year, month, selectedDate, googleConnected, refreshGoogleEvents]);
 
   const calendarDays = useMemo(() => {
     const firstDayIndex = new Date(year, month, 1).getDay(); // 0 = Sun
@@ -272,6 +298,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   }, [selectedDate]);
 
   const handleDeleteAnyEvent = async (evt: any) => {
+    if (isGoogleEventId(evt.id)) return;
     if (evt.is_habit_item && evt.habit_original_id) {
       await updateHabit(evt.habit_original_id, { show_in_daily_schedule: false });
       return;
@@ -289,7 +316,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   };
 
   const handleToggleAnyEventComplete = async (evt: any) => {
-    if (isClassScheduleItem(evt)) return;
+    if (isGoogleEventId(evt.id) || isClassScheduleItem(evt)) return;
 
     if (evt.is_habit_item && evt.habit_original_id) {
       if (!evt.is_completed) {
@@ -319,6 +346,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   };
 
   const handleOpenScheduleItem = (evt: any) => {
+    if (isGoogleEventId(evt.id)) {
+      openGoogleEventLink(evt);
+      return;
+    }
+
     const isSyntheticClass =
       Boolean(evt.is_class_item) ||
       (typeof evt.id === 'string' && evt.id.startsWith('class-item-'));
@@ -419,7 +451,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       {/* Completion Toggle — hidden for class schedule items */}
-                      {!isClassItem && (
+                      {!isClassItem && !isGoogleEventId(evt.id) && (
                         <button
                           type="button"
                           onClick={(e) => {
@@ -459,6 +491,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             {evt.end_time ? ` – ${formatTime12Hour(evt.end_time)}` : ''}
                           </span>
 
+                          {isGoogleEventId(evt.id) && (
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-[#4285F4] bg-[#e8f0fe] px-1.5 py-0.5 rounded-full">
+                              Google
+                            </span>
+                          )}
+
                           {activeProfile === 'Both' && (
                             <span
                               className="text-[10px] font-bold text-white px-1.5 py-0.2 rounded shrink-0"
@@ -486,12 +524,24 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           handleOpenScheduleItem(evt);
                         }}
                         className="p-1 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
-                        title={isClassItem ? 'Edit Class' : evt.is_habit_item ? 'Edit Habit' : 'Edit Event'}
+                        title={
+                          isGoogleEventId(evt.id)
+                            ? 'Open in Google Calendar'
+                            : isClassItem
+                              ? 'Edit Class'
+                              : evt.is_habit_item
+                                ? 'Edit Habit'
+                                : 'Edit Event'
+                        }
                       >
-                        <Pencil className="w-3.5 h-3.5" />
+                        {isGoogleEventId(evt.id) ? (
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        ) : (
+                          <Pencil className="w-3.5 h-3.5" />
+                        )}
                       </button>
 
-                      {!evt.is_class_item && evt.event_type !== 'class' && (
+                      {!evt.is_class_item && evt.event_type !== 'class' && !isGoogleEventId(evt.id) && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -727,10 +777,18 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           key={e.id}
                           onClick={(evt) => {
                             evt.stopPropagation();
+                            if (isGoogleEventId(e.id)) {
+                              openGoogleEventLink(e);
+                              return;
+                            }
                             setSelectedDate(e.event_date);
                           }}
                           onDoubleClick={(evt) => {
                             evt.stopPropagation();
+                            if (isGoogleEventId(e.id)) {
+                              openGoogleEventLink(e);
+                              return;
+                            }
                             onOpenAddModal(e.event_date, e);
                           }}
                           className={`text-[11px] font-bold px-2 py-1 rounded-xl flex items-start justify-between transition-all cursor-pointer text-slate-900 hover:scale-[1.02] shadow-2xs ${
@@ -745,6 +803,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           style={{ backgroundColor: `${evtColor}25`, borderLeft: `3.5px solid ${evtColor}` }}
                         >
                           <span className="break-words whitespace-normal leading-tight">{e.title}</span>
+                          {isGoogleEventId(e.id) && (
+                            <span className="ml-1 text-[9px] font-black text-[#4285F4] shrink-0">G</span>
+                          )}
                         </div>
                       );
                     })}
@@ -821,7 +882,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       {/* Completion Toggle — hidden for class schedule items */}
-                      {!isClassItem && (
+                      {!isClassItem && !isGoogleEventId(evt.id) && (
                         <button
                           type="button"
                           onClick={(e) => {
@@ -861,6 +922,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             {evt.end_time ? ` – ${formatTime12Hour(evt.end_time)}` : ''}
                           </span>
 
+                          {isGoogleEventId(evt.id) && (
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-[#4285F4] bg-[#e8f0fe] px-1.5 py-0.5 rounded-full">
+                              Google
+                            </span>
+                          )}
+
                           {activeProfile === 'Both' && (
                             <span
                               className="text-[10px] font-bold text-white px-1.5 py-0.2 rounded shrink-0"
@@ -888,12 +955,24 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           handleOpenScheduleItem(evt);
                         }}
                         className="p-1 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
-                        title={isClassItem ? 'Edit Class' : evt.is_habit_item ? 'Edit Habit' : 'Edit Event'}
+                        title={
+                          isGoogleEventId(evt.id)
+                            ? 'Open in Google Calendar'
+                            : isClassItem
+                              ? 'Edit Class'
+                              : evt.is_habit_item
+                                ? 'Edit Habit'
+                                : 'Edit Event'
+                        }
                       >
-                        <Pencil className="w-3.5 h-3.5" />
+                        {isGoogleEventId(evt.id) ? (
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        ) : (
+                          <Pencil className="w-3.5 h-3.5" />
+                        )}
                       </button>
 
-                      {!evt.is_class_item && evt.event_type !== 'class' && (
+                      {!evt.is_class_item && evt.event_type !== 'class' && !isGoogleEventId(evt.id) && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();

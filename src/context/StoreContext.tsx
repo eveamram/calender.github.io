@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import {
   ProfilePersona,
   AppTab,
@@ -12,6 +12,22 @@ import {
   BookItem,
 } from '../types';
 import { syncEngine, SyncStatus, TABLE_MAP } from '../lib/syncEngine';
+import {
+  GoogleCalendarListItem,
+  GoogleEventRange,
+  calendarsForPicker,
+  connectGoogle as connectGoogleAccount,
+  disconnectGoogle as disconnectGoogleAccount,
+  fetchGoogleEvents,
+  getDefaultGoogleRange,
+  getGoogleClientId,
+  getPersistedGoogleState,
+  hasUsableGoogleToken,
+  isGoogleEventId,
+  listGoogleCalendars,
+  persistLastSync,
+  persistSelectedCalendarId,
+} from '../lib/googleCalendar';
 
 interface StoreContextType {
   // Sync Status Feedback
@@ -98,6 +114,21 @@ interface StoreContextType {
   clearBookItems: () => Promise<boolean>;
 
   factoryResetAllData: () => Promise<void>;
+
+  // Google Calendar overlay (not stored in Supabase)
+  googleConnected: boolean;
+  googleConnecting: boolean;
+  googleEmail: string | null;
+  googleEvents: CalendarEvent[];
+  googleCalendars: GoogleCalendarListItem[];
+  selectedGoogleCalendarId: string;
+  googleLastSync: string | null;
+  googleCanWrite: boolean;
+  googleError: string | null;
+  connectGoogle: () => Promise<boolean>;
+  disconnectGoogle: () => void;
+  refreshGoogleEvents: (range?: GoogleEventRange) => Promise<void>;
+  setSelectedGoogleCalendarId: (id: string) => Promise<void>;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -182,6 +213,21 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [mealItems, setMealItems] = useState<MealItem[]>([]);
   const [bookItems, setBookItems] = useState<BookItem[]>([]);
 
+  const persistedGoogle = getPersistedGoogleState();
+  const [googleConnected, setGoogleConnected] = useState<boolean>(hasUsableGoogleToken());
+  const [googleConnecting, setGoogleConnecting] = useState<boolean>(false);
+  const [googleEmail, setGoogleEmail] = useState<string | null>(persistedGoogle.email);
+  const [googleEvents, setGoogleEvents] = useState<CalendarEvent[]>([]);
+  const [googleCalendars, setGoogleCalendars] = useState<GoogleCalendarListItem[]>([]);
+  const [selectedGoogleCalendarId, setSelectedGoogleCalendarIdState] = useState<string>(
+    persistedGoogle.calendarId || 'primary'
+  );
+  const [googleLastSync, setGoogleLastSync] = useState<string | null>(persistedGoogle.lastSync);
+  const [googleCanWrite, setGoogleCanWrite] = useState<boolean>(persistedGoogle.canWrite);
+  const [googleError, setGoogleError] = useState<string | null>(null);
+  const selectedGoogleCalendarIdRef = useRef(selectedGoogleCalendarId);
+  selectedGoogleCalendarIdRef.current = selectedGoogleCalendarId;
+
   const setActiveProfile = (profile: ProfilePersona) => {
     setActiveProfileState(profile);
     localStorage.setItem('calender_profile', profile);
@@ -255,6 +301,122 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
 
+  const refreshGoogleEvents = useCallback(async (range?: GoogleEventRange) => {
+    if (!getGoogleClientId() || !hasUsableGoogleToken()) return;
+    const calId = selectedGoogleCalendarIdRef.current || 'primary';
+    try {
+      const mapped = await fetchGoogleEvents(calId, range || getDefaultGoogleRange());
+      setGoogleEvents(mapped);
+      const now = new Date().toISOString();
+      persistLastSync(now);
+      setGoogleLastSync(now);
+      setGoogleError(null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Google Calendar refresh failed';
+      console.warn('Google Calendar refresh failed', err);
+      setGoogleError(message);
+      if (/expired|connect again/i.test(message)) {
+        setGoogleConnected(false);
+        setGoogleEvents([]);
+      }
+    }
+  }, []);
+
+  const connectGoogle = async (): Promise<boolean> => {
+    if (!getGoogleClientId()) {
+      setGoogleError('Add a Google OAuth client ID first.');
+      return false;
+    }
+    setGoogleConnecting(true);
+    setGoogleError(null);
+    try {
+      const result = await connectGoogleAccount(true);
+      setGoogleConnected(true);
+      setGoogleEmail(result.email);
+      setSelectedGoogleCalendarIdState(result.calendarId);
+      selectedGoogleCalendarIdRef.current = result.calendarId;
+      setGoogleCalendars(result.calendars);
+      setGoogleCanWrite(result.canWrite);
+      await refreshGoogleEvents();
+      return true;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Google sign-in failed';
+      console.warn('Google Calendar connect failed', err);
+      setGoogleError(message);
+      setGoogleConnected(false);
+      return false;
+    } finally {
+      setGoogleConnecting(false);
+    }
+  };
+
+  const disconnectGoogle = () => {
+    disconnectGoogleAccount();
+    setGoogleConnected(false);
+    setGoogleConnecting(false);
+    setGoogleEmail(null);
+    setGoogleEvents([]);
+    setGoogleCalendars([]);
+    setSelectedGoogleCalendarIdState('primary');
+    selectedGoogleCalendarIdRef.current = 'primary';
+    setGoogleLastSync(null);
+    setGoogleCanWrite(true);
+    setGoogleError(null);
+  };
+
+  const setSelectedGoogleCalendarId = async (id: string) => {
+    const next = id || 'primary';
+    setSelectedGoogleCalendarIdState(next);
+    selectedGoogleCalendarIdRef.current = next;
+    persistSelectedCalendarId(next);
+    const selected = googleCalendars.find((c) => c.id === next);
+    if (selected) {
+      const canWrite = selected.accessRole === 'owner' || selected.accessRole === 'writer';
+      setGoogleCanWrite(canWrite);
+    }
+    if (hasUsableGoogleToken()) {
+      await refreshGoogleEvents();
+    }
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    const boot = async () => {
+      if (!getGoogleClientId()) return;
+      const persisted = getPersistedGoogleState();
+      try {
+        if (hasUsableGoogleToken()) {
+          setGoogleConnected(true);
+          try {
+            const cals = calendarsForPicker(await listGoogleCalendars());
+            if (cancelled) return;
+            setGoogleCalendars(cals);
+          } catch (err) {
+            console.warn('Google Calendar list failed', err);
+          }
+          if (!cancelled) await refreshGoogleEvents();
+          return;
+        }
+        if (!persisted.connected) return;
+        const result = await connectGoogleAccount(false);
+        if (cancelled) return;
+        setGoogleConnected(true);
+        setGoogleEmail(result.email);
+        setSelectedGoogleCalendarIdState(result.calendarId);
+        selectedGoogleCalendarIdRef.current = result.calendarId;
+        setGoogleCalendars(result.calendars);
+        setGoogleCanWrite(result.canWrite);
+        await refreshGoogleEvents();
+      } catch {
+        if (!cancelled) setGoogleConnected(false);
+      }
+    };
+    void boot();
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshGoogleEvents]);
+
   // Filter Helper
   const filterByProfile = <T extends { profile?: ProfilePersona }>(items: T[]): T[] => {
     if (activeProfile === 'Both') return items;
@@ -263,6 +425,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // CRUD & Reset Implementations
   const addEvent = async (evt: Omit<CalendarEvent, 'id' | 'created_at' | 'updated_at'>): Promise<boolean> => {
+    if (isGoogleEventId((evt as CalendarEvent).id)) return false;
     const newEvt: CalendarEvent = {
       ...evt,
       id: `evt-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
@@ -272,6 +435,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const updateEvent = async (id: string, updates: Partial<CalendarEvent>): Promise<boolean> => {
+    if (isGoogleEventId(id)) return false;
     const existing = events.find((e) => e.id === id);
     if (!existing) return false;
     const updated = { ...existing, ...updates, updated_at: new Date().toISOString() };
@@ -279,6 +443,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const toggleEventComplete = async (id: string): Promise<boolean> => {
+    if (isGoogleEventId(id)) return false;
     const existing = events.find((e) => e.id === id);
     if (!existing) return false;
     const nextCompleted = !existing.is_completed;
@@ -292,6 +457,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const deleteEvent = async (id: string): Promise<boolean> => {
+    if (isGoogleEventId(id)) return false;
     return await syncEngine.deleteItem('events', id);
   };
 
@@ -606,6 +772,19 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         deleteBookItem,
         clearBookItems,
         factoryResetAllData,
+        googleConnected,
+        googleConnecting,
+        googleEmail,
+        googleEvents,
+        googleCalendars,
+        selectedGoogleCalendarId,
+        googleLastSync,
+        googleCanWrite,
+        googleError,
+        connectGoogle,
+        disconnectGoogle,
+        refreshGoogleEvents,
+        setSelectedGoogleCalendarId,
       }}
     >
       {children}

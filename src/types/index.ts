@@ -35,6 +35,9 @@ export interface CalendarEvent {
   profile?: ProfilePersona;
   created_at?: string;
   updated_at?: string;
+  htmlLink?: string;
+  google_html_link?: string;
+  is_google_event?: boolean;
 }
 
 export interface ClassItem {
