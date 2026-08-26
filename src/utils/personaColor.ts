@@ -1,16 +1,18 @@
 import { ProfilePersona } from '../types';
 
-/** Color for a class (or similar item). Shared "Both" items follow Eve/Abbie when you're in that person's view. */
+/**
+ * Class card/chip color:
+ * - Eve or Abbie view: the class's own color (whatever they picked)
+ * - Both view: the color that person chose for themselves
+ */
 export function classPersonaColor(
   itemProfile: ProfilePersona | undefined,
   activeProfile: ProfilePersona,
   profileColors: Record<ProfilePersona, string>,
-  fallback?: string
+  classColor?: string
 ): string {
   const owner = itemProfile || 'Eve';
-  const colorKey: ProfilePersona =
-    owner === 'Both' && (activeProfile === 'Eve' || activeProfile === 'Abbie')
-      ? activeProfile
-      : owner;
-  return profileColors[colorKey] || fallback || '#2563eb';
+  const personColor = profileColors[owner] || classColor || '#2563eb';
+  if (activeProfile === 'Both') return personColor;
+  return classColor || personColor;
 }
