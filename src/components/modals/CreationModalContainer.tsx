@@ -593,8 +593,6 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
   return (
     <MobileFormSheet
-      role="dialog"
-      aria-modal="true"
       isOpen={Boolean(modalType)}
       onClose={onClose}
       title={getSheetTitle()}

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node -e \"const fs = require('fs'); let h = fs.readFileSync('index.html', 'utf8').replace(/<script type=\\\"module\\\".*?src=\\\"[^\\\"]+\\\"><\\/script>/s, '<script type=\\\"module\\\" src=\\\"/src/main.tsx\\\"><\\/script>').replace(/<link rel=\\\"stylesheet\\\" crossorigin href=\\\"[^\\\"]+\\\">/g, ''); fs.writeFileSync('index.html', h);\" && tsc && vite build && rm -rf assets && cp -r dist/assets . && cp dist/index.html . && cp public/* . 2>/dev/null || true",
+    "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "tsc",
     "predeploy": "npm run build",
