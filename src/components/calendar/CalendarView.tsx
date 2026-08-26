@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useStore, getTodayDateString, formatTime12Hour } from '../../context/StoreContext';
 import { CalendarEvent, CATEGORY_METAS, ClassItem, EventType, HabitItem, ProfilePersona } from '../../types';
 import { getAnniversaryEvent, getCommonHolidayEvent } from '../../utils/holidays';
-import { classPersonaColor } from '../../utils/personaColor';
+import { classPersonaColor, habitItemColor } from '../../utils/personaColor';
 import {
   ChevronLeft,
   ChevronRight,
