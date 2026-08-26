@@ -139,7 +139,7 @@ const ClassCardItem: React.FC<ClassCardProps> = ({
 };
 
 export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, onOpenAddExamModal }) => {
-  const { classes, events, deleteClass, deleteEvent, filterByProfile, activeProfile, profileColors } = useStore();
+  const { classes, events, deleteClass, deleteEvent, updateClass, filterByProfile, activeProfile, profileColors } = useStore();
   const [selectedMobileDay, setSelectedMobileDay] = useState<number>(getTodayDayNum());
 
   const todayDayNum = getTodayDayNum();
@@ -494,8 +494,8 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
               const ownerColor = profileColors[ownerName] || cls.color || '#2563eb';
               const cardColor = classPersonaColor(cls.profile, activeProfile, profileColors, cls.color);
               const officeTime = (cls.office_hours || '').trim();
-              const officeRoom = (cls.office_hours_location || cls.room || '').trim();
-              const hasHours = Boolean(officeTime || officeRoom);
+              const officeRoom = (cls.office_hours_location || '').trim() || (officeTime ? (cls.room || '').trim() : '');
+              const hasHours = Boolean(officeTime || (cls.office_hours_location || '').trim());
 
               return (
                 <div
@@ -540,11 +540,24 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                           e.stopPropagation();
                           onOpenAddClassModal(cls.days_of_week[0] || 1, cls);
                         }}
-                        className="text-slate-400 hover:text-indigo-600 transition-colors p-1 cursor-pointer"
+                        className="flex items-center justify-center min-h-[36px] min-w-[36px] text-slate-400 hover:text-indigo-600 transition-colors cursor-pointer"
                         title="Edit Office Hours"
                       >
                         <Edit3 className="w-4 h-4" />
                       </button>
+                      {hasHours && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateClass(cls.id, { office_hours: '', office_hours_location: '' });
+                          }}
+                          className="flex items-center justify-center min-h-[36px] min-w-[36px] text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                          title="Remove office hours"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
 

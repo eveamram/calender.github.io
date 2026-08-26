@@ -415,8 +415,8 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
           days_of_week: clsDays,
           profile: clsProfile,
           color: personaColor,
-          office_hours: clsOfficeHours.trim() || undefined,
-          office_hours_location: clsOfficeHoursLocation.trim() || undefined,
+          office_hours: clsOfficeHours.trim(),
+          office_hours_location: clsOfficeHoursLocation.trim(),
         });
       } else {
         ok = await addClass({
@@ -428,8 +428,8 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
           days_of_week: clsDays,
           profile: clsProfile,
           color: personaColor,
-          office_hours: clsOfficeHours.trim() || undefined,
-          office_hours_location: clsOfficeHoursLocation.trim() || undefined,
+          office_hours: clsOfficeHours.trim(),
+          office_hours_location: clsOfficeHoursLocation.trim(),
         });
       }
       if (ok) onClose();
