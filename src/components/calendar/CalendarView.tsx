@@ -457,11 +457,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                               ? isPast
                                 ? 'text-slate-900 opacity-70'
                                 : 'text-slate-900'
-                              : isCompleted
+                              : isCompleted || isPast
                                 ? 'line-through text-slate-400 opacity-75'
-                                : isPast
-                                  ? 'text-slate-900 opacity-70'
-                                  : 'text-slate-900'
+                                : 'text-slate-900'
                           }`}
                         >
                           {evt.title}
@@ -861,11 +859,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                               ? isPast
                                 ? 'text-slate-900 opacity-70'
                                 : 'text-slate-900'
-                              : isCompleted
+                              : isCompleted || isPast
                                 ? 'line-through text-slate-400 opacity-75'
-                                : isPast
-                                  ? 'text-slate-900 opacity-70'
-                                  : 'text-slate-900'
+                                : 'text-slate-900'
                           }`}
                         >
                           {evt.title}
