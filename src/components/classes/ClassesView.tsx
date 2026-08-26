@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useStore, getTodayDateString, formatTime12Hour } from '../../context/StoreContext';
-import { ClassItem } from '../../types';
+import { CalendarEvent, ClassItem } from '../../types';
 import { classPersonaColor } from '../../utils/personaColor';
 import {
   parseOfficeHourSlots,
@@ -14,7 +14,7 @@ import { Plus, Clock, MapPin, Trash2, Edit3, AlertCircle, GraduationCap, UserChe
 
 interface ClassesViewProps {
   onOpenAddClassModal: (day?: number, classToEdit?: ClassItem) => void;
-  onOpenAddExamModal?: () => void;
+  onOpenAddExamModal?: (examToEdit?: CalendarEvent) => void;
 }
 
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
@@ -441,7 +441,8 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
             </span>
             {onOpenAddExamModal && (
               <button
-                onClick={onOpenAddExamModal}
+                type="button"
+                onClick={() => onOpenAddExamModal()}
                 className="inline-flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white font-bold px-3.5 py-2 min-h-[44px] rounded-xl text-xs shadow-md shadow-red-500/20 transition-all cursor-pointer active:scale-95 whitespace-nowrap"
               >
                 <Plus className="w-4 h-4 stroke-[3]" />
@@ -475,7 +476,16 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
               return (
                 <div
                   key={exam.id}
-                  className="p-4 rounded-xl border border-red-100 bg-red-50/30 hover:bg-red-50/60 transition-all space-y-2 relative group"
+                  className="p-4 rounded-xl border border-red-100 bg-red-50/30 hover:bg-red-50/60 transition-all space-y-2 relative group cursor-pointer"
+                  onClick={() => onOpenAddExamModal?.(exam)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onOpenAddExamModal?.(exam);
+                    }
+                  }}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-1.5 flex-wrap">
@@ -497,8 +507,24 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                         </span>
                       )}
                       <button
-                        onClick={() => deleteEvent(exam.id)}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenAddExamModal?.(exam);
+                        }}
+                        className="text-slate-300 hover:text-red-600 transition-colors p-1 cursor-pointer"
+                        title="Edit Exam"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteEvent(exam.id);
+                        }}
                         className="text-slate-300 hover:text-red-500 transition-colors p-1 cursor-pointer"
+                        title="Delete Exam"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

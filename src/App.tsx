@@ -85,9 +85,9 @@ const MainAppContent: React.FC = () => {
               setClassToEdit(clsToEdit || null);
               setActiveModal('class');
             }}
-            onOpenAddExamModal={() => {
+            onOpenAddExamModal={(exam) => {
               setInitialEventType('exam');
-              setEventToEdit(null);
+              setEventToEdit(exam || null);
               setActiveModal('event');
             }}
           />
