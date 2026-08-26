@@ -132,6 +132,9 @@ const MainAppContent: React.FC = () => {
         )}
       </main>
 
+      {/* Mobile floating add — Header Add Item is desktop-only */}
+      <FloatingAddButton onClick={handleOpenAddForTab} />
+
       {/* Mobile Bottom Navigation with centered + Add button */}
       <MobileBottomNav onOpenAddModal={handleOpenAddForTab} />
 
