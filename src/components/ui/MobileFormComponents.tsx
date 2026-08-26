@@ -1,5 +1,7 @@
-import React, { useId, useRef } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronRight, Check, X, Calendar, Clock, Target, Tag, BookOpen, Layers, User, AlertCircle } from 'lucide-react';
+import { formatTime12Hour } from '../../context/StoreContext';
 
 // Helper to format YYYY-MM-DD date into "Aug 24, 2026"
 export const formatDateDisplay = (dateStr: string): string => {
@@ -14,22 +16,10 @@ export const formatDateDisplay = (dateStr: string): string => {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
-// Helper to format HH:mm into "9:00 AM"
+// Helper to format HH:mm into "9:00 AM" (single conversion via formatTime12Hour)
 export const formatTimeDisplay = (timeStr: string): string => {
   if (!timeStr) return 'Select Time';
-  const trimmed = timeStr.trim();
-  if (trimmed.toUpperCase().includes('AM') || trimmed.toUpperCase().includes('PM')) {
-    return trimmed;
-  }
-  const parts = trimmed.split(':');
-  if (parts.length < 2) return trimmed;
-  let hours = parseInt(parts[0], 10);
-  const minutes = parts[1];
-  if (isNaN(hours)) return trimmed;
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  hours = hours % 12;
-  if (hours === 0) hours = 12;
-  return `${hours}:${minutes} ${ampm}`;
+  return formatTime12Hour(timeStr) || 'Select Time';
 };
 
 // 1. MOBILE FORM SHEET CONTAINER
@@ -192,6 +182,244 @@ interface MobileSelectFieldProps {
   isRed?: boolean;
 }
 
+const HOURS_12 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+const MINUTES_5 = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+
+const parse12hParts = (timeStr: string): { hour: number; minute: number; ampm: 'AM' | 'PM' } => {
+  const fallback = { hour: 9, minute: 0, ampm: 'AM' as const };
+  if (!timeStr) return fallback;
+  const trimmed = timeStr.trim();
+  const parts = trimmed.split(':');
+  if (parts.length < 2) return fallback;
+  const rawHour = parseInt(parts[0], 10);
+  const rawMinute = parseInt(parts[1], 10);
+  if (isNaN(rawHour) || isNaN(rawMinute)) return fallback;
+  const ampm: 'AM' | 'PM' = rawHour >= 12 ? 'PM' : 'AM';
+  let hour = rawHour % 12;
+  if (hour === 0) hour = 12;
+  return { hour, minute: rawMinute, ampm };
+};
+
+const to24HourValue = (hour: number, minute: number, ampm: 'AM' | 'PM'): string => {
+  let hour24 = hour % 12;
+  if (ampm === 'PM') hour24 += 12;
+  return `${String(hour24).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+};
+
+const emitTimeChange = (
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void,
+  hhmm: string
+) => {
+  onChange({ target: { value: hhmm } } as React.ChangeEvent<HTMLInputElement>);
+};
+
+interface PickerColumnProps<T extends string | number> {
+  items: T[];
+  selected: T;
+  onSelect: (item: T) => void;
+  format?: (item: T) => string;
+  ariaLabel: string;
+  isRed?: boolean;
+}
+
+const PickerColumn = <T extends string | number>({
+  items,
+  selected,
+  onSelect,
+  format = (item: T) => String(item),
+  ariaLabel,
+  isRed,
+}: PickerColumnProps<T>) => {
+  const colRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const col = colRef.current;
+    if (!col) return;
+    const el = col.querySelector('[data-selected="true"]') as HTMLElement | null;
+    if (!el) return;
+    col.scrollTop = el.offsetTop - col.clientHeight / 2 + el.clientHeight / 2;
+  }, []);
+
+  return (
+    <div
+      ref={colRef}
+      role="listbox"
+      aria-label={ariaLabel}
+      className="h-[200px] overflow-y-auto no-scrollbar py-2 snap-y snap-mandatory"
+    >
+      {items.map((item) => {
+        const isSelected = item === selected;
+        return (
+          <button
+            type="button"
+            key={String(item)}
+            role="option"
+            aria-selected={isSelected}
+            data-selected={isSelected ? 'true' : undefined}
+            onClick={() => onSelect(item)}
+            className={`w-full h-10 snap-start rounded-xl text-sm font-semibold transition-all cursor-pointer flex items-center justify-center active:scale-95 ${
+              isSelected
+                ? isRed
+                  ? 'bg-red-600 text-white shadow-xs'
+                  : 'bg-[#0f172a] text-white shadow-xs'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+          >
+            {format(item)}
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
+interface TimePickerDialogProps {
+  label: string;
+  value: string;
+  isRed?: boolean;
+  onChange: (hhmm: string) => void;
+  onClose: () => void;
+}
+
+const TimePickerDialog: React.FC<TimePickerDialogProps> = ({
+  label,
+  value,
+  isRed,
+  onChange,
+  onClose,
+}) => {
+  const initial = parse12hParts(value);
+  const [hour, setHour] = useState(initial.hour);
+  const [minute, setMinute] = useState(initial.minute);
+  const [ampm, setAmpm] = useState<'AM' | 'PM'>(initial.ampm);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  const commit = (nextHour: number, nextMinute: number, nextAmpm: 'AM' | 'PM') => {
+    onChange(to24HourValue(nextHour, nextMinute, nextAmpm));
+  };
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    dialogRef.current?.focus();
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const minuteItems = MINUTES_5.includes(minute)
+    ? MINUTES_5
+    : [...MINUTES_5, minute].sort((a, b) => a - b);
+
+  const handleDone = () => {
+    commit(hour, minute, ampm);
+    onClose();
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center p-4 bg-slate-900/30 backdrop-blur-xs animate-fade-in">
+      <div className="fixed inset-0 cursor-pointer" onClick={onClose} />
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={label}
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+        className={`relative bg-white rounded-[28px] sm:rounded-[24px] shadow-2xl border animate-slide-up z-10 overflow-hidden w-full max-w-[340px] mx-auto outline-none ${
+          isRed ? 'border-red-200' : 'border-slate-100'
+        }`}
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 16px)' }}
+      >
+        <div className="pt-2.5 pb-1 flex justify-center sm:hidden">
+          <div className={`w-9 h-1 rounded-full ${isRed ? 'bg-red-300' : 'bg-slate-300/90'}`} />
+        </div>
+        <div className={`flex items-center justify-between px-5 py-3.5 shrink-0 ${isRed ? 'bg-red-50/40 border-b border-red-100/60' : 'border-b border-slate-100/80'}`}>
+          <h3 className={`text-base font-semibold tracking-tight ${isRed ? 'text-red-950' : 'text-[#182033]'}`}>
+            {label}
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 flex items-center justify-center transition-all cursor-pointer shrink-0 active:scale-95"
+            title="Close"
+          >
+            <X className="w-4 h-4 stroke-[2]" />
+          </button>
+        </div>
+
+        <div className="px-4 py-4">
+          <div className="grid grid-cols-3 gap-2 bg-slate-50/80 border border-slate-200/80 rounded-2xl p-2">
+            <PickerColumn
+              ariaLabel="Hour"
+              items={HOURS_12}
+              selected={hour}
+              onSelect={(next) => {
+                setHour(next);
+                commit(next, minute, ampm);
+              }}
+              isRed={isRed}
+            />
+            <PickerColumn
+              ariaLabel="Minute"
+              items={minuteItems}
+              selected={minute}
+              format={(m) => String(m).padStart(2, '0')}
+              onSelect={(next) => {
+                setMinute(next);
+                commit(hour, next, ampm);
+              }}
+              isRed={isRed}
+            />
+            <div className="flex flex-col justify-center gap-2 px-1">
+              {(['AM', 'PM'] as const).map((period) => {
+                const isSelected = ampm === period;
+                return (
+                  <button
+                    type="button"
+                    key={period}
+                    aria-pressed={isSelected}
+                    onClick={() => {
+                      setAmpm(period);
+                      commit(hour, minute, period);
+                    }}
+                    className={`h-[48px] rounded-xl text-sm font-bold transition-all cursor-pointer active:scale-95 ${
+                      isSelected
+                        ? isRed
+                          ? 'bg-red-600 text-white shadow-xs'
+                          : 'bg-[#0f172a] text-white shadow-xs'
+                        : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    }`}
+                  >
+                    {period}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div className="px-4 pb-4">
+          <button
+            type="button"
+            onClick={handleDone}
+            className={`w-full h-[52px] rounded-2xl text-white text-sm font-semibold shadow-md transition-all flex items-center justify-center cursor-pointer active:scale-[0.98] ${
+              isRed ? 'bg-red-600 hover:bg-red-700 shadow-red-500/20' : 'bg-[#0f172a] hover:bg-slate-800 shadow-slate-900/10'
+            }`}
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
 export const MobileSelectField: React.FC<MobileSelectFieldProps> = ({
   label,
   displayValue,
@@ -204,66 +432,115 @@ export const MobileSelectField: React.FC<MobileSelectFieldProps> = ({
   isRed,
 }) => {
   const fieldId = useId();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  const openPicker = () => {
+    if (disabled) return;
+    setPickerOpen(true);
+  };
+
+  const closePicker = () => {
+    setPickerOpen(false);
+    requestAnimationFrame(() => triggerRef.current?.focus());
+  };
+
+  const fieldClasses = `relative h-[52px] flex items-center justify-between px-4 rounded-2xl border transition-all ${
+    isRed
+      ? 'bg-red-50/30 border-red-200 hover:bg-red-50/50'
+      : 'bg-slate-50/80 border-slate-200/80 hover:bg-slate-100/60'
+  } ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`;
+
+  const fieldIcon = icon ? (
+    <div className="shrink-0 flex items-center justify-center">{icon}</div>
+  ) : type === 'date' ? (
+    <Calendar className="w-4.5 h-4.5 text-rose-500 shrink-0" />
+  ) : type === 'time' ? (
+    <Clock className="w-4.5 h-4.5 text-rose-500 shrink-0" />
+  ) : (
+    <Target className="w-4.5 h-4.5 text-rose-500 shrink-0" />
+  );
 
   return (
     <div className="space-y-1.5 w-full">
       <label htmlFor={fieldId} className={`block text-xs font-bold tracking-tight ${isRed ? 'text-red-800' : 'text-slate-900'}`}>
         {label}
       </label>
-      <div
-        className={`relative h-[52px] flex items-center justify-between px-4 rounded-2xl border transition-all cursor-pointer ${
-          isRed
-            ? 'bg-red-50/30 border-red-200 hover:bg-red-50/50'
-            : 'bg-slate-50/80 border-slate-200/80 hover:bg-slate-100/60'
-        } ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
-      >
-        {/* Left Side: Icon & Display Value */}
-        <div className="flex items-center gap-3 min-w-0 flex-1 pointer-events-none">
-          {icon ? (
-            <div className="shrink-0 flex items-center justify-center">{icon}</div>
-          ) : type === 'date' ? (
-            <Calendar className="w-4.5 h-4.5 text-rose-500 shrink-0" />
-          ) : type === 'time' ? (
-            <Clock className="w-4.5 h-4.5 text-rose-500 shrink-0" />
-          ) : (
-            <Target className="w-4.5 h-4.5 text-rose-500 shrink-0" />
+
+      {type === 'time' ? (
+        <>
+          <button
+            type="button"
+            id={fieldId}
+            ref={triggerRef}
+            disabled={disabled}
+            aria-haspopup="dialog"
+            aria-expanded={pickerOpen}
+            aria-label={`${label}, ${displayValue}`}
+            onClick={openPicker}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                openPicker();
+              }
+            }}
+            className={`${fieldClasses} w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/10`}
+          >
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              {fieldIcon}
+              <span className={`text-sm font-semibold truncate ${isRed ? 'text-red-950' : 'text-slate-900'}`}>
+                {displayValue}
+              </span>
+            </div>
+            <ChevronRight className="w-4.5 h-4.5 text-slate-400 shrink-0 ml-2" />
+          </button>
+          {pickerOpen && (
+            <TimePickerDialog
+              label={label}
+              value={value}
+              isRed={isRed}
+              onChange={(hhmm) => emitTimeChange(onChange, hhmm)}
+              onClose={closePicker}
+            />
           )}
-          <span className={`text-sm font-semibold truncate ${isRed ? 'text-red-950' : 'text-slate-900'}`}>
-            {displayValue}
-          </span>
+        </>
+      ) : (
+        <div className={fieldClasses}>
+          <div className="flex items-center gap-3 min-w-0 flex-1 pointer-events-none">
+            {fieldIcon}
+            <span className={`text-sm font-semibold truncate ${isRed ? 'text-red-950' : 'text-slate-900'}`}>
+              {displayValue}
+            </span>
+          </div>
+          <ChevronRight className="w-4.5 h-4.5 text-slate-400 shrink-0 ml-2 pointer-events-none" />
+          {!disabled && (
+            <>
+              {type === 'select' ? (
+                <select
+                  id={fieldId}
+                  value={value}
+                  onChange={onChange as any}
+                  className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10 text-base"
+                >
+                  {options.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.emoji ? `${opt.emoji} ${opt.label}` : opt.label}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  id={fieldId}
+                  type={type}
+                  value={value}
+                  onChange={onChange as any}
+                  className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10 text-base"
+                />
+              )}
+            </>
+          )}
         </div>
-
-        {/* Right Side: Chevron Icon */}
-        <ChevronRight className="w-4.5 h-4.5 text-slate-400 shrink-0 ml-2 pointer-events-none" />
-
-        {/* Invisible overlay: native date/time/select fills the box. Date/time indicator is stretched via CSS. */}
-        {!disabled && (
-          <>
-            {type === 'select' ? (
-              <select
-                id={fieldId}
-                value={value}
-                onChange={onChange as any}
-                className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10 text-base"
-              >
-                {options.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.emoji ? `${opt.emoji} ${opt.label}` : opt.label}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input
-                id={fieldId}
-                type={type}
-                value={value}
-                onChange={onChange as any}
-                className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10 text-base"
-              />
-            )}
-          </>
-        )}
-      </div>
+      )}
     </div>
   );
 };
