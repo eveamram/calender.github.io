@@ -339,7 +339,6 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
       <div className="hidden sm:block space-y-4">
         <div className="flex items-center justify-between px-1">
           <h2 className="text-base font-bold text-slate-900 tracking-tight">Weekly Schedule</h2>
-          <span className="text-xs font-medium text-slate-500">{filteredClasses.length} total courses</span>
         </div>
 
         <div className="grid grid-cols-5 gap-3.5 items-start">
@@ -533,7 +532,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {classesWithOfficeHours.length > 0 && (
+            {officeHoursClasses.length > 0 && (
               <button
                 type="button"
                 onClick={clearAllOfficeHours}
@@ -640,7 +639,17 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                         </div>
                       ))
                     ) : (
-                      <span className="text-xs text-slate-400 font-medium">No office hours set</span>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs text-slate-400 font-medium">No office hours set</span>
+                        <button
+                          type="button"
+                          onClick={() => clearClassOfficeHours(cls)}
+                          className="flex items-center justify-center min-h-[36px] min-w-[36px] text-slate-400 hover:text-rose-600 transition-colors cursor-pointer shrink-0"
+                          title="Delete office hours"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     )}
 
                     {isAdding ? (
