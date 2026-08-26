@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useStore, getTodayDateString, formatTime12Hour } from '../../context/StoreContext';
-import { CalendarEvent, CATEGORY_METAS, EventType, ProfilePersona } from '../../types';
+import { CalendarEvent, CATEGORY_METAS, ClassItem, EventType, HabitItem, ProfilePersona } from '../../types';
 import { getAnniversaryEvent, getCommonHolidayEvent } from '../../utils/holidays';
 import {
   ChevronLeft,
@@ -37,11 +37,20 @@ const isItemPastTime = (evt: any, dateStr: string): boolean => {
   return currentMinutes >= (eventHours * 60 + eventMinutes);
 };
 
+const isClassScheduleItem = (evt: { is_class_item?: boolean; event_type?: string }) =>
+  Boolean(evt.is_class_item || evt.event_type === 'class');
+
 interface CalendarViewProps {
   onOpenAddModal: (initialDate?: string, eventToEdit?: CalendarEvent) => void;
+  onOpenEditClass?: (cls: ClassItem, day?: number) => void;
+  onOpenEditHabit?: (habit: HabitItem) => void;
 }
 
-export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) => {
+export const CalendarView: React.FC<CalendarViewProps> = ({
+  onOpenAddModal,
+  onOpenEditClass,
+  onOpenEditHabit,
+}) => {
   const {
     events,
     classes,
@@ -279,6 +288,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
   };
 
   const handleToggleAnyEventComplete = async (evt: any) => {
+    if (isClassScheduleItem(evt)) return;
+
     if (evt.is_habit_item && evt.habit_original_id) {
       if (!evt.is_completed) {
         confetti({ particleCount: 25, spread: 50, origin: { y: 0.8 } });
@@ -298,6 +309,46 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
     if (events.some((e) => e.id === evt.id)) {
       await toggleEventComplete(evt.id);
     }
+  };
+
+  const weekdayNumFromDate = (dateStr: string) => {
+    const dateObj = new Date(dateStr + 'T00:00:00');
+    const jsDay = dateObj.getDay();
+    return jsDay === 0 ? 7 : jsDay;
+  };
+
+  const handleOpenScheduleItem = (evt: any) => {
+    const isSyntheticClass =
+      Boolean(evt.is_class_item) ||
+      (typeof evt.id === 'string' && evt.id.startsWith('class-item-'));
+
+    if (isSyntheticClass) {
+      const classId =
+        evt.class_original_id ||
+        (typeof evt.id === 'string' && evt.id.startsWith('class-item-')
+          ? evt.id.slice('class-item-'.length)
+          : undefined);
+      const cls = classId ? classes.find((c) => c.id === classId) : undefined;
+      if (cls && onOpenEditClass) {
+        onOpenEditClass(cls, weekdayNumFromDate(selectedDate));
+      }
+      return;
+    }
+
+    if (evt.is_habit_item) {
+      const habitId =
+        evt.habit_original_id ||
+        (typeof evt.id === 'string' && evt.id.startsWith('habit-evt-')
+          ? evt.id.slice('habit-evt-'.length)
+          : undefined);
+      const habit = habitId ? habits.find((h) => h.id === habitId) : undefined;
+      if (habit && onOpenEditHabit) {
+        onOpenEditHabit(habit);
+      }
+      return;
+    }
+
+    onOpenAddModal(evt.event_date, evt);
   };
 
   return (
@@ -349,42 +400,53 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                 const task = evt.task_id ? tasks.find((t) => t.id === evt.task_id) : null;
                 const ownerName = (evt.profile || 'Eve') as ProfilePersona;
                 const badgeColor = profileColors[ownerName] || '#2563eb';
+                const isClassItem = isClassScheduleItem(evt);
                 const isPast = isItemPastTime(evt, selectedDate);
-                const isCompleted = evt.is_completed || task?.is_completed || completedEventIds.includes(evt.id) || isPast;
+                const isCompleted = isClassItem
+                  ? false
+                  : Boolean(evt.is_completed || task?.is_completed || completedEventIds.includes(evt.id) || isPast);
+                const isMuted = isClassItem ? isPast : isCompleted;
 
                 return (
                   <div
                     key={evt.id}
-                    onClick={() => {
-                      if (!evt.is_habit_item) onOpenAddModal(evt.event_date, evt);
-                    }}
+                    onClick={() => handleOpenScheduleItem(evt)}
                     className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer group ${
-                      isCompleted ? 'bg-slate-50/40 border-slate-100/70' : 'bg-slate-50/60 hover:bg-slate-100/70 border-slate-100'
+                      isMuted ? 'bg-slate-50/40 border-slate-100/70' : 'bg-slate-50/60 hover:bg-slate-100/70 border-slate-100'
                     }`}
                     style={{ borderLeft: `3px solid ${evtColor}` }}
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      {/* Completion Toggle */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleAnyEventComplete(evt);
-                        }}
-                        className="p-1 text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer shrink-0"
-                        title={isCompleted ? 'Mark incomplete' : 'Mark complete'}
-                      >
-                        {isCompleted ? (
-                          <CheckCircle className={`w-4 h-4 ${isPast && !evt.is_completed ? 'text-slate-400 fill-slate-100' : 'text-emerald-500 fill-emerald-50'}`} />
-                        ) : (
-                          <Circle className="w-4 h-4 text-slate-300" />
-                        )}
-                      </button>
+                      {/* Completion Toggle — hidden for class schedule items */}
+                      {!isClassItem && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleAnyEventComplete(evt);
+                          }}
+                          className="p-1 text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer shrink-0"
+                          title={isCompleted ? 'Mark incomplete' : 'Mark complete'}
+                        >
+                          {isCompleted ? (
+                            <CheckCircle className={`w-4 h-4 ${isPast && !evt.is_completed ? 'text-slate-400 fill-slate-100' : 'text-emerald-500 fill-emerald-50'}`} />
+                          ) : (
+                            <Circle className="w-4 h-4 text-slate-300" />
+                          )}
+                        </button>
+                      )}
 
                       {/* Content */}
                       <div className="min-w-0 flex-1">
                         <h4
                           className={`text-xs font-semibold truncate ${
-                            isCompleted ? 'line-through text-slate-400 opacity-75' : 'text-slate-900'
+                            isClassItem
+                              ? isPast
+                                ? 'text-slate-400'
+                                : 'text-slate-900'
+                              : isCompleted
+                                ? 'line-through text-slate-400 opacity-75'
+                                : 'text-slate-900'
                           }`}
                         >
                           {evt.title}
@@ -416,18 +478,17 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
 
                     {/* Compact Actions */}
                     <div className="flex items-center gap-1 shrink-0 ml-2">
-                      {!evt.is_habit_item && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onOpenAddModal(evt.event_date, evt);
-                          }}
-                          className="p-1 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
-                          title="Edit Event"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenScheduleItem(evt);
+                        }}
+                        className="p-1 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                        title={isClassItem ? 'Edit Class' : evt.is_habit_item ? 'Edit Habit' : 'Edit Event'}
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
 
                       {!evt.is_class_item && evt.event_type !== 'class' && (
                         <button
@@ -647,7 +708,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                     {dayEvts.slice(0, 2).map((e) => {
                       const meta = CATEGORY_METAS[e.event_type as EventType] || CATEGORY_METAS.personal;
                       const evtColor = e.color || meta.color || '#3b82f6';
-                      const isCompleted = e.is_completed || completedEventIds.includes(e.id) || isItemPastTime(e, dayObj.dateStr);
+                      const isClassChip = isClassScheduleItem(e);
+                      const isCompleted = isClassChip
+                        ? false
+                        : Boolean(e.is_completed || completedEventIds.includes(e.id) || isItemPastTime(e, dayObj.dateStr));
+                      const isPastClass = isClassChip && isItemPastTime(e, dayObj.dateStr);
 
                       return (
                         <div
@@ -661,7 +726,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                             onOpenAddModal(e.event_date, e);
                           }}
                           className={`text-[11px] font-bold px-2 py-1 rounded-xl truncate flex items-center justify-between transition-all cursor-pointer text-slate-900 hover:scale-[1.02] shadow-2xs ${
-                            isCompleted ? 'line-through opacity-50' : ''
+                            isClassChip
+                              ? isPastClass
+                                ? 'opacity-60'
+                                : ''
+                              : isCompleted
+                                ? 'line-through opacity-50'
+                                : ''
                           }`}
                           style={{ backgroundColor: `${evtColor}25`, borderLeft: `3.5px solid ${evtColor}` }}
                         >
@@ -724,42 +795,53 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
                 const task = evt.task_id ? tasks.find((t) => t.id === evt.task_id) : null;
                 const ownerName = (evt.profile || 'Eve') as ProfilePersona;
                 const badgeColor = profileColors[ownerName] || '#2563eb';
+                const isClassItem = isClassScheduleItem(evt);
                 const isPast = isItemPastTime(evt, selectedDate);
-                const isCompleted = evt.is_completed || task?.is_completed || completedEventIds.includes(evt.id) || isPast;
+                const isCompleted = isClassItem
+                  ? false
+                  : Boolean(evt.is_completed || task?.is_completed || completedEventIds.includes(evt.id) || isPast);
+                const isMuted = isClassItem ? isPast : isCompleted;
 
                 return (
                   <div
                     key={evt.id}
-                    onClick={() => {
-                      if (!evt.is_habit_item) onOpenAddModal(evt.event_date, evt);
-                    }}
+                    onClick={() => handleOpenScheduleItem(evt)}
                     className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer group ${
-                      isCompleted ? 'bg-slate-50/40 border-slate-100/70' : 'bg-slate-50/60 hover:bg-slate-100/70 border-slate-100'
+                      isMuted ? 'bg-slate-50/40 border-slate-100/70' : 'bg-slate-50/60 hover:bg-slate-100/70 border-slate-100'
                     }`}
                     style={{ borderLeft: `3px solid ${evtColor}` }}
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      {/* Completion Toggle */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleAnyEventComplete(evt);
-                        }}
-                        className="p-1 text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer shrink-0"
-                        title={isCompleted ? 'Mark incomplete' : 'Mark complete'}
-                      >
-                        {isCompleted ? (
-                          <CheckCircle className={`w-4 h-4 ${isPast && !evt.is_completed ? 'text-slate-400 fill-slate-100' : 'text-emerald-500 fill-emerald-50'}`} />
-                        ) : (
-                          <Circle className="w-4 h-4 text-slate-300" />
-                        )}
-                      </button>
+                      {/* Completion Toggle — hidden for class schedule items */}
+                      {!isClassItem && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleAnyEventComplete(evt);
+                          }}
+                          className="p-1 text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer shrink-0"
+                          title={isCompleted ? 'Mark incomplete' : 'Mark complete'}
+                        >
+                          {isCompleted ? (
+                            <CheckCircle className={`w-4 h-4 ${isPast && !evt.is_completed ? 'text-slate-400 fill-slate-100' : 'text-emerald-500 fill-emerald-50'}`} />
+                          ) : (
+                            <Circle className="w-4 h-4 text-slate-300" />
+                          )}
+                        </button>
+                      )}
 
                       {/* Content */}
                       <div className="min-w-0 flex-1">
                         <h4
                           className={`text-xs font-semibold truncate ${
-                            isCompleted ? 'line-through text-slate-400 opacity-75' : 'text-slate-900'
+                            isClassItem
+                              ? isPast
+                                ? 'text-slate-400'
+                                : 'text-slate-900'
+                              : isCompleted
+                                ? 'line-through text-slate-400 opacity-75'
+                                : 'text-slate-900'
                           }`}
                         >
                           {evt.title}
@@ -791,18 +873,17 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onOpenAddModal }) =>
 
                     {/* Compact Actions */}
                     <div className="flex items-center gap-1 shrink-0 ml-2">
-                      {!evt.is_habit_item && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onOpenAddModal(evt.event_date, evt);
-                          }}
-                          className="p-1 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
-                          title="Edit Event"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenScheduleItem(evt);
+                        }}
+                        className="p-1 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                        title={isClassItem ? 'Edit Class' : evt.is_habit_item ? 'Edit Habit' : 'Edit Event'}
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
 
                       {!evt.is_class_item && evt.event_type !== 'class' && (
                         <button

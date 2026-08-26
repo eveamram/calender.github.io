@@ -160,6 +160,19 @@
   scrollbar-width: none;
 }
 
+/* Native date/time picker hit-area: make the calendar/clock indicator fill the whole input */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
 /* Prevent iOS Mobile Safari auto-zoom on input focus */
 @media screen and (max-width: 768px) {
   input[type="text"],

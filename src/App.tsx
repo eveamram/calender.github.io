@@ -77,6 +77,15 @@ const MainAppContent: React.FC = () => {
               setEventToEdit(evtToEdit || null);
               setActiveModal('event');
             }}
+            onOpenEditClass={(cls, day) => {
+              setInitialClassDay(day);
+              setClassToEdit(cls);
+              setActiveModal('class');
+            }}
+            onOpenEditHabit={(habit) => {
+              setHabitToEdit(habit);
+              setActiveModal('habit');
+            }}
           />
         )}
         {activeTab === 'classes' && (

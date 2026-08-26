@@ -18,7 +18,7 @@ const getTodayDayNum = () => {
 
 interface ClassCardProps {
   cls: ClassItem;
-  dayNum: number;
+  dayNum?: number;
   ownerName: string;
   ownerColor: string;
   cardColor: string;
@@ -29,7 +29,6 @@ interface ClassCardProps {
 
 const ClassCardItem: React.FC<ClassCardProps> = ({
   cls,
-  dayNum,
   ownerName,
   ownerColor,
   cardColor,
@@ -37,55 +36,53 @@ const ClassCardItem: React.FC<ClassCardProps> = ({
   onEdit,
   onDelete,
 }) => {
-  const isPast = useMemo(() => {
-    const todayDayNum = getTodayDayNum();
-    if (dayNum < todayDayNum) return true;
-    if (dayNum > todayDayNum) return false;
-
-    const now = new Date();
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
-    const targetTimeStr = cls.end_time || cls.start_time;
-    if (!targetTimeStr) return false;
-
-    const [h, m] = targetTimeStr.split(':').map(Number);
-    if (isNaN(h) || isNaN(m)) return false;
-    return currentMinutes >= (h * 60 + m);
-  }, [cls.end_time, cls.start_time, dayNum]);
-
   return (
     <div
-      className={`group relative bg-white rounded-2xl p-3.5 border transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 space-y-2.5 overflow-hidden ${
-        isPast ? 'opacity-65 bg-slate-50/50' : ''
-      }`}
+      className="group relative bg-white rounded-2xl p-3.5 border transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 space-y-2.5 overflow-hidden cursor-pointer"
       style={{
         borderColor: `${cardColor}30`,
         boxShadow: `0 4px 14px -3px ${cardColor}15`,
+      }}
+      onClick={onEdit}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onEdit();
+        }
       }}
     >
       {/* Top Accent Line */}
       <div
         className="absolute top-0 left-0 right-0 h-1.5"
-        style={{ backgroundColor: isPast ? '#94a3b8' : cardColor }}
+        style={{ backgroundColor: cardColor }}
       />
 
       {/* Header: Class Name + Action Buttons */}
       <div className="flex items-start justify-between gap-2 pt-0.5">
-        <h3 className={`font-class-title text-[15px] font-bold leading-snug break-words ${
-          isPast ? 'line-through text-slate-400' : 'text-slate-900'
-        }`}>
+        <h3 className="font-class-title text-[15px] font-bold text-slate-900 leading-snug break-words">
           {cls.name}
         </h3>
 
         <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0 text-slate-400">
           <button
-            onClick={onEdit}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
             className="p-1 rounded-lg hover:bg-slate-100 hover:text-slate-700 transition-colors cursor-pointer"
             title="Edit Class"
           >
             <Edit3 className="w-3.5 h-3.5" />
           </button>
           <button
-            onClick={onDelete}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
             className="p-1 rounded-lg hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer"
             title="Delete Class"
           >
@@ -501,8 +498,17 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
               return (
                 <div
                   key={cls.id}
-                  className="p-4 rounded-xl border border-slate-200/80 bg-slate-50/40 hover:bg-slate-50/90 transition-all space-y-2.5 relative group"
+                  className="p-4 rounded-xl border border-slate-200/80 bg-slate-50/40 hover:bg-slate-50/90 transition-all space-y-2.5 relative group cursor-pointer"
                   style={{ borderLeft: `3px solid ${cardColor}` }}
+                  onClick={() => onOpenAddClassModal(cls.days_of_week[0] || 1, cls)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onOpenAddClassModal(cls.days_of_week[0] || 1, cls);
+                    }
+                  }}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
@@ -527,7 +533,11 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                         </span>
                       )}
                       <button
-                        onClick={() => onOpenAddClassModal(cls.days_of_week[0] || 1, cls)}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenAddClassModal(cls.days_of_week[0] || 1, cls);
+                        }}
                         className="text-slate-400 hover:text-indigo-600 transition-colors p-1 cursor-pointer"
                         title="Edit Office Hours"
                       >
@@ -555,7 +565,11 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                     <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between">
                       <span className="text-xs text-slate-400 font-medium">No office hours set</span>
                       <button
-                        onClick={() => onOpenAddClassModal(cls.days_of_week[0] || 1, cls)}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenAddClassModal(cls.days_of_week[0] || 1, cls);
+                        }}
                         className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg transition-all cursor-pointer border border-indigo-200/60"
                       >
                         + Set Hours

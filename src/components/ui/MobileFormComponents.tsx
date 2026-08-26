@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId, useRef } from 'react';
 import { ChevronRight, Check, X, Calendar, Clock, Target, Tag, BookOpen, Layers, User, AlertCircle } from 'lucide-react';
 
 // Helper to format YYYY-MM-DD date into "Aug 24, 2026"
@@ -120,20 +120,46 @@ export const MobileFormField: React.FC<MobileFormFieldProps> = ({
   min,
   max,
 }) => {
+  const inputId = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const activateField = () => {
+    const input = inputRef.current;
+    if (!input || disabled) return;
+
+    input.focus();
+    if ((type === 'date' || type === 'time') && 'showPicker' in input) {
+      try {
+        (input as HTMLInputElement & { showPicker?: () => void }).showPicker?.();
+      } catch {
+      }
+    }
+  };
+
   return (
     <div className="space-y-1.5 w-full">
-      <label className={`block text-xs font-semibold tracking-tight ${isRed ? 'text-red-800' : 'text-slate-700'}`}>
+      <label htmlFor={inputId} className={`block text-xs font-semibold tracking-tight ${isRed ? 'text-red-800' : 'text-slate-700'}`}>
         {label}
       </label>
-      <div
-        className={`relative h-[52px] flex items-center gap-3 px-4 rounded-2xl border transition-all ${
+      <label
+        htmlFor={inputId}
+        onClick={activateField}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            activateField();
+          }
+        }}
+        className={`relative block h-[52px] rounded-2xl border transition-all ${
           isRed
             ? 'bg-red-50/30 border-red-200 focus-within:bg-white focus-within:border-red-600'
             : 'bg-slate-50/80 border-slate-200/80 focus-within:bg-white focus-within:border-slate-900 focus-within:ring-2 focus-within:ring-slate-900/10'
-        } ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+        } ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-text hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-900/10'}`}
       >
-        {icon && <div className="text-slate-400 shrink-0 flex items-center justify-center">{icon}</div>}
+        {icon && <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 flex items-center justify-center pointer-events-none">{icon}</div>}
         <input
+          id={inputId}
+          ref={inputRef}
           type={type}
           required={required}
           disabled={disabled}
@@ -142,11 +168,13 @@ export const MobileFormField: React.FC<MobileFormFieldProps> = ({
           placeholder={placeholder}
           min={min}
           max={max}
-          className={`w-full bg-transparent text-sm font-semibold placeholder:text-slate-400 focus:outline-none h-full ${
+          className={`absolute inset-0 box-border w-full rounded-2xl bg-transparent px-4 text-sm font-semibold placeholder:text-slate-400 focus:outline-none ${
+            icon ? 'pl-11' : ''
+          } ${
             isRed ? 'text-red-950' : 'text-slate-900'
           }`}
         />
-      </div>
+      </label>
     </div>
   );
 };
@@ -175,9 +203,11 @@ export const MobileSelectField: React.FC<MobileSelectFieldProps> = ({
   disabled = false,
   isRed,
 }) => {
+  const fieldId = useId();
+
   return (
     <div className="space-y-1.5 w-full">
-      <label className={`block text-xs font-bold tracking-tight ${isRed ? 'text-red-800' : 'text-slate-900'}`}>
+      <label htmlFor={fieldId} className={`block text-xs font-bold tracking-tight ${isRed ? 'text-red-800' : 'text-slate-900'}`}>
         {label}
       </label>
       <div
@@ -188,7 +218,7 @@ export const MobileSelectField: React.FC<MobileSelectFieldProps> = ({
         } ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
       >
         {/* Left Side: Icon & Display Value */}
-        <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div className="flex items-center gap-3 min-w-0 flex-1 pointer-events-none">
           {icon ? (
             <div className="shrink-0 flex items-center justify-center">{icon}</div>
           ) : type === 'date' ? (
@@ -204,13 +234,14 @@ export const MobileSelectField: React.FC<MobileSelectFieldProps> = ({
         </div>
 
         {/* Right Side: Chevron Icon */}
-        <ChevronRight className="w-4.5 h-4.5 text-slate-400 shrink-0 ml-2" />
+        <ChevronRight className="w-4.5 h-4.5 text-slate-400 shrink-0 ml-2 pointer-events-none" />
 
-        {/* Invisible Overlay Input / Select triggering native dialogs on click */}
+        {/* Invisible overlay: native date/time/select fills the box. Date/time indicator is stretched via CSS. */}
         {!disabled && (
           <>
             {type === 'select' ? (
               <select
+                id={fieldId}
                 value={value}
                 onChange={onChange as any}
                 className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10 text-base"
@@ -223,6 +254,7 @@ export const MobileSelectField: React.FC<MobileSelectFieldProps> = ({
               </select>
             ) : (
               <input
+                id={fieldId}
                 type={type}
                 value={value}
                 onChange={onChange as any}
