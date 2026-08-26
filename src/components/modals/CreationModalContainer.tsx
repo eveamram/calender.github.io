@@ -764,16 +764,16 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 md:gap-4">
             <MobileFormField
-              label="Office Hours Schedule"
+              label="Office hours time"
               value={clsOfficeHours}
               onChange={(e) => setClsOfficeHours(e.target.value)}
-              placeholder="e.g. Mon & Wed 2:00 - 4:00 PM"
+              placeholder="e.g. Mon & Wed 2:00 – 4:00 PM"
             />
             <MobileFormField
-              label="Office Hours Location"
+              label="Office room"
               value={clsOfficeHoursLocation}
               onChange={(e) => setClsOfficeHoursLocation(e.target.value)}
-              placeholder="e.g. Science 304 or Zoom"
+              placeholder="e.g. Science 304"
             />
           </div>
 

@@ -493,7 +493,9 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
               const ownerName = cls.profile || 'Eve';
               const ownerColor = profileColors[ownerName] || cls.color || '#2563eb';
               const cardColor = classPersonaColor(cls.profile, activeProfile, profileColors, cls.color);
-              const hasHours = Boolean(cls.office_hours);
+              const officeTime = (cls.office_hours || '').trim();
+              const officeRoom = (cls.office_hours_location || cls.room || '').trim();
+              const hasHours = Boolean(officeTime || officeRoom);
 
               return (
                 <div
@@ -548,18 +550,18 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
 
                   {hasHours ? (
                     <div className="space-y-1.5 pt-2 border-t border-slate-200/60">
-                      <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800">
+                      <div className="flex items-center gap-1.5 text-xs font-medium text-slate-700">
                         <Clock className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                        <span className="bg-indigo-50 text-indigo-900 px-2 py-0.5 rounded-md border border-indigo-100/80 font-bold">
-                          {cls.office_hours}
+                        <span className={officeTime ? 'text-slate-800 font-semibold' : 'text-slate-400'}>
+                          {officeTime || 'No time set'}
                         </span>
                       </div>
-                      {cls.office_hours_location && (
-                        <div className="flex items-center gap-1.5 text-xs font-medium text-slate-600">
-                          <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                          <span>{cls.office_hours_location}</span>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-1.5 text-xs font-medium text-slate-700">
+                        <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span className={officeRoom ? 'text-slate-800 font-semibold' : 'text-slate-400'}>
+                          {officeRoom || 'No room set'}
+                        </span>
+                      </div>
                     </div>
                   ) : (
                     <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between">
