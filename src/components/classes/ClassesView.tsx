@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useStore, getTodayDateString, formatTime12Hour } from '../../context/StoreContext';
 import { ClassItem } from '../../types';
 import { classPersonaColor } from '../../utils/personaColor';
-import { Plus, Clock, MapPin, Trash2, Edit3, AlertCircle, GraduationCap, UserCheck } from 'lucide-react';
+import { Plus, Clock, MapPin, Trash2, Edit3, UserCheck } from 'lucide-react';
 
 interface ClassesViewProps {
   onOpenAddClassModal: (day?: number, classToEdit?: ClassItem) => void;
@@ -10,6 +10,15 @@ interface ClassesViewProps {
 }
 
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+
+const CARD = 'bg-white rounded-3xl border border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.045)]';
+
+const formatExamDate = (iso: string) => {
+  const parts = iso.split('-');
+  if (parts.length !== 3) return iso;
+  const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+  return d.toLocaleDateString('default', { weekday: 'short', month: 'short', day: 'numeric' });
+};
 
 const getTodayDayNum = () => {
   const d = new Date().getDay();
@@ -39,10 +48,9 @@ const ClassCardItem: React.FC<ClassCardProps> = ({
 }) => {
   return (
     <div
-      className="group relative bg-white rounded-2xl p-3.5 border transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 space-y-2.5 overflow-hidden cursor-pointer"
+      className="group relative bg-white rounded-2xl p-3.5 border border-slate-200/80 hover:bg-slate-50/60 transition-colors space-y-2.5 overflow-hidden cursor-pointer"
       style={{
-        borderColor: `${cardColor}30`,
-        boxShadow: `0 4px 14px -3px ${cardColor}15`,
+        borderColor: `${cardColor}28`,
       }}
       onClick={onEdit}
       role="button"
@@ -56,13 +64,13 @@ const ClassCardItem: React.FC<ClassCardProps> = ({
     >
       {/* Top Accent Line */}
       <div
-        className="absolute top-0 left-0 right-0 h-1.5"
+        className="absolute top-0 left-0 right-0 h-1"
         style={{ backgroundColor: cardColor }}
       />
 
       {/* Header: Class Name + Action Buttons */}
       <div className="flex items-start justify-between gap-2 pt-0.5">
-        <h3 className="font-class-title text-[15px] font-bold text-slate-900 leading-snug break-words">
+        <h3 className="font-class-title text-[15px] font-semibold text-slate-900 leading-snug break-words">
           {cls.name}
         </h3>
 
@@ -95,7 +103,7 @@ const ClassCardItem: React.FC<ClassCardProps> = ({
       {/* Time Badge (Matching Class Accent Color) */}
       <div>
         <div
-          className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-0.5 rounded-lg border transition-all"
+          className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-lg border tabular-nums"
           style={{
             backgroundColor: `${cardColor}10`,
             color: cardColor,
@@ -183,20 +191,19 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
   const selectedMobileClasses = classesByDay.get(selectedMobileDay) || [];
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto px-4 md:px-8 py-6">
+    <div className="min-h-screen bg-[#faf9f6] text-slate-800 space-y-6 max-w-7xl mx-auto px-3 sm:px-6 md:px-8 py-4 sm:py-6 pb-28">
       {/* View Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Class Schedule</h1>
-          <p className="text-xs text-slate-500 font-medium hidden sm:block">Academic courses timetable and exam tracker</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 font-class-title">Classes</h1>
         </div>
         <button
           onClick={() => onOpenAddClassModal(selectedMobileDay)}
-          className="px-4 py-2.5 min-h-[44px] rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-xs transition-all cursor-pointer active:scale-95 inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 self-start sm:self-auto"
+          className="px-4 min-h-[40px] rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 self-start sm:self-auto"
           title="Add Class"
         >
-          <Plus className="w-4 h-4 stroke-[2]" />
-          <span>Add Class</span>
+          <Plus className="w-4 h-4 stroke-[2.5]" />
+          <span>Add class</span>
         </button>
       </div>
 
@@ -213,20 +220,20 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
               <button
                 key={dayNum}
                 onClick={() => setSelectedMobileDay(dayNum)}
-                className={`flex flex-col items-center justify-center min-h-[44px] px-1 py-1.5 rounded-xl text-[11px] font-semibold transition-all cursor-pointer ${
+                className={`flex flex-col items-center justify-center min-h-[48px] px-1 py-1.5 rounded-2xl text-xs font-semibold transition-colors cursor-pointer ${
                   isSelected
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'text-slate-700 hover:bg-slate-100 bg-white border border-slate-200/80'
+                    ? 'bg-slate-900 text-white'
+                    : dayNum === todayDayNum
+                    ? 'bg-white text-slate-900 ring-2 ring-slate-900 ring-inset'
+                    : 'text-slate-600 bg-white border border-slate-200/80'
                 }`}
               >
                 <span>{name}</span>
-                <span
-                  className={`text-[10px] min-w-[16px] px-1 rounded-full font-bold ${
-                    isSelected ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500'
-                  }`}
-                >
-                  {count}
-                </span>
+                {count > 0 && (
+                  <span className={`text-[10px] font-medium tabular-nums ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>
+                    {count}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -235,8 +242,8 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
         {/* Selected Day's Class Cards */}
         <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
-            <h2 className="text-base font-bold text-slate-900">
-              {DAY_NAMES[(selectedMobileDay > 0 ? selectedMobileDay : 1) - 1]} Schedule
+            <h2 className="text-base font-semibold text-slate-900 tracking-tight font-class-title">
+              {DAY_NAMES[(selectedMobileDay > 0 ? selectedMobileDay : 1) - 1]}
             </h2>
             <span className="text-xs font-medium text-slate-500">
               {selectedMobileClasses.length} {selectedMobileClasses.length === 1 ? 'class' : 'classes'}
@@ -244,13 +251,13 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
           </div>
 
           {selectedMobileClasses.length === 0 ? (
-            <div className="bg-slate-50/70 rounded-xl p-6 border border-slate-200/80 text-center space-y-2">
-              <p className="text-xs font-medium text-slate-400">No classes scheduled</p>
+            <div className={`${CARD} p-8 text-center`}>
+              <p className="text-sm font-medium text-slate-500">No classes this day</p>
               <button
                 onClick={() => onOpenAddClassModal(selectedMobileDay > 0 ? selectedMobileDay : 1)}
-                className="text-xs font-semibold text-slate-700 hover:text-slate-900 bg-white border border-slate-200 px-3 py-1.5 rounded-lg inline-flex items-center gap-1 transition-all cursor-pointer shadow-2xs"
+                className="mt-4 inline-flex items-center justify-center min-h-[40px] px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold transition-colors cursor-pointer gap-1.5"
               >
-                <Plus className="w-3.5 h-3.5 stroke-[2]" /> Add class
+                <Plus className="w-4 h-4 stroke-[2.5]" /> Add class
               </button>
             </div>
           ) : (
@@ -281,12 +288,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
 
       {/* COMPUTER ONLY (>= sm): Refined 5-Column Weekly Planner */}
       <div className="hidden sm:block space-y-4">
-        <div className="flex items-center justify-between px-1">
-          <h2 className="text-base font-bold text-slate-900 tracking-tight">Weekly Schedule</h2>
-          <span className="text-xs font-medium text-slate-500">{filteredClasses.length} total courses</span>
-        </div>
-
-        <div className="grid grid-cols-5 gap-3.5 items-start">
+        <div className="grid grid-cols-5 gap-3 items-start">
           {DAY_NAMES.slice(0, 5).map((name, idx) => {
             const dayNum = idx + 1;
             const dayClasses = classesByDay.get(dayNum) || [];
@@ -295,41 +297,37 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
             return (
               <div
                 key={dayNum}
-                className={`rounded-2xl border transition-all flex flex-col p-3 ${
+                className={`rounded-2xl border flex flex-col p-3 min-h-[180px] ${
                   isToday
-                    ? 'bg-slate-50/90 border-slate-300/80 shadow-2xs'
-                    : 'bg-slate-50/40 border-slate-200/60'
+                    ? 'bg-white border-transparent ring-2 ring-slate-900 ring-inset'
+                    : 'bg-white border-slate-200/80'
                 }`}
               >
                 {/* Simplified Day Header */}
-                <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-200/60 group/header">
+                <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-bold text-slate-900 tracking-tight uppercase">{name}</span>
+                    <span className="text-xs font-semibold text-slate-900 tracking-wide uppercase">{name}</span>
                     {isToday && (
-                      <span className="text-[9px] font-semibold text-teal-700 bg-teal-50 px-1.5 py-0.2 rounded-full border border-teal-200/60">
+                      <span className="text-[10px] font-semibold text-white bg-slate-900 px-1.5 py-0.5 rounded-full">
                         Today
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-[11px] font-medium text-slate-400">
-                      {dayClasses.length > 0 ? `${dayClasses.length}` : ''}
-                    </span>
-                    <button
-                      onClick={() => onOpenAddClassModal(dayNum)}
-                      className="opacity-0 group-hover/header:opacity-100 w-5 h-5 rounded-md hover:bg-slate-200/70 text-slate-500 hover:text-slate-900 flex items-center justify-center transition-all cursor-pointer"
-                      title={`Add class to ${name}`}
-                    >
-                      <Plus className="w-3.5 h-3.5 stroke-[2]" />
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => onOpenAddClassModal(dayNum)}
+                    className="flex items-center justify-center min-h-[32px] min-w-[32px] rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-800 transition-colors cursor-pointer"
+                    title={`Add class to ${name}`}
+                    aria-label={`Add class to ${name}`}
+                  >
+                    <Plus className="w-4 h-4 stroke-[2]" />
+                  </button>
                 </div>
 
                 {/* Class List or Compact Empty State */}
                 <div className="space-y-2.5">
                   {dayClasses.length === 0 ? (
-                    <div className="py-6 text-center">
-                      <span className="text-xs font-medium text-slate-400">No classes</span>
+                    <div className="py-8 text-center">
+                      <span className="text-xs font-medium text-slate-400">Free</span>
                     </div>
                   ) : (
                     dayClasses.map((cls) => {
@@ -360,36 +358,27 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
       </div>
 
       {/* UPCOMING EXAMS SECTION */}
-      <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200/80 shadow-2xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+      <div className={`${CARD} p-4 sm:p-6 space-y-4`}>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="p-2 rounded-xl bg-red-50 text-red-600 shrink-0">
-              <AlertCircle className="w-5 h-5 stroke-[2.5]" />
-            </div>
-            <div className="min-w-0">
-              <h2 className="text-lg font-bold text-slate-900 tracking-tight">Upcoming Exams</h2>
-              <p className="text-xs text-slate-500 font-medium hidden sm:block">Scheduled tests and midterm examinations</p>
-            </div>
+            <h2 className="text-lg font-semibold tracking-tight text-slate-900 font-class-title">Exams</h2>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg whitespace-nowrap">
-              {filteredExams.length} {filteredExams.length === 1 ? 'Exam' : 'Exams'}
-            </span>
             {onOpenAddExamModal && (
               <button
                 onClick={onOpenAddExamModal}
-                className="inline-flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white font-bold px-3.5 py-2 min-h-[44px] rounded-xl text-xs shadow-md shadow-red-500/20 transition-all cursor-pointer active:scale-95 whitespace-nowrap"
+                className="inline-flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold px-3.5 min-h-[40px] rounded-xl text-sm transition-colors cursor-pointer whitespace-nowrap"
               >
-                <Plus className="w-4 h-4 stroke-[3]" />
-                <span>Add Exam</span>
+                <Plus className="w-4 h-4 stroke-[2.5]" />
+                <span>Add exam</span>
               </button>
             )}
           </div>
         </div>
 
         {filteredExams.length === 0 ? (
-          <div className="py-6 text-center text-xs text-slate-400 font-medium">
-            No upcoming exams scheduled. Great job staying ahead!
+          <div className="py-8 text-center">
+            <p className="text-sm font-medium text-slate-500">No upcoming exams</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -411,14 +400,16 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
               return (
                 <div
                   key={exam.id}
-                  className="p-4 rounded-xl border border-red-100 bg-red-50/30 hover:bg-red-50/60 transition-all space-y-2 relative group"
+                  className="p-4 rounded-2xl border border-slate-200/80 bg-white space-y-2 relative group"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-xs font-bold text-red-600 bg-red-100 px-2.5 py-0.5 rounded-md">
-                        {exam.event_date}
+                      <span className="text-xs font-medium text-slate-600 tabular-nums">
+                        {formatExamDate(exam.event_date)}
                       </span>
-                      <span className="text-[10px] font-bold text-white bg-red-500 px-2 py-0.5 rounded-md shadow-xs animate-pulse">
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                        diffDays <= 1 ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'
+                      }`}>
                         {countdownLabel}
                       </span>
                     </div>
@@ -434,19 +425,20 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                       )}
                       <button
                         onClick={() => deleteEvent(exam.id)}
-                        className="text-slate-300 hover:text-red-500 transition-colors p-1 cursor-pointer"
+                        className="flex items-center justify-center min-h-[36px] min-w-[36px] text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                        title="Delete exam"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
 
-                  <h4 className="text-sm font-bold text-slate-900">{exam.title}</h4>
+                  <h4 className="text-sm font-semibold text-slate-900 break-words">{exam.title}</h4>
 
-                  <div className="flex items-center gap-3 text-xs font-semibold text-slate-600 pt-1">
+                  <div className="flex items-center gap-3 text-xs font-medium text-slate-500 pt-1 flex-wrap">
                     {exam.start_time && (
                       <span className="flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-red-500" />
+                        <Clock className="w-3.5 h-3.5 text-slate-400" />
                         {formatTime12Hour(exam.start_time)} {exam.end_time ? `- ${formatTime12Hour(exam.end_time)}` : ''}
                       </span>
                     )}
@@ -465,27 +457,14 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
       </div>
 
       {/* PROFESSOR OFFICE HOURS SCHEDULE SECTION */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-2xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600">
-              <GraduationCap className="w-5 h-5 stroke-[2.5]" />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-slate-900 tracking-tight">Office Hours</h2>
-              <p className="text-xs text-slate-500 font-medium hidden sm:block">Instructor availability, meeting times, and office locations</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100/80">
-              {officeHoursClasses.length} classes
-            </span>
-          </div>
+      <div className={`${CARD} p-4 sm:p-6 space-y-4`}>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold tracking-tight text-slate-900 font-class-title">Office hours</h2>
         </div>
 
         {officeHoursClasses.length === 0 ? (
           <div className="py-8 text-center space-y-2">
-            <p className="text-xs font-medium text-slate-400">Add a class and it will show up here</p>
+            <p className="text-sm font-medium text-slate-500">Add a class and it will show up here</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
@@ -498,7 +477,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
               return (
                 <div
                   key={cls.id}
-                  className="p-4 rounded-xl border border-slate-200/80 bg-slate-50/40 hover:bg-slate-50/90 transition-all space-y-2.5 relative group cursor-pointer"
+                  className="p-4 rounded-2xl border border-slate-200/80 bg-white hover:bg-slate-50/70 transition-colors space-y-2.5 relative group cursor-pointer"
                   style={{ borderLeft: `3px solid ${cardColor}` }}
                   onClick={() => onOpenAddClassModal(cls.days_of_week[0] || 1, cls)}
                   role="button"
@@ -512,10 +491,10 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <h4 className="text-sm font-bold text-slate-900 leading-snug">{cls.name}</h4>
+                      <h4 className="text-sm font-semibold text-slate-900 leading-snug break-words">{cls.name}</h4>
                       {cls.instructor ? (
-                        <p className="text-xs font-semibold text-indigo-600 flex items-center gap-1 mt-0.5">
-                          <UserCheck className="w-3.5 h-3.5" />
+                        <p className="text-xs font-medium text-slate-500 flex items-center gap-1 mt-0.5">
+                          <UserCheck className="w-3.5 h-3.5 text-slate-400" />
                           <span>{cls.instructor}</span>
                         </p>
                       ) : (
@@ -538,7 +517,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                           e.stopPropagation();
                           onOpenAddClassModal(cls.days_of_week[0] || 1, cls);
                         }}
-                        className="text-slate-400 hover:text-indigo-600 transition-colors p-1 cursor-pointer"
+                        className="flex items-center justify-center min-h-[36px] min-w-[36px] text-slate-400 hover:text-slate-800 transition-colors cursor-pointer"
                         title="Edit Office Hours"
                       >
                         <Edit3 className="w-4 h-4" />
@@ -549,8 +528,8 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                   {hasHours ? (
                     <div className="space-y-1.5 pt-2 border-t border-slate-200/60">
                       <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800">
-                        <Clock className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                        <span className="bg-indigo-50 text-indigo-900 px-2 py-0.5 rounded-md border border-indigo-100/80 font-bold">
+                        <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span className="bg-slate-100 text-slate-800 px-2 py-0.5 rounded-md font-medium">
                           {cls.office_hours}
                         </span>
                       </div>
@@ -570,7 +549,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                           e.stopPropagation();
                           onOpenAddClassModal(cls.days_of_week[0] || 1, cls);
                         }}
-                        className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg transition-all cursor-pointer border border-indigo-200/60"
+                        className="text-[11px] font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
                       >
                         + Set Hours
                       </button>
