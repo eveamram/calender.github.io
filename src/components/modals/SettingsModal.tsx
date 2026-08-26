@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
-import { useAuth } from '../../context/AuthContext';
 import { ProfilePersona } from '../../types';
 import {
   Settings,
@@ -10,7 +9,6 @@ import {
   Cloud,
   RefreshCw,
   Database,
-  LogOut,
 } from 'lucide-react';
 const PERSONA_COLORS = [
   { label: 'Royal Blue', hex: '#2563eb' },
@@ -35,7 +33,6 @@ export const SettingsModal: React.FC = () => {
     syncStatus,
   } = useStore();
 
-  const { user, signOut } = useAuth();
 
   const [colorPickerTarget, setColorPickerTarget] = useState<ProfilePersona | null>(null);
   const [customHex, setCustomHex] = useState<string>('#2563eb');
@@ -44,7 +41,6 @@ export const SettingsModal: React.FC = () => {
   const [confirmResetHolidays, setConfirmResetHolidays] = useState(false);
   const [confirmResetEvents, setConfirmResetEvents] = useState(false);
   const [resetConfirmText, setResetConfirmText] = useState('');
-  const [isSigningOut, setIsSigningOut] = useState(false);
 
   if (!isSettingsOpen) return null;
 
@@ -93,30 +89,6 @@ export const SettingsModal: React.FC = () => {
           <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 flex items-center gap-2.5 text-xs font-bold text-emerald-800 animate-slide-down">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>{toastMessage}</span>
-          </div>
-        )}
-
-        {user?.email && (
-          <div className="flex items-center justify-between p-3.5 rounded-2xl border border-slate-200 bg-slate-50/60">
-            <div className="min-w-0">
-              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Signed in</p>
-              <p className="text-xs font-bold text-slate-900 truncate">{user.email}</p>
-            </div>
-            <button
-              onClick={async () => {
-                if (isSigningOut) return;
-                setIsSigningOut(true);
-                try {
-                  await signOut();
-                } finally {
-                  setIsSigningOut(false);
-                }
-              }}
-              className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 px-3 py-1.5 rounded-xl cursor-pointer"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              {isSigningOut ? 'Signing out…' : 'Sign out'}
-            </button>
           </div>
         )}
 
