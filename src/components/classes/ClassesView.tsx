@@ -73,7 +73,7 @@ const ClassCardItem: React.FC<ClassCardProps> = ({
               e.stopPropagation();
               onEdit();
             }}
-            className="p-1 rounded-lg hover:bg-slate-100 hover:text-slate-700 transition-colors cursor-pointer"
+            className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg hover:bg-slate-100 hover:text-slate-700 transition-colors cursor-pointer"
             title="Edit Class"
           >
             <Edit3 className="w-3.5 h-3.5" />
@@ -84,7 +84,7 @@ const ClassCardItem: React.FC<ClassCardProps> = ({
               e.stopPropagation();
               onDelete();
             }}
-            className="p-1 rounded-lg hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer"
+            className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer"
             title="Delete Class"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -185,14 +185,14 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-4 md:px-8 py-6">
       {/* View Header */}
-      <div className="flex items-center justify-between border-b border-slate-200/80 pb-4">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 pb-4">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Class Schedule</h1>
-          <p className="text-xs text-slate-500 font-medium">Academic courses timetable and exam tracker</p>
+          <p className="text-xs text-slate-500 font-medium hidden sm:block">Academic courses timetable and exam tracker</p>
         </div>
         <button
           onClick={() => onOpenAddClassModal(selectedMobileDay)}
-          className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-xs transition-all cursor-pointer active:scale-95 flex items-center gap-1.5"
+          className="px-4 py-2.5 min-h-[44px] rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-xs transition-all cursor-pointer active:scale-95 inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 self-start sm:self-auto"
           title="Add Class"
         >
           <Plus className="w-4 h-4 stroke-[2]" />
@@ -203,7 +203,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
       {/* MOBILE ONLY (< sm): Mon–Fri Day Selector Bar & Single Day List */}
       <div className="sm:hidden space-y-4">
         {/* Day Selector Bar — Mon–Fri */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+        <div className="grid grid-cols-5 gap-1.5">
           {DAY_NAMES.map((name, idx) => {
             const dayNum = idx + 1;
             const isSelected = selectedMobileDay === dayNum;
@@ -213,7 +213,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
               <button
                 key={dayNum}
                 onClick={() => setSelectedMobileDay(dayNum)}
-                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                className={`flex flex-col items-center justify-center min-h-[44px] px-1 py-1.5 rounded-xl text-[11px] font-semibold transition-all cursor-pointer ${
                   isSelected
                     ? 'bg-slate-900 text-white shadow-xs'
                     : 'text-slate-700 hover:bg-slate-100 bg-white border border-slate-200/80'
@@ -221,7 +221,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
               >
                 <span>{name}</span>
                 <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                  className={`text-[10px] min-w-[16px] px-1 rounded-full font-bold ${
                     isSelected ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500'
                   }`}
                 >
@@ -360,25 +360,25 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
       </div>
 
       {/* UPCOMING EXAMS SECTION */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-2xs space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-red-50 text-red-600">
+      <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200/80 shadow-2xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="p-2 rounded-xl bg-red-50 text-red-600 shrink-0">
               <AlertCircle className="w-5 h-5 stroke-[2.5]" />
             </div>
-            <div>
+            <div className="min-w-0">
               <h2 className="text-lg font-bold text-slate-900 tracking-tight">Upcoming Exams</h2>
-              <p className="text-xs text-slate-500 font-medium">Scheduled tests and midterm examinations</p>
+              <p className="text-xs text-slate-500 font-medium hidden sm:block">Scheduled tests and midterm examinations</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg">
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg whitespace-nowrap">
               {filteredExams.length} {filteredExams.length === 1 ? 'Exam' : 'Exams'}
             </span>
             {onOpenAddExamModal && (
               <button
                 onClick={onOpenAddExamModal}
-                className="flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white font-bold px-3.5 py-2 rounded-xl text-xs shadow-md shadow-red-500/20 transition-all cursor-pointer active:scale-95 shrink-0"
+                className="inline-flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white font-bold px-3.5 py-2 min-h-[44px] rounded-xl text-xs shadow-md shadow-red-500/20 transition-all cursor-pointer active:scale-95 whitespace-nowrap"
               >
                 <Plus className="w-4 h-4 stroke-[3]" />
                 <span>Add Exam</span>
@@ -466,14 +466,14 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
 
       {/* PROFESSOR OFFICE HOURS SCHEDULE SECTION */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-2xs space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-2.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2.5 min-w-0">
             <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600">
               <GraduationCap className="w-5 h-5 stroke-[2.5]" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-900 tracking-tight">Professor Office Hours Schedule</h2>
-              <p className="text-xs text-slate-500 font-medium">Instructor availability, meeting times, and office locations</p>
+              <h2 className="text-lg font-bold text-slate-900 tracking-tight">Office Hours</h2>
+              <p className="text-xs text-slate-500 font-medium hidden sm:block">Instructor availability, meeting times, and office locations</p>
             </div>
           </div>
           <div className="flex items-center gap-2">

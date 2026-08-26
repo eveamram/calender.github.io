@@ -590,7 +590,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                   onDoubleClick={() => onOpenAddModal(dayObj.dateStr)}
-                  className={`flex flex-col items-center justify-center h-10 sm:h-11 rounded-xl sm:rounded-2xl text-xs transition-all relative border cursor-pointer ${
+                  className={`flex flex-col items-center justify-center min-h-[44px] h-11 sm:h-12 rounded-xl sm:rounded-2xl text-xs transition-all relative border cursor-pointer ${
                     !dayObj.isCurrentMonth
                       ? 'text-slate-300 border-transparent bg-slate-50/40'
                       : isSelected

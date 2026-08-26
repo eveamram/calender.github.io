@@ -187,12 +187,12 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
           </button>
         </div>
 
-        <div className="flex items-center gap-1.5 overflow-x-auto py-1">
+        <div className="grid grid-cols-7 gap-1 w-full sm:flex sm:w-auto sm:items-center sm:gap-1.5">
           {currentWeekDates.map((w) => (
             <div
               key={w.dateStr}
               style={w.isToday ? { backgroundColor: activePersonColor, color: '#ffffff' } : undefined}
-              className={`flex flex-col items-center justify-center px-3 py-1 rounded-xl text-xs font-bold transition-all min-w-[42px] min-h-[42px] ${
+              className={`flex flex-col items-center justify-center px-1 sm:px-3 py-1 rounded-xl text-xs font-bold transition-all min-h-[44px] ${
                 w.isToday ? 'shadow-2xs' : 'text-[#68748A] bg-[#F4F5F8]'
               }`}
             >
@@ -358,7 +358,7 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
                         key={w.dateStr}
                         onClick={() => handleToggleCheck(h, w.dateStr, isCompleted)}
                         disabled={!isScheduledForDay}
-                        className={`w-9 h-9 max-w-[36px] max-h-[36px] rounded-xl flex items-center justify-center transition-all shrink-0 cursor-pointer ${
+                        className={`w-10 h-10 sm:w-9 sm:h-9 min-w-[40px] min-h-[40px] sm:min-w-0 rounded-xl flex items-center justify-center transition-all shrink-0 cursor-pointer ${
                           !isScheduledForDay
                             ? 'bg-[#F9FAFB] text-[#D0D5DD] border border-dashed border-[#E7EAF0] cursor-not-allowed'
                             : isCompleted

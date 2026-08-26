@@ -331,11 +331,11 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
 
             <button
               onClick={() => onOpenAddBookModal(null)}
-              className="p-2 sm:px-4 sm:py-2.5 rounded-2xl bg-purple-950 hover:bg-purple-900 active:scale-95 text-white font-semibold text-xs shadow-md transition-all cursor-pointer shrink-0 flex items-center gap-1.5"
+              className="px-4 py-2.5 min-h-[44px] rounded-2xl bg-purple-950 hover:bg-purple-900 active:scale-95 text-white font-semibold text-xs shadow-md transition-all cursor-pointer shrink-0 inline-flex items-center gap-1.5"
               title="Add Book"
             >
               <Plus className="w-4 h-4 stroke-[2.5]" />
-              <span className="hidden sm:inline">Add Book</span>
+              <span>Add Book</span>
             </button>
           </div>
         </div>
@@ -363,14 +363,14 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
           </div>
 
           {/* Filter Tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto py-1 scrollbar-none">
+          <div className="flex items-center gap-1.5 flex-wrap w-full py-1">
             {tabs.map((tab) => {
               const isActive = activeStatusTab === tab.status;
               return (
                 <button
                   key={tab.status}
                   onClick={() => setActiveStatusTab(tab.status)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-extrabold border transition-all cursor-pointer shrink-0 ${
+                  className={`flex items-center gap-1.5 px-3 py-2 min-h-[40px] rounded-2xl text-xs font-extrabold border transition-all cursor-pointer shrink-0 ${
                     isActive
                       ? tab.activeStyle
                       : 'bg-[#FFFDF9] text-stone-600 border-stone-200/80 hover:bg-stone-100/60'

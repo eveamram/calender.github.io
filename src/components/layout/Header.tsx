@@ -57,8 +57,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
   const profiles: ProfilePersona[] = ['Eve', 'Abbie', 'Both'];
 
   return (
-    <header className="sticky top-0 z-30 bg-white/85 backdrop-blur-md border-b border-slate-200/60 px-2 sm:px-4 md:px-6 py-2 transition-all max-w-full overflow-x-hidden">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-1.5 sm:gap-2">
+    <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/60 px-3 sm:px-4 md:px-6 py-2.5 transition-all max-w-full overflow-x-hidden">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-3">
         {/* Left: Brand Logo */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <button
@@ -68,7 +68,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform">
               <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white stroke-[2.5]" />
             </div>
-            <span className="text-base sm:text-lg font-bold tracking-tight text-slate-900">
+            <span className="hidden min-[360px]:inline text-base sm:text-lg font-bold tracking-tight text-slate-900">
               calender<span className="text-pink-500">.</span>
             </span>
           </button>
@@ -109,7 +109,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
         {/* Right: Persona Switcher & Settings */}
         <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           {/* Segmented Persona Switcher */}
-          <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200/60">
+          <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200/60 gap-0.5">
             {profiles.map((p) => {
               const isSelected = activeProfile === p;
               const currentColor = profileColors[p] || (p === 'Eve' ? '#2563eb' : p === 'Abbie' ? '#ec4899' : '#059669');
@@ -118,12 +118,12 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
                 <button
                   key={p}
                   onClick={() => setActiveProfile(p)}
-                  className={`flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg text-[10px] sm:text-xs font-semibold transition-all cursor-pointer ${
-                    isSelected ? 'text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                  className={`flex items-center justify-center gap-1 px-2.5 sm:px-3 min-h-[36px] sm:min-h-[40px] rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                    isSelected ? 'text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'
                   }`}
                   style={isSelected ? { backgroundColor: currentColor } : undefined}
                 >
-                  {p === 'Both' ? <Users className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> : <User className="w-2.5 h-2.5 sm:w-3 sm:h-3" />}
+                  {p === 'Both' ? <Users className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
                   <span>{p}</span>
                 </button>
               );
@@ -133,10 +133,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
           {/* Settings Button */}
           <button
             onClick={() => setIsSettingsOpen(true)}
-            className="p-1 sm:p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200/60 transition-all cursor-pointer shrink-0"
+            className="flex items-center justify-center min-h-[36px] min-w-[36px] sm:min-h-[40px] sm:min-w-[40px] rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200/60 transition-all cursor-pointer shrink-0"
             title="App Settings"
           >
-            <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <Settings className="w-4 h-4" />
           </button>
         </div>
       </div>

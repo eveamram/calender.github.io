@@ -150,7 +150,7 @@ export const MealsView: React.FC<MealsViewProps> = ({ onOpenAddMealModal }) => {
 
           <button
             onClick={() => onOpenAddMealModal()}
-            className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-xs transition-all cursor-pointer active:scale-95 flex items-center gap-1.5"
+            className="px-3.5 py-2.5 min-h-[44px] rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-xs transition-all cursor-pointer active:scale-95 inline-flex items-center gap-1.5 whitespace-nowrap"
             title="Add Meal"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
@@ -162,14 +162,14 @@ export const MealsView: React.FC<MealsViewProps> = ({ onOpenAddMealModal }) => {
       {/* MOBILE LAYOUT: Day Selector Tabs + Daily Meal List */}
       <div className="lg:hidden space-y-5">
         {/* Horizontal Day Picker */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+        <div className="grid grid-cols-7 gap-1">
           {DAYS.map((day) => {
             const isSelected = selectedMobileDay === day.num;
             return (
               <button
                 key={day.num}
                 onClick={() => setSelectedMobileDay(day.num)}
-                className={`py-2 px-4 rounded-xl text-xs font-semibold shrink-0 transition-all ${
+                className={`min-h-[44px] py-2 px-0.5 rounded-xl text-[11px] font-semibold transition-all ${
                   isSelected
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -195,7 +195,7 @@ export const MealsView: React.FC<MealsViewProps> = ({ onOpenAddMealModal }) => {
                   </div>
                   <button
                     onClick={() => onOpenAddMealModal(selectedMobileDay, mType.type)}
-                    className="text-xs font-semibold text-blue-600 hover:underline"
+                    className="text-xs font-semibold text-blue-600 hover:underline min-h-[36px] px-2 inline-flex items-center"
                   >
                     + Add
                   </button>

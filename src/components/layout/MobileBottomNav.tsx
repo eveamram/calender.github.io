@@ -53,7 +53,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = () => {
                   setActiveTab(item.tab);
                   setShowMoreMenu(false);
                 }}
-                className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl min-w-[60px] transition-all cursor-pointer ${
+                className={`flex flex-col items-center justify-center py-1.5 px-2 sm:px-3 rounded-2xl min-w-[56px] min-h-[48px] transition-all cursor-pointer ${
                   isActive
                     ? 'text-white bg-slate-900 shadow-sm scale-105 font-black'
                     : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100 font-semibold'
@@ -68,7 +68,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = () => {
           {/* 5th Tab: More */}
           <button
             onClick={() => setShowMoreMenu((prev) => !prev)}
-            className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl min-w-[60px] transition-all cursor-pointer ${
+            className={`flex flex-col items-center justify-center py-1.5 px-2 sm:px-3 rounded-2xl min-w-[56px] min-h-[48px] transition-all cursor-pointer ${
               isMoreActive || showMoreMenu
                 ? 'text-white bg-slate-900 shadow-sm scale-105 font-black'
                 : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100 font-semibold'

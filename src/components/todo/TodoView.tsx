@@ -71,7 +71,7 @@ export const TodoView: React.FC<TodoViewProps> = ({ onOpenAddModal }) => {
       <div
         key={task.id}
         onClick={() => toggleTaskComplete(task.id)}
-        className="flex items-center justify-between gap-3 p-3.5 rounded-2xl border border-slate-200/80 bg-white hover:bg-slate-50/80 active:bg-slate-100/90 transition-all cursor-pointer group shadow-2xs"
+        className="flex items-start sm:items-center justify-between gap-3 p-3.5 min-h-[52px] rounded-2xl border border-slate-200/80 bg-white hover:bg-slate-50/80 active:bg-slate-100/90 transition-all cursor-pointer group shadow-2xs"
       >
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <div className="text-slate-300 hover:text-slate-700 transition-colors shrink-0">
@@ -83,7 +83,7 @@ export const TodoView: React.FC<TodoViewProps> = ({ onOpenAddModal }) => {
           </div>
 
           <span
-            className={`text-sm font-medium text-slate-900 truncate ${
+            className={`text-sm font-medium text-slate-900 break-words ${
               task.is_completed ? 'line-through text-slate-400 font-normal' : ''
             }`}
           >
@@ -129,18 +129,18 @@ export const TodoView: React.FC<TodoViewProps> = ({ onOpenAddModal }) => {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto px-4 md:px-8 py-6">
-      <div className="flex items-center justify-between border-b border-slate-200/80 pb-4">
-        <div>
+      <div className="flex items-center justify-between gap-3 border-b border-slate-200/80 pb-4">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">To-Do List</h1>
-          <p className="text-xs text-slate-500 font-medium">Simple, clean task management</p>
+          <p className="text-xs text-slate-500 font-medium hidden sm:block">Simple, clean task management</p>
         </div>
         <button
           onClick={onOpenAddModal}
-          className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-xs transition-all cursor-pointer active:scale-95 flex items-center gap-1.5"
+          className="px-4 py-2.5 min-h-[44px] rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-xs transition-all cursor-pointer active:scale-95 inline-flex items-center gap-1.5 whitespace-nowrap shrink-0"
           title="Add Details"
         >
           <Plus className="w-4 h-4 stroke-[2.5]" />
-          <span className="hidden sm:inline">Add Details</span>
+          <span>Add</span>
         </button>
       </div>
 
@@ -150,7 +150,7 @@ export const TodoView: React.FC<TodoViewProps> = ({ onOpenAddModal }) => {
           value={quickTitle}
           onChange={(e) => setQuickTitle(e.target.value)}
           placeholder="What needs to be done?"
-          className="w-full bg-white border border-slate-200/90 rounded-2xl py-2.5 pl-4 pr-20 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 shadow-2xs"
+          className="w-full bg-white border border-slate-200/90 rounded-2xl min-h-[48px] py-3 pl-4 pr-20 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 shadow-2xs"
         />
         <button
           type="submit"
