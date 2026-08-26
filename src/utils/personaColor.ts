@@ -16,3 +16,18 @@ export function classPersonaColor(
   if (activeProfile === 'Both') return personColor;
   return classColor || personColor;
 }
+
+/**
+ * Habit color is the one picked on the habit.
+ * Both view uses that same color (not Eve/Abbie persona colors).
+ */
+export function habitItemColor(
+  habitColor: string | undefined,
+  itemProfile: ProfilePersona | undefined,
+  profileColors: Record<ProfilePersona, string>
+): string {
+  if (habitColor) return habitColor;
+  const owner = itemProfile || 'Eve';
+  return profileColors[owner] || (owner === 'Eve' ? '#8B7CF6' : owner === 'Abbie' ? '#E98BAF' : '#83B79A');
+}
+

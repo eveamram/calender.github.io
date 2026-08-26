@@ -226,7 +226,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         setHbtDays(habitToEdit.active_days && habitToEdit.active_days.length > 0 ? habitToEdit.active_days : [1, 2, 3, 4, 5, 6, 7]);
         setHbtProfile(habitToEdit.profile || defaultProfile);
         setHbtShowInDailySchedule(habitToEdit.show_in_daily_schedule ?? true);
-        setHbtColor(DEFAULT_COLOR_SWATCHES[0].hex);
+        setHbtColor(habitToEdit.color || DEFAULT_COLOR_SWATCHES[0].hex);
       } else {
         setHbtTitle('');
         setHbtEmoji('⚡');
@@ -469,6 +469,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
           target_quantity: hbtQty ? Number(hbtQty) : undefined,
           active_days: hbtDays,
           profile: hbtProfile,
+          color: hbtColor,
           show_in_daily_schedule: hbtShowInDailySchedule,
         });
       } else {
@@ -478,6 +479,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
           target_quantity: hbtQty ? Number(hbtQty) : undefined,
           active_days: hbtDays,
           profile: hbtProfile,
+          color: hbtColor,
           show_in_daily_schedule: hbtShowInDailySchedule,
         });
       }

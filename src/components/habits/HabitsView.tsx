@@ -3,6 +3,7 @@ import { useStore, getTodayDateString } from '../../context/StoreContext';
 import { HabitItem } from '../../types';
 import { Plus, Check, Trash2, Pencil, Calendar as CalendarIcon, RotateCcw, Calendar, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { habitItemColor } from '../../utils/personaColor';
 
 interface HabitsViewProps {
   onOpenAddModal: (habitToEdit?: HabitItem | null) => void;
@@ -226,8 +227,7 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
       ) : (
         <div className="space-y-3.5">
           {filteredHabits.map((h) => {
-            const ownerName = h.profile || 'Eve';
-            const habitAccentColor = profileColors[ownerName] || (ownerName === 'Eve' ? '#8B7CF6' : ownerName === 'Abbie' ? '#E98BAF' : '#83B79A');
+            const habitAccentColor = habitItemColor(h.color, h.profile, profileColors);
             const activeDays = h.active_days && h.active_days.length > 0 ? h.active_days : [1, 2, 3, 4, 5, 6, 7];
             const isShownInDailySchedule = Boolean(h.show_in_daily_schedule);
 

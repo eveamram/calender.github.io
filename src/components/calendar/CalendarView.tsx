@@ -223,8 +223,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         const isDone = habitCompletions.some(
           (hc) => hc.habit_id === h.id && hc.date === selectedDate && hc.completed
         );
-        const ownerProf = h.profile || 'Eve';
-        const habitColor = profileColors[ownerProf] || (ownerProf === 'Eve' ? '#2563eb' : ownerProf === 'Abbie' ? '#ec4899' : '#059669');
+        const habitColor = habitItemColor(h.color, h.profile, profileColors);
         return {
           id: `habit-evt-${h.id}`,
           title: `${h.emoji || '✨'} ${h.title}`,
