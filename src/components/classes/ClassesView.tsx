@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useStore, getTodayDateString, formatTime12Hour } from '../../context/StoreContext';
 import { ClassItem } from '../../types';
+import { classPersonaColor } from '../../utils/personaColor';
 import { Plus, Clock, MapPin, Trash2, Edit3, AlertCircle, GraduationCap, UserCheck } from 'lucide-react';
 
 interface ClassesViewProps {
@@ -251,8 +252,8 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
             <div className="space-y-3">
               {selectedMobileClasses.map((cls) => {
                 const ownerName = cls.profile || 'Eve';
-                const ownerColor = profileColors[ownerName] || cls.color || '#2563eb';
-                const cardColor = cls.color || ownerColor;
+                const ownerColor = classPersonaColor(cls.profile, activeProfile, profileColors, cls.color);
+                const cardColor = ownerName === 'Both' ? ownerColor : (cls.color || ownerColor);
 
                 return (
                   <ClassCardItem
@@ -328,8 +329,8 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                   ) : (
                     dayClasses.map((cls) => {
                       const ownerName = cls.profile || 'Eve';
-                      const ownerColor = profileColors[ownerName] || cls.color || '#2563eb';
-                      const cardColor = cls.color || ownerColor;
+                      const ownerColor = classPersonaColor(cls.profile, activeProfile, profileColors, cls.color);
+                      const cardColor = ownerName === 'Both' ? ownerColor : (cls.color || ownerColor);
 
                       return (
                         <ClassCardItem
@@ -491,8 +492,8 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
             {filteredClasses.map((cls) => {
               const ownerName = cls.profile || 'Eve';
-              const ownerColor = profileColors[ownerName] || cls.color || '#2563eb';
-              const cardColor = cls.color || ownerColor;
+              const ownerColor = classPersonaColor(cls.profile, activeProfile, profileColors, cls.color);
+              const cardColor = ownerName === 'Both' ? ownerColor : (cls.color || ownerColor);
               const hasHours = Boolean(cls.office_hours);
 
               return (

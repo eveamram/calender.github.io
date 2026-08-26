@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useStore, getTodayDateString, formatTime12Hour } from '../../context/StoreContext';
 import { CalendarEvent, CATEGORY_METAS, ClassItem, EventType, HabitItem, ProfilePersona } from '../../types';
 import { getAnniversaryEvent, getCommonHolidayEvent } from '../../utils/holidays';
+import { classPersonaColor } from '../../utils/personaColor';
 import {
   ChevronLeft,
   ChevronRight,
@@ -193,7 +194,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       })
       .map((cls) => {
         const ownerProf = cls.profile || 'Eve';
-        const classColor = profileColors[ownerProf] || cls.color || '#2563eb';
+        const classColor = classPersonaColor(cls.profile, activeProfile, profileColors, cls.color);
         return {
           id: `class-item-${cls.id}`,
           title: `📚 ${cls.name}${cls.room ? ` (${cls.room})` : ''}`,
@@ -239,7 +240,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
     const combined = [...eventList, ...classEvents, ...habitEvents];
     return combined.sort((a, b) => (a.start_time || '00:00').localeCompare(b.start_time || '00:00'));
-  }, [eventsByDate, selectedDate, classes, filteredHabits, habitCompletions, filterByProfile, profileColors]);
+  }, [eventsByDate, selectedDate, classes, filteredHabits, habitCompletions, filterByProfile, profileColors, activeProfile]);
 
   const todayStr = useMemo(() => getTodayDateString(), []);
 
@@ -561,6 +562,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 <button
                   key={dayObj.dateStr}
                   onClick={() => {
+                    if (isSelected) {
+                      onOpenAddModal(dayObj.dateStr);
+                      return;
+                    }
                     setSelectedDate(dayObj.dateStr);
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
@@ -665,7 +670,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               return (
                 <div
                   key={dayObj.dateStr}
-                  onClick={() => setSelectedDate(dayObj.dateStr)}
+                  onClick={() => {
+                    setSelectedDate(dayObj.dateStr);
+                    onOpenAddModal(dayObj.dateStr);
+                  }}
                   onDoubleClick={(e) => handleDayDoubleClick(e, dayObj.dateStr)}
                   className={`min-h-[105px] p-2 rounded-2xl border transition-all flex flex-col justify-between cursor-pointer group ${
                     !dayObj.isCurrentMonth
@@ -697,7 +705,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                         evt.stopPropagation();
                         onOpenAddModal(dayObj.dateStr);
                       }}
-                      className="opacity-0 group-hover:opacity-100 p-1 rounded-lg hover:bg-slate-200 text-slate-500 transition-opacity cursor-pointer"
+                      className="opacity-70 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-slate-200 text-slate-500 transition-opacity cursor-pointer"
                       title="Add event on date"
                     >
                       <Plus className="w-3.5 h-3.5" />
@@ -725,7 +733,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             evt.stopPropagation();
                             onOpenAddModal(e.event_date, e);
                           }}
-                          className={`text-[11px] font-bold px-2 py-1 rounded-xl truncate flex items-center justify-between transition-all cursor-pointer text-slate-900 hover:scale-[1.02] shadow-2xs ${
+                          className={`text-[11px] font-bold px-2 py-1 rounded-xl flex items-start justify-between transition-all cursor-pointer text-slate-900 hover:scale-[1.02] shadow-2xs ${
                             isClassChip
                               ? isPastClass
                                 ? 'opacity-60'
@@ -736,7 +744,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           }`}
                           style={{ backgroundColor: `${evtColor}25`, borderLeft: `3.5px solid ${evtColor}` }}
                         >
-                          <span className="truncate">{e.title}</span>
+                          <span className="break-words whitespace-normal leading-tight">{e.title}</span>
                         </div>
                       );
                     })}
