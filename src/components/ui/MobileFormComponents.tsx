@@ -183,7 +183,7 @@ interface MobileSelectFieldProps {
 }
 
 const HOURS_12 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-const MINUTES_5 = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+const MINUTES = Array.from({ length: 60 }, (_, i) => i);
 
 const parse12hParts = (timeStr: string): { hour: number; minute: number; ampm: 'AM' | 'PM' } => {
   const fallback = { hour: 9, minute: 0, ampm: 'AM' as const };
@@ -311,9 +311,9 @@ const TimePickerDialog: React.FC<TimePickerDialogProps> = ({
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const minuteItems = MINUTES_5.includes(minute)
-    ? MINUTES_5
-    : [...MINUTES_5, minute].sort((a, b) => a - b);
+  const minuteItems = MINUTES.includes(minute)
+    ? MINUTES
+    : [...MINUTES, minute].sort((a, b) => a - b);
 
   const handleDone = () => {
     commit(hour, minute, ampm);
