@@ -37,6 +37,55 @@ export const TABLE_MAP: Record<AppTable, string> = {
   dateColors: 'date_colors',
 };
 
+// Columns that exist (or will exist) on each Postgres table.
+// Client-only fields like is_habit_item must never be sent.
+const DB_COLUMNS: Record<AppTable, readonly string[]> = {
+  events: ['id', 'title', 'event_type', 'event_date', 'start_time', 'end_time', 'location', 'color', 'task_id', 'is_completed', 'profile', 'created_at', 'updated_at'],
+  classes: ['id', 'name', 'instructor', 'room', 'start_time', 'end_time', 'days_of_week', 'color', 'profile', 'office_hours', 'office_hours_location', 'created_at', 'updated_at'],
+  tasks: ['id', 'title', 'is_completed', 'due_date', 'due_time', 'priority', 'profile', 'created_at', 'updated_at'],
+  habits: ['id', 'title', 'emoji', 'target_quantity', 'target_unit', 'active_days', 'color', 'profile', 'show_in_daily_schedule', 'created_at', 'updated_at'],
+  habitCompletions: ['id', 'habit_id', 'date', 'completed', 'current_quantity', 'created_at'],
+  groceryItems: ['id', 'name', 'quantity', 'category', 'is_completed', 'profile', 'created_at', 'updated_at'],
+  mealItems: ['id', 'title', 'day_of_week', 'meal_date', 'meal_type', 'notes', 'profile', 'created_at', 'updated_at'],
+  bookItems: ['id', 'title', 'author', 'status', 'current_page', 'total_pages', 'eve_page', 'abbie_page', 'rating', 'genre', 'profile', 'created_at', 'updated_at'],
+  profileColors: ['id', 'color'],
+  dateColors: ['id', 'color'],
+};
+
+function toDbPayload(appTable: AppTable, item: Record<string, any>): Record<string, any> {
+  const allowed = new Set(DB_COLUMNS[appTable]);
+  const out: Record<string, any> = {};
+  for (const [key, value] of Object.entries(item)) {
+    if (!allowed.has(key) || value === undefined) continue;
+    out[key] = value;
+  }
+  return out;
+}
+
+function unknownColumnFromError(message?: string): string | null {
+  const match = message?.match(/Could not find the '([^']+)' column/);
+  return match?.[1] ?? null;
+}
+
+async function upsertToSupabase(
+  appTable: AppTable,
+  item: Record<string, any>
+): Promise<{ ok: boolean; errorMessage?: string }> {
+  const dbTable = TABLE_MAP[appTable];
+  const dbPayload = toDbPayload(appTable, item);
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const { error } = await supabase.from(dbTable).upsert([dbPayload]).select();
+    if (!error) return { ok: true };
+    const unknownCol = unknownColumnFromError(error.message);
+    if (error.code === 'PGRST204' && unknownCol && unknownCol in dbPayload) {
+      delete dbPayload[unknownCol];
+      continue;
+    }
+    return { ok: false, errorMessage: error.message };
+  }
+  return { ok: false, errorMessage: 'Too many schema retries' };
+}
+
 // Reverse Mapping: Supabase PostgreSQL Table Name -> Logical App Table Key
 export const REVERSE_TABLE_MAP: Record<string, AppTable> = {
   events: 'events',
@@ -352,18 +401,33 @@ export const syncEngine = {
               }
             });
 
-            // Remove items deleted on server only if server responded with data
-            if (data.length > 0) {
-              Array.from(tableMap.keys()).forEach((localId) => {
-                if (!remoteIds.has(localId)) {
-                  // Keep newly created local items that haven't hit server yet
-                  const isNewLocal = localId.includes('-') && Date.now() - parseInt(localId.split('-')[1] || '0', 10) < 300000;
-                  if (!isNewLocal) {
-                    tableMap.delete(localId);
-                  }
+            // Push local-only rows that never landed in the cloud (e.g. extra columns used to 400).
+            const keepLocalOnly = new Set<string>();
+            for (const [localId, localItem] of Array.from(tableMap.entries())) {
+              if (remoteIds.has(localId)) continue;
+              const timestamp = Number(String(localId).split('-')[1]);
+              const isNewLocal = Number.isFinite(timestamp) && Date.now() - timestamp < 300000;
+              if (isNewLocal) {
+                keepLocalOnly.add(localId);
+                continue;
+              }
+              const uploaded = await upsertToSupabase(appTable, localItem);
+              if (uploaded.ok) {
+                remoteIds.add(localId);
+              } else {
+                keepLocalOnly.add(localId);
+                if (uploaded.errorMessage) {
+                  console.warn(`Supabase backfill warning [${appTable}]:`, uploaded.errorMessage);
                 }
-              });
+              }
             }
+
+            // Drop local rows the cloud no longer has, except ones we just failed (or haven't tried) to upload.
+            Array.from(tableMap.keys()).forEach((localId) => {
+              if (!remoteIds.has(localId) && !keepLocalOnly.has(localId)) {
+                tableMap.delete(localId);
+              }
+            });
             saveLocalSnapshot(appTable);
           } else if (error) {
             const errMsg = `Cloud table '${dbTable}' sync notice: ${error.message}`;
@@ -418,17 +482,13 @@ export const syncEngine = {
 
     const dbTable = TABLE_MAP[appTable];
     try {
-      const dbPayload = { ...item } as any;
-      if (appTable === 'habits') {
-        delete dbPayload.show_in_daily_schedule;
-      }
-      const { data, error } = await supabase.from(dbTable).upsert([dbPayload]).select();
-      if (error) {
-        console.warn(`Supabase upsert warning [${appTable} -> ${dbTable}]:`, error.message);
-        updateSyncStatus({ syncError: `Saved locally. Cloud sync notice: ${error.message}` });
+      const uploaded = await upsertToSupabase(appTable, item as Record<string, any>);
+      if (!uploaded.ok) {
+        console.warn(`Supabase upsert warning [${appTable} -> ${dbTable}]:`, uploaded.errorMessage);
+        updateSyncStatus({ syncError: `Saved locally. Cloud sync notice: ${uploaded.errorMessage}` });
         return true; // Return true so UI operation completes without throwing away user edits!
       }
-      console.log(`Supabase upsert SUCCESS [${appTable} -> ${dbTable}]:`, data);
+      console.log(`Supabase upsert SUCCESS [${appTable} -> ${dbTable}]`);
     } catch (err: any) {
       console.warn(`Supabase upsert exception [${appTable} -> ${dbTable}]:`, err);
       updateSyncStatus({ syncError: `Saved locally. Cloud sync exception: ${err?.message || err}` });

@@ -39,9 +39,12 @@ CREATE TABLE IF NOT EXISTS public.events (
   color TEXT,
   task_id TEXT,
   profile TEXT DEFAULT 'Eve',
+  is_completed BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS is_completed BOOLEAN DEFAULT FALSE;
 
 -- 2. Classes Table
 CREATE TABLE IF NOT EXISTS public.classes (
@@ -54,9 +57,14 @@ CREATE TABLE IF NOT EXISTS public.classes (
   days_of_week INT[] NOT NULL,
   color TEXT,
   profile TEXT DEFAULT 'Eve',
+  office_hours TEXT,
+  office_hours_location TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE public.classes ADD COLUMN IF NOT EXISTS office_hours TEXT;
+ALTER TABLE public.classes ADD COLUMN IF NOT EXISTS office_hours_location TEXT;
 
 -- 3. Tasks Table
 CREATE TABLE IF NOT EXISTS public.tasks (
@@ -160,6 +168,9 @@ CREATE TABLE IF NOT EXISTS public.date_colors (
 -- ====================================================================
 
 -- Enable RLS on all 10 tables
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO anon, authenticated;
+
 ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.classes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;

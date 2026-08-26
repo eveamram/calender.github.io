@@ -1,17 +1,31 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-export const getSupabaseUrl = (): string => 'https://rfvhqhlfrpaswgexrjqz.supabase.co';
-export const getSupabaseAnonKey = (): string => 'sb_publishable_gDiT6Wk52sGIpO0i2twPJA_JRIyRm_B';
+const DEFAULT_SUPABASE_URL = 'https://rfvhqhlfrpaswgexrjqz.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_gDiT6Wk52sGIpO0i2twPJA_JRIyRm_B';
+
+export const getSupabaseUrl = (): string =>
+  import.meta.env.VITE_SUPABASE_URL?.trim() || DEFAULT_SUPABASE_URL;
+export const getSupabaseAnonKey = (): string =>
+  import.meta.env.VITE_SUPABASE_ANON_KEY?.trim() || DEFAULT_SUPABASE_ANON_KEY;
 
 export const supabaseUrl = getSupabaseUrl();
 export const supabaseAnonKey = getSupabaseAnonKey();
 
-export const isSupabaseConfigured = (): boolean => true;
+export const isSupabaseConfigured = (): boolean => {
+  try {
+    return Boolean(new URL(getSupabaseUrl()).protocol === 'https:' && getSupabaseAnonKey());
+  } catch {
+    return false;
+  }
+};
 
 export const getSupabaseConfigStatus = () => {
+  const isConfigured = isSupabaseConfigured();
   return {
-    isConfigured: true,
-    message: 'Connected to shared Supabase Cloud database.',
+    isConfigured,
+    message: isConfigured
+      ? 'Connected to shared Supabase Cloud database.'
+      : 'Supabase configuration is missing or invalid.',
     url: getSupabaseUrl(),
   };
 };
