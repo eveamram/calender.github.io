@@ -153,16 +153,8 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
     [filteredClasses]
   );
 
-  const classesWithOfficeHours = useMemo(
-    () =>
-      classes.filter(
-        (cls) => Boolean((cls.office_hours || '').trim() || (cls.office_hours_location || '').trim())
-      ),
-    [classes]
-  );
-
   const clearAllOfficeHours = () => {
-    classesWithOfficeHours.forEach((cls) => {
+    officeHoursClasses.forEach((cls) => {
       updateClass(cls.id, { office_hours: '', office_hours_location: '' });
     });
   };
@@ -491,13 +483,14 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {classesWithOfficeHours.length > 0 && (
+            {officeHoursClasses.length > 0 && (
               <button
                 type="button"
                 onClick={clearAllOfficeHours}
-                className="text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 px-3 py-2 min-h-[36px] rounded-xl transition-colors cursor-pointer"
               >
-                Remove all office hours
+                <Trash2 className="w-3.5 h-3.5" />
+                Delete all
               </button>
             )}
             <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100/80">
