@@ -3,6 +3,21 @@ export interface OfficeHourSlot {
   location: string;
 }
 
+export const HIDDEN_OFFICE_HOURS = '__hidden__';
+
+export function isOfficeHoursHidden(cls: {
+  office_hours?: string | null;
+}): boolean {
+  return (cls.office_hours || '').trim() === HIDDEN_OFFICE_HOURS;
+}
+
+export function hiddenOfficeHoursPayload(): {
+  office_hours: string;
+  office_hours_location: string;
+} {
+  return { office_hours: HIDDEN_OFFICE_HOURS, office_hours_location: '' };
+}
+
 function asSlot(item: unknown, fallbackRoom: string): OfficeHourSlot | null {
   if (typeof item === 'string') {
     const time = item.trim();
@@ -25,7 +40,7 @@ export function parseOfficeHourSlots(
 ): OfficeHourSlot[] {
   const raw = (officeHours || '').trim();
   const fallbackRoom = (officeLocation || '').trim();
-  if (!raw) {
+  if (!raw || raw === HIDDEN_OFFICE_HOURS) {
     return fallbackRoom ? [{ time: '', location: fallbackRoom }] : [];
   }
 

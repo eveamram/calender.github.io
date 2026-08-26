@@ -14,6 +14,7 @@ import {
 import {
   parseOfficeHourSlots,
   serializeOfficeHourSlots,
+  hiddenOfficeHoursPayload,
   OfficeHourSlot,
 } from '../../utils/officeHours';
 import {
@@ -858,10 +859,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                 setIsSaving(true);
                 setErrorMsg(null);
                 try {
-                  const ok = await updateClass(classToEdit.id, {
-                    office_hours: '',
-                    office_hours_location: '',
-                  });
+                  const ok = await updateClass(classToEdit.id, hiddenOfficeHoursPayload());
                   if (ok) onClose();
                   else setErrorMsg('Could not remove office hours. Please try again.');
                 } catch (err: any) {

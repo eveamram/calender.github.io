@@ -6,6 +6,8 @@ import {
   parseOfficeHourSlots,
   serializeOfficeHourSlots,
   classHasOfficeHours,
+  isOfficeHoursHidden,
+  hiddenOfficeHoursPayload,
   OfficeHourSlot,
 } from '../../utils/officeHours';
 import { Plus, Clock, MapPin, Trash2, Edit3, AlertCircle, GraduationCap, UserCheck } from 'lucide-react';
@@ -158,7 +160,10 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
   }, [classes, filterByProfile]);
 
   const officeHoursClasses = useMemo(
-    () => [...filteredClasses].sort((a, b) => a.name.localeCompare(b.name)),
+    () =>
+      [...filteredClasses]
+        .filter((cls) => !isOfficeHoursHidden(cls))
+        .sort((a, b) => a.name.localeCompare(b.name)),
     [filteredClasses]
   );
 
@@ -193,18 +198,22 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
   };
 
   const removeOfficeHourSlot = (cls: ClassItem, index: number) => {
-    const slots = parseOfficeHourSlots(cls.office_hours, cls.office_hours_location);
-    saveOfficeSlots(cls, slots.filter((_, i) => i !== index));
+    const slots = parseOfficeHourSlots(cls.office_hours, cls.office_hours_location).filter((_, i) => i !== index);
+    if (slots.length === 0) {
+      updateClass(cls.id, hiddenOfficeHoursPayload());
+      return;
+    }
+    saveOfficeSlots(cls, slots);
   };
 
   const clearClassOfficeHours = (cls: ClassItem) => {
-    updateClass(cls.id, { office_hours: '', office_hours_location: '' });
+    updateClass(cls.id, hiddenOfficeHoursPayload());
     if (addingOfficeId === cls.id) setAddingOfficeId(null);
   };
 
   const clearAllOfficeHours = () => {
-    classesWithOfficeHours.forEach((cls) => {
-      updateClass(cls.id, { office_hours: '', office_hours_location: '' });
+    officeHoursClasses.forEach((cls) => {
+      updateClass(cls.id, hiddenOfficeHoursPayload());
     });
     setAddingOfficeId(null);
   };
