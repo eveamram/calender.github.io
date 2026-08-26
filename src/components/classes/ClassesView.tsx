@@ -149,7 +149,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
   }, [classes, filterByProfile]);
 
   const officeHoursClasses = useMemo(
-    () => filteredClasses.filter((c) => Boolean(c.office_hours) || Boolean(c.office_hours_location)),
+    () => [...filteredClasses].sort((a, b) => a.name.localeCompare(b.name)),
     [filteredClasses]
   );
 
@@ -478,14 +478,14 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100/80">
-              {officeHoursClasses.length} Configured
+              {officeHoursClasses.length} classes
             </span>
           </div>
         </div>
 
         {officeHoursClasses.length === 0 ? (
           <div className="py-8 text-center space-y-2">
-            <p className="text-xs font-medium text-slate-400">No office hours added yet</p>
+            <p className="text-xs font-medium text-slate-400">Add a class and it will show up here</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">

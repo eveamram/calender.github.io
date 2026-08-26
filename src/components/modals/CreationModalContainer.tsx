@@ -762,6 +762,21 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             />
           </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 md:gap-4">
+            <MobileFormField
+              label="Office Hours Schedule"
+              value={clsOfficeHours}
+              onChange={(e) => setClsOfficeHours(e.target.value)}
+              placeholder="e.g. Mon & Wed 2:00 - 4:00 PM"
+            />
+            <MobileFormField
+              label="Office Hours Location"
+              value={clsOfficeHoursLocation}
+              onChange={(e) => setClsOfficeHoursLocation(e.target.value)}
+              placeholder="e.g. Science 304 or Zoom"
+            />
+          </div>
+
           <div>
             <button
               type="button"
@@ -786,20 +801,6 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                     value={clsInstructor}
                     onChange={(e) => setClsInstructor(e.target.value)}
                     placeholder="Prof. Smith"
-                  />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 md:gap-4">
-                  <MobileFormField
-                    label="Office Hours Schedule"
-                    value={clsOfficeHours}
-                    onChange={(e) => setClsOfficeHours(e.target.value)}
-                    placeholder="e.g. Mon & Wed 2:00 - 4:00 PM"
-                  />
-                  <MobileFormField
-                    label="Office Hours Location"
-                    value={clsOfficeHoursLocation}
-                    onChange={(e) => setClsOfficeHoursLocation(e.target.value)}
-                    placeholder="e.g. Science 304 or Zoom"
                   />
                 </div>
               </div>
