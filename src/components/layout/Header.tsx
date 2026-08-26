@@ -68,7 +68,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform">
               <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white stroke-[2.5]" />
             </div>
-            <span className="hidden sm:inline text-base sm:text-lg font-bold tracking-tight text-slate-900">
+            <span className="hidden min-[360px]:inline text-base sm:text-lg font-bold tracking-tight text-slate-900">
               calender<span className="text-pink-500">.</span>
             </span>
           </button>
@@ -118,12 +118,12 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
                 <button
                   key={p}
                   onClick={() => setActiveProfile(p)}
-                  className={`flex items-center justify-center gap-1 px-2 sm:px-3 min-h-[36px] sm:min-h-[40px] rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  className={`flex items-center justify-center gap-1 px-2.5 sm:px-3 min-h-[36px] sm:min-h-[40px] rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                     isSelected ? 'text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'
                   }`}
                   style={isSelected ? { backgroundColor: currentColor } : undefined}
                 >
-                  {p === 'Both' ? <Users className="w-3.5 h-3.5 hidden sm:block" /> : <User className="w-3.5 h-3.5 hidden sm:block" />}
+                  {p === 'Both' ? <Users className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
                   <span>{p}</span>
                 </button>
               );
