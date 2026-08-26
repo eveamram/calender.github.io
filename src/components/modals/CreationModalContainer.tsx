@@ -835,6 +835,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                 required
                 value={hbtTitle}
                 onChange={(e) => setHbtTitle(e.target.value)}
+                onKeyDown={(e) => { if (e.key === ' ') e.stopPropagation(); }}
                 placeholder="e.g. Drink Water"
                 className="flex-1 h-[48px] bg-slate-50/80 border border-slate-200/80 rounded-2xl px-4 text-sm font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all"
               />
@@ -1105,6 +1106,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                 <textarea
                   value={melNotes}
                   onChange={(e) => setMelNotes(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === ' ') e.stopPropagation(); }}
                   placeholder="Ingredients or instructions..."
                   rows={2}
                   className="w-full bg-slate-50/80 border border-slate-200/80 rounded-2xl p-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all box-border"

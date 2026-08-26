@@ -134,13 +134,6 @@ export const MobileFormField: React.FC<MobileFormFieldProps> = ({
       <label
         htmlFor={inputId}
         onClick={activateField}
-        onKeyDown={(event) => {
-          if (event.target instanceof HTMLInputElement) return;
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            activateField();
-          }
-        }}
         className={`relative block h-[52px] rounded-2xl border transition-all ${
           isRed
             ? 'bg-red-50/30 border-red-200 focus-within:bg-white focus-within:border-red-600'
@@ -156,6 +149,9 @@ export const MobileFormField: React.FC<MobileFormFieldProps> = ({
           disabled={disabled}
           value={value}
           onChange={onChange}
+          onKeyDown={(event) => {
+            if (event.key === ' ') event.stopPropagation();
+          }}
           placeholder={placeholder}
           min={min}
           max={max}

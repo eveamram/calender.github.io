@@ -149,6 +149,7 @@ export const TodoView: React.FC<TodoViewProps> = ({ onOpenAddModal }) => {
           type="text"
           value={quickTitle}
           onChange={(e) => setQuickTitle(e.target.value)}
+          onKeyDown={(e) => { if (e.key === ' ') e.stopPropagation(); }}
           placeholder="What needs to be done?"
           className="w-full bg-white border border-slate-200/90 rounded-2xl min-h-[48px] py-3 pl-4 pr-20 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 shadow-2xs"
         />

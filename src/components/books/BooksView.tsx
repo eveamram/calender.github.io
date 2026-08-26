@@ -350,6 +350,7 @@ export const BooksView: React.FC<BooksViewProps> = ({ onOpenAddBookModal }) => {
               placeholder="Search title or author..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === ' ') e.stopPropagation(); }}
               className="w-full pl-9 pr-8 py-2.5 rounded-2xl bg-[#FFFDF9] border border-stone-300/70 text-xs font-semibold text-stone-800 placeholder:text-stone-400 focus:outline-none focus:border-purple-400 shadow-2xs"
             />
             {searchQuery && (
