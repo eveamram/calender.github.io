@@ -6,8 +6,6 @@ import {
   BookOpen,
   CheckSquare,
   Sparkles,
-  ShoppingBag,
-  Utensils,
   BookMarked,
   User,
   Users,
@@ -50,7 +48,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
     { tab: 'classes', label: 'Classes', icon: <BookOpen className="w-4 h-4" /> },
     { tab: 'todo', label: 'To-Do', icon: <CheckSquare className="w-4 h-4" /> },
     { tab: 'habits', label: 'Habits', icon: <Sparkles className="w-4 h-4" /> },
-    { tab: 'meals', label: 'Meals', icon: <Utensils className="w-4 h-4" /> },
     { tab: 'books', label: 'Books', icon: <BookMarked className="w-4 h-4" /> },
   ];
 

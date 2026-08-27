@@ -3,7 +3,6 @@ import { useStore, getTodayDateString } from '../../context/StoreContext';
 import {
   EventType,
   ProfilePersona,
-  MealType,
   BookStatus,
   CalendarEvent,
   ClassItem,
@@ -29,7 +28,6 @@ import {
   Tag,
   Smile,
   ListTodo,
-  Utensils,
   Plus,
   Trash2,
 } from 'lucide-react';
@@ -46,7 +44,7 @@ import {
 } from '../ui/MobileFormComponents';
 
 interface CreationModalContainerProps {
-  modalType: 'event' | 'class' | 'task' | 'habit' | 'meal' | 'book' | null;
+  modalType: 'event' | 'class' | 'task' | 'habit' | 'book' | null;
   onClose: () => void;
   initialDate?: string;
   initialEventType?: EventType;
@@ -54,8 +52,6 @@ interface CreationModalContainerProps {
   classToEdit?: ClassItem | null;
   bookToEdit?: BookItem | null;
   habitToEdit?: HabitItem | null;
-  initialMealDay?: number;
-  initialMealType?: MealType;
   initialClassDay?: number;
 }
 
@@ -78,8 +74,6 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   classToEdit,
   bookToEdit,
   habitToEdit,
-  initialMealDay,
-  initialMealType,
   initialClassDay,
 }) => {
   const {
@@ -90,7 +84,6 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
     addTask,
     addHabit,
     updateHabit,
-    addMealItem,
     addBookItem,
     updateBookItem,
     activeProfile,
@@ -108,7 +101,6 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   const [showClsMore, setShowClsMore] = useState(false);
   const [showHbtMore, setShowHbtMore] = useState(false);
   const [showTskMore, setShowTskMore] = useState(false);
-  const [showMelMore, setShowMelMore] = useState(false);
   const [showBokMore, setShowBokMore] = useState(false);
 
   // 1. EVENT FORM STATE
@@ -245,28 +237,6 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
 
 
-  // 6. MEAL FORM STATE
-  const [melTitle, setMelTitle] = useState('');
-  const [melDay, setMelDay] = useState<number>(initialMealDay || 1);
-  const [melDate, setMelDate] = useState<string>(initialDate || getTodayDateString());
-  const [melType, setMelType] = useState<MealType>(initialMealType || 'lunch');
-  const [melNotes, setMelNotes] = useState('');
-  const [melProfile, setMelProfile] = useState<ProfilePersona>(defaultProfile);
-
-  useEffect(() => {
-    if (modalType === 'meal') {
-      setIsSaving(false);
-      setErrorMsg(null);
-      setShowMelMore(false);
-      setMelTitle('');
-      setMelDay(initialMealDay || 1);
-      setMelDate(initialDate || getTodayDateString());
-      setMelType(initialMealType || 'lunch');
-      setMelNotes('');
-      setMelProfile(defaultProfile);
-    }
-  }, [modalType, initialDate, initialMealDay, initialMealType, defaultProfile]);
-
   // 7. BOOK FORM STATE
   const [bokTitle, setBokTitle] = useState('');
   const [bokAuthor, setBokAuthor] = useState('');
@@ -308,16 +278,6 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   }, [modalType, onClose]);
 
   if (!modalType) return null;
-
-  const getDayOfWeekFromDateStr = (dateStr: string): number => {
-    const parts = dateStr.split('-');
-    if (parts.length === 3) {
-      const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-      const day = d.getDay();
-      return day === 0 ? 7 : day;
-    }
-    return 1;
-  };
 
   // Day of Week Segmented Control
   const renderDaySelector = (
@@ -503,30 +463,6 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
     }
   };
 
-  const handleMelSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!melTitle.trim() || isSaving) return;
-    setIsSaving(true);
-    setErrorMsg(null);
-    try {
-      const computedDay = melDate ? getDayOfWeekFromDateStr(melDate) : melDay;
-      const ok = await addMealItem({
-        title: melTitle.trim(),
-        day_of_week: computedDay,
-        meal_date: melDate || getTodayDateString(),
-        meal_type: melType,
-        notes: melNotes.trim() || undefined,
-        profile: melProfile,
-      });
-      if (ok) onClose();
-      else setErrorMsg('Could not save meal. Please try again.');
-    } catch (err: any) {
-      setErrorMsg(err?.message || 'Save failed.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const handleBokSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!bokTitle.trim() || isSaving) return;
@@ -576,8 +512,6 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         return habitToEdit ? 'Edit Habit' : 'Add Habit';
       case 'task':
         return 'Add Task';
-      case 'meal':
-        return 'Add Meal';
       case 'book':
         return bookToEdit ? 'Edit Book' : 'Add Book';
       default:
@@ -1092,97 +1026,6 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
           <div className="sticky bottom-0 z-10 bg-white pt-2">
           <MobileFormAction
             label="Add Task"
-            isSaving={isSaving}
-            onCancel={onClose}
-          />
-          </div>
-        </form>
-      )}
-
-      {/* 5. ADD MEAL FORM */}
-      {modalType === 'meal' && (
-        <form onSubmit={handleMelSubmit} className="space-y-4 md:space-y-5 w-full">
-          <MobileFormField
-            label="Meal Name"
-            value={melTitle}
-            onChange={(e) => setMelTitle(e.target.value)}
-            placeholder="e.g. Avocado Toast"
-            required
-          />
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 md:gap-4">
-            <MobileSelectField
-              label="Day/Date"
-              type="date"
-              displayValue={formatDateDisplay(melDate)}
-              value={melDate}
-              onChange={(e) => setMelDate(e.target.value)}
-            />
-            <div className="space-y-1.5 w-full">
-              <label className="block text-xs font-bold text-slate-900 tracking-tight">Meal Type</label>
-              <div className="grid grid-cols-4 gap-1 w-full box-border">
-                {[
-                  { type: 'breakfast', label: 'Breakfast', emoji: '🍳' },
-                  { type: 'lunch', label: 'Lunch', emoji: '🥗' },
-                  { type: 'dinner', label: 'Dinner', emoji: '🍲' },
-                  { type: 'snack', label: 'Snack', emoji: '🍎' },
-                ].map((m) => {
-                  const isSelected = melType === m.type;
-                  return (
-                    <button
-                      type="button"
-                      key={m.type}
-                      onClick={() => setMelType(m.type as MealType)}
-                      className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex flex-col items-center justify-center min-h-[48px] ${
-                        isSelected
-                          ? 'bg-slate-900 text-white shadow-xs'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                      }`}
-                    >
-                      <span className="text-xs">{m.emoji}</span>
-                      <span className="text-[9px] capitalize leading-none mt-0.5">{m.type}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          <MobileSegmentedControl
-            label="For"
-            options={profileOptions}
-            value={melProfile}
-            onChange={(val) => setMelProfile(val as ProfilePersona)}
-          />
-
-          <div>
-            <button
-              type="button"
-              onClick={() => setShowMelMore(!showMelMore)}
-              className="flex items-center justify-center gap-1.5 w-full text-xs font-bold text-slate-600 hover:text-slate-900 py-1 transition-colors cursor-pointer"
-            >
-              <span>{showMelMore ? 'Fewer options' : 'More options'}</span>
-              {showMelMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-            </button>
-
-            {showMelMore && (
-              <div className="pt-2 space-y-1.5">
-                <label className="block text-xs font-bold text-slate-900 tracking-tight">Recipe / Notes</label>
-                <textarea
-                  value={melNotes}
-                  onChange={(e) => setMelNotes(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === ' ') e.stopPropagation(); }}
-                  placeholder="Ingredients or instructions..."
-                  rows={2}
-                  className="w-full bg-slate-50/80 border border-slate-200/80 rounded-2xl p-3 text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all box-border"
-                />
-              </div>
-            )}
-          </div>
-
-          <div className="sticky bottom-0 z-10 bg-white pt-2">
-          <MobileFormAction
-            label="Add Meal"
             isSaving={isSaving}
             onCancel={onClose}
           />

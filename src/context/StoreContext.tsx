@@ -135,7 +135,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
 
   const [activeTab, setActiveTabState] = useState<AppTab>(() => {
-    return (localStorage.getItem('calender_tab') as AppTab) || 'calendar';
+    const saved = localStorage.getItem('calender_tab');
+    if (saved === 'meals' || saved === 'grocery') return 'calendar';
+    return (saved as AppTab) || 'calendar';
   });
 
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);

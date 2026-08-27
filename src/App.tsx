@@ -7,17 +7,16 @@ import { CalendarView } from './components/calendar/CalendarView';
 import { ClassesView } from './components/classes/ClassesView';
 import { TodoView } from './components/todo/TodoView';
 import { HabitsView } from './components/habits/HabitsView';
-import { MealsView } from './components/meals/MealsView';
 import { BooksView } from './components/books/BooksView';
 import { CreationModalContainer } from './components/modals/CreationModalContainer';
 import { SettingsModal } from './components/modals/SettingsModal';
-import { MealType, CalendarEvent, ClassItem, BookItem, HabitItem, EventType } from './types';
+import { CalendarEvent, ClassItem, BookItem, HabitItem, EventType } from './types';
 
 const MainAppContent: React.FC = () => {
   const { activeTab, syncStatus } = useStore();
 
   const [activeModal, setActiveModal] = useState<
-    'event' | 'class' | 'task' | 'habit' | 'meal' | 'book' | null
+    'event' | 'class' | 'task' | 'habit' | 'book' | null
   >(null);
 
   const [initialModalDate, setInitialModalDate] = useState<string | undefined>(undefined);
@@ -26,8 +25,6 @@ const MainAppContent: React.FC = () => {
   const [classToEdit, setClassToEdit] = useState<ClassItem | null>(null);
   const [bookToEdit, setBookToEdit] = useState<BookItem | null>(null);
   const [habitToEdit, setHabitToEdit] = useState<HabitItem | null>(null);
-  const [initialMealDay, setInitialMealDay] = useState<number | undefined>(undefined);
-  const [initialMealType, setInitialMealType] = useState<MealType | undefined>(undefined);
   const [initialClassDay, setInitialClassDay] = useState<number | undefined>(undefined);
 
   const handleOpenAddForTab = () => {
@@ -49,9 +46,6 @@ const MainAppContent: React.FC = () => {
         break;
       case 'habits':
         setActiveModal('habit');
-        break;
-      case 'meals':
-        setActiveModal('meal');
         break;
       case 'books':
         setActiveModal('book');
@@ -103,15 +97,6 @@ const MainAppContent: React.FC = () => {
             }}
           />
         )}
-        {activeTab === 'meals' && (
-          <MealsView
-            onOpenAddMealModal={(day, type) => {
-              setInitialMealDay(day);
-              setInitialMealType(type);
-              setActiveModal('meal');
-            }}
-          />
-        )}
         {activeTab === 'books' && (
           <BooksView
             onOpenAddBookModal={(book) => {
@@ -139,8 +124,6 @@ const MainAppContent: React.FC = () => {
           setClassToEdit(null);
           setBookToEdit(null);
           setHabitToEdit(null);
-          setInitialMealDay(undefined);
-          setInitialMealType(undefined);
           setInitialClassDay(undefined);
         }}
         initialDate={initialModalDate}
@@ -149,8 +132,6 @@ const MainAppContent: React.FC = () => {
         classToEdit={classToEdit}
         bookToEdit={bookToEdit}
         habitToEdit={habitToEdit}
-        initialMealDay={initialMealDay}
-        initialMealType={initialMealType}
         initialClassDay={initialClassDay}
       />
     </div>

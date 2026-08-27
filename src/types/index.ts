@@ -5,7 +5,6 @@ export type AppTab =
   | 'classes'
   | 'todo'
   | 'habits'
-  | 'meals'
   | 'books';
 
 export type EventType =

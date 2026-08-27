@@ -7,8 +7,6 @@ import {
   CheckSquare,
   Sparkles,
   MoreHorizontal,
-  ShoppingBag,
-  Utensils,
   BookMarked,
   Settings,
   X,
@@ -30,7 +28,6 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = () => {
   ];
 
   const moreNavItems: { tab: AppTab; label: string; desc: string; icon: React.ReactNode }[] = [
-    { tab: 'meals', label: 'Meal Planner', desc: 'Weekly menu (Breakfast, Lunch, Dinner, Snacks)', icon: <Utensils className="w-5 h-5 text-amber-600" /> },
     { tab: 'books', label: 'Reading Shelf', desc: 'Book tracker & reading sanctuary', icon: <BookMarked className="w-5 h-5 text-purple-600" /> },
   ];
 
@@ -96,7 +93,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = () => {
                 <span className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-sm">✨</span>
                 <div>
                   <h3 className="text-base font-black text-slate-900 tracking-tight">More Apps & Tools</h3>
-                  <p className="text-[11px] text-slate-500 font-medium">Meals, Books & Settings</p>
+                  <p className="text-[11px] text-slate-500 font-medium">Books & Settings</p>
                 </div>
               </div>
               <button
