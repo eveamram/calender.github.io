@@ -1,22 +1,15 @@
 import React, { useState, useMemo } from 'react';
-import { useStore, getTodayDateString, formatTime12Hour } from '../../context/StoreContext';
-import { CalendarEvent, CATEGORY_METAS, ClassItem, EventType, HabitItem, ProfilePersona } from '../../types';
+import { useStore, getTodayDateString } from '../../context/StoreContext';
+import { CalendarEvent, CATEGORY_METAS, ClassItem, EventType, HabitItem } from '../../types';
 import { getAnniversaryEvent, getCommonHolidayEvent } from '../../utils/holidays';
 import { classPersonaColor, habitItemColor } from '../../utils/personaColor';
 import {
   ChevronLeft,
   ChevronRight,
   Plus,
-  Clock,
-  MapPin,
-  CheckCircle,
-  Circle,
-  Calendar as CalendarIcon,
-  Pencil,
-  Trash2,
-  Sparkles,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { DayHourGrid, ScheduleItem } from './DayHourGrid';
 
 const isItemPastTime = (evt: any, dateStr: string): boolean => {
   const todayStr = getTodayDateString();
@@ -283,7 +276,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     return d.toLocaleDateString('default', { weekday: 'long', month: 'short', day: 'numeric' });
   }, [selectedDate]);
 
-  const handleDeleteAnyEvent = async (evt: any) => {
+  const handleDeleteAnyEvent = async (evt: ScheduleItem) => {
     if (evt.is_habit_item && evt.habit_original_id) {
       await updateHabit(evt.habit_original_id, { show_in_daily_schedule: false });
       return;
@@ -300,7 +293,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     }
   };
 
-  const handleToggleAnyEventComplete = async (evt: any) => {
+  const handleToggleAnyEventComplete = async (evt: ScheduleItem) => {
     if (isClassScheduleItem(evt)) return;
 
     if (evt.is_habit_item && evt.habit_original_id) {
@@ -330,7 +323,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     return jsDay === 0 ? 7 : jsDay;
   };
 
-  const handleOpenScheduleItem = (evt: any) => {
+  const handleOpenScheduleItem = (evt: ScheduleItem) => {
     const isSyntheticClass =
       Boolean(evt.is_class_item) ||
       (typeof evt.id === 'string' && evt.id.startsWith('class-item-'));
@@ -394,135 +387,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             </button>
           </div>
 
-          {/* Agenda Vertical Timeline */}
-          {selectedDayItems.length === 0 ? (
-            <div className="py-6 text-center space-y-1.5">
-              <p className="text-xs font-medium text-slate-400">Your day is clear.</p>
-              <button
-                onClick={() => onOpenAddModal(selectedDate)}
-                className="text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/70 border border-slate-200/50 px-3 py-1 rounded-lg transition-colors cursor-pointer"
-              >
-                + Add event
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-2 pt-0.5">
-              {selectedDayItems.map((evt: any) => {
-                const meta = CATEGORY_METAS[evt.event_type as EventType] || CATEGORY_METAS.personal;
-                const evtColor = evt.color || meta.color || '#3b82f6';
-                const task = evt.task_id ? tasks.find((t) => t.id === evt.task_id) : null;
-                const ownerName = (evt.profile || 'Eve') as ProfilePersona;
-                const badgeColor = profileColors[ownerName] || '#2563eb';
-                const isClassItem = isClassScheduleItem(evt);
-                const isPast = isItemPastTime(evt, selectedDate);
-                const isCompleted = isClassItem
-                  ? false
-                  : Boolean(evt.is_completed || task?.is_completed || completedEventIds.includes(evt.id));
-                const isMuted = isPast || isCompleted;
-
-                return (
-                  <div
-                    key={evt.id}
-                    onClick={() => handleOpenScheduleItem(evt)}
-                    className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer group ${
-                      isMuted ? 'bg-slate-50/40 border-slate-100/70' : 'bg-slate-50/60 hover:bg-slate-100/70 border-slate-100'
-                    }`}
-                    style={{ borderLeft: `3px solid ${evtColor}` }}
-                  >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      {/* Completion Toggle — hidden for class schedule items */}
-                      {!isClassItem && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleToggleAnyEventComplete(evt);
-                          }}
-                          className="p-1 text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer shrink-0"
-                          title={isCompleted ? 'Mark incomplete' : 'Mark complete'}
-                        >
-                          {isCompleted ? (
-                            <CheckCircle className={`w-4 h-4 ${isPast && !evt.is_completed ? 'text-slate-400 fill-slate-100' : 'text-emerald-500 fill-emerald-50'}`} />
-                          ) : (
-                            <Circle className="w-4 h-4 text-slate-300" />
-                          )}
-                        </button>
-                      )}
-
-                      {/* Content */}
-                      <div className="min-w-0 flex-1">
-                        <h4
-                          className={`text-xs font-semibold truncate ${
-                            isCompleted || isPast
-                              ? 'line-through text-slate-400 opacity-75'
-                              : 'text-slate-900'
-                          }`}
-                        >
-                          {evt.title}
-                        </h4>
-
-                        <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5 flex-wrap">
-                          <span className="font-medium text-slate-500">
-                            {evt.start_time ? formatTime12Hour(evt.start_time) : 'All Day'}
-                            {evt.end_time ? ` – ${formatTime12Hour(evt.end_time)}` : ''}
-                          </span>
-
-                          {activeProfile === 'Both' && (
-                            <span
-                              className="text-[10px] font-bold text-white px-1.5 py-0.2 rounded shrink-0"
-                              style={{ backgroundColor: badgeColor }}
-                            >
-                              {ownerName}
-                            </span>
-                          )}
-
-                          {evt.location && (
-                            <span className="truncate max-w-[120px] text-slate-400">
-                              📍 {evt.location}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Compact Actions */}
-                    <div className="flex items-center gap-1 shrink-0 ml-2">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenScheduleItem(evt);
-                        }}
-                        className="p-1 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
-                        title={
-                          isClassItem
-                              ? 'Edit Class'
-                              : evt.is_habit_item
-                                ? 'Edit Habit'
-                                : 'Edit Event'
-                        }
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-
-                      {!evt.is_class_item && evt.event_type !== 'class' && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteAnyEvent(evt);
-                          }}
-                          className="p-1 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
-                          title="Delete Event"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          <DayHourGrid
+            items={selectedDayItems as ScheduleItem[]}
+            selectedDate={selectedDate}
+            todayStr={todayStr}
+            activeProfile={activeProfile}
+            profileColors={profileColors}
+            tasks={tasks}
+            completedEventIds={completedEventIds}
+            onOpenItem={handleOpenScheduleItem}
+            onToggleComplete={handleToggleAnyEventComplete}
+            onDelete={handleDeleteAnyEvent}
+            onAddEvent={() => onOpenAddModal(selectedDate)}
+            scrollMaxHeightClass="max-h-[min(52vh,28rem)]"
+          />
         </div>
 
         {/* 2. COMPACT MONTHLY CALENDAR SECOND */}
@@ -792,135 +670,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             </button>
           </div>
 
-          {/* Agenda Timeline List */}
-          {selectedDayItems.length === 0 ? (
-            <div className="py-8 text-center space-y-2">
-              <p className="text-xs font-medium text-slate-400">Your day is clear.</p>
-              <button
-                onClick={() => onOpenAddModal(selectedDate)}
-                className="text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/70 border border-slate-200/50 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
-              >
-                + Add event
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-2 pt-0.5">
-              {selectedDayItems.map((evt: any) => {
-                const meta = CATEGORY_METAS[evt.event_type as EventType] || CATEGORY_METAS.personal;
-                const evtColor = evt.color || meta.color || '#3b82f6';
-                const task = evt.task_id ? tasks.find((t) => t.id === evt.task_id) : null;
-                const ownerName = (evt.profile || 'Eve') as ProfilePersona;
-                const badgeColor = profileColors[ownerName] || '#2563eb';
-                const isClassItem = isClassScheduleItem(evt);
-                const isPast = isItemPastTime(evt, selectedDate);
-                const isCompleted = isClassItem
-                  ? false
-                  : Boolean(evt.is_completed || task?.is_completed || completedEventIds.includes(evt.id));
-                const isMuted = isPast || isCompleted;
-
-                return (
-                  <div
-                    key={evt.id}
-                    onClick={() => handleOpenScheduleItem(evt)}
-                    className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer group ${
-                      isMuted ? 'bg-slate-50/40 border-slate-100/70' : 'bg-slate-50/60 hover:bg-slate-100/70 border-slate-100'
-                    }`}
-                    style={{ borderLeft: `3px solid ${evtColor}` }}
-                  >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      {/* Completion Toggle — hidden for class schedule items */}
-                      {!isClassItem && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleToggleAnyEventComplete(evt);
-                          }}
-                          className="p-1 text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer shrink-0"
-                          title={isCompleted ? 'Mark incomplete' : 'Mark complete'}
-                        >
-                          {isCompleted ? (
-                            <CheckCircle className={`w-4 h-4 ${isPast && !evt.is_completed ? 'text-slate-400 fill-slate-100' : 'text-emerald-500 fill-emerald-50'}`} />
-                          ) : (
-                            <Circle className="w-4 h-4 text-slate-300" />
-                          )}
-                        </button>
-                      )}
-
-                      {/* Content */}
-                      <div className="min-w-0 flex-1">
-                        <h4
-                          className={`text-xs font-semibold truncate ${
-                            isCompleted || isPast
-                              ? 'line-through text-slate-400 opacity-75'
-                              : 'text-slate-900'
-                          }`}
-                        >
-                          {evt.title}
-                        </h4>
-
-                        <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5 flex-wrap">
-                          <span className="font-medium text-slate-500">
-                            {evt.start_time ? formatTime12Hour(evt.start_time) : 'All Day'}
-                            {evt.end_time ? ` – ${formatTime12Hour(evt.end_time)}` : ''}
-                          </span>
-
-                          {activeProfile === 'Both' && (
-                            <span
-                              className="text-[10px] font-bold text-white px-1.5 py-0.2 rounded shrink-0"
-                              style={{ backgroundColor: badgeColor }}
-                            >
-                              {ownerName}
-                            </span>
-                          )}
-
-                          {evt.location && (
-                            <span className="truncate max-w-[120px] text-slate-400">
-                              📍 {evt.location}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Compact Actions */}
-                    <div className="flex items-center gap-1 shrink-0 ml-2">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenScheduleItem(evt);
-                        }}
-                        className="p-1 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
-                        title={
-                          isClassItem
-                              ? 'Edit Class'
-                              : evt.is_habit_item
-                                ? 'Edit Habit'
-                                : 'Edit Event'
-                        }
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-
-                      {!evt.is_class_item && evt.event_type !== 'class' && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteAnyEvent(evt);
-                          }}
-                          className="p-1 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
-                          title="Delete Event"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          <DayHourGrid
+            items={selectedDayItems as ScheduleItem[]}
+            selectedDate={selectedDate}
+            todayStr={todayStr}
+            activeProfile={activeProfile}
+            profileColors={profileColors}
+            tasks={tasks}
+            completedEventIds={completedEventIds}
+            onOpenItem={handleOpenScheduleItem}
+            onToggleComplete={handleToggleAnyEventComplete}
+            onDelete={handleDeleteAnyEvent}
+            onAddEvent={() => onOpenAddModal(selectedDate)}
+            scrollMaxHeightClass="max-h-[calc(100vh-12rem)]"
+          />
         </div>
       </div>
     </div>
