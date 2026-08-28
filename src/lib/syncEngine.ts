@@ -107,7 +107,21 @@ export const REVERSE_TABLE_MAP: Record<string, AppTable> = {
   dateColors: 'dateColors',
 };
 
-const SYNC_CHANNEL_NAME = 'calender_live_sync_v5';
+const SYNC_CHANNEL_NAME = 'calender_live_sync_v6';
+const LOCAL_TABLE_PREFIX = 'calender_app_table_v6_';
+
+// Leftover sample items that kept coming back from old device cache.
+const RETIRED_ITEM_IDS = new Set([
+  'hbt-1787432450370-wtikf', // "water"
+  'tsk-1787439097233-tgyqw', // "Buy milk"
+  'tsk-1787440158272-6ko41', // "Buy bread"
+  'tsk-1787587530334-wn7mk', // "Homework 1"
+  'tsk-1787616192331-htk1c', // "Task 1"
+]);
+
+function isRetiredItemId(id?: string): boolean {
+  return Boolean(id && RETIRED_ITEM_IDS.has(id));
+}
 const broadcastChannel =
   typeof window !== 'undefined' && 'BroadcastChannel' in window
     ? new BroadcastChannel(SYNC_CHANNEL_NAME)
@@ -153,12 +167,12 @@ APP_TABLES.forEach((tbl) => {
   const map = new Map<string, any>();
   if (typeof window !== 'undefined') {
     try {
-      const saved = localStorage.getItem(`calender_app_table_${tbl}`);
+      const saved = localStorage.getItem(`${LOCAL_TABLE_PREFIX}${tbl}`);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
           parsed.forEach((item) => {
-            if (item && item.id) map.set(item.id, item);
+            if (item && item.id && !isRetiredItemId(item.id)) map.set(item.id, item);
           });
         }
       }
@@ -175,7 +189,7 @@ function saveLocalSnapshot(table: string) {
       const tableMap = memoryStore.get(table);
       if (tableMap) {
         const arr = Array.from(tableMap.values());
-        localStorage.setItem(`calender_app_table_${table}`, JSON.stringify(arr));
+        localStorage.setItem(`${LOCAL_TABLE_PREFIX}${table}`, JSON.stringify(arr));
       }
     } catch (e) {
       console.error(`Error writing local storage cache for ${table}:`, e);
@@ -210,7 +224,9 @@ function applyMemoryMutation(event: SyncPayload) {
   const tableMap = memoryStore.get(table)!;
 
   if (event.type === 'INSERT' || event.type === 'UPDATE') {
-    if (event.id && event.payload) {
+    if (event.id && isRetiredItemId(event.id)) {
+      tableMap.delete(event.id);
+    } else if (event.id && event.payload) {
       tableMap.set(event.id, { ...tableMap.get(event.id), ...event.payload });
     }
   } else if (event.type === 'DELETE') {
@@ -395,17 +411,33 @@ export const syncEngine = {
             const remoteIds = new Set(data.map((d) => d.id));
 
             data.forEach((item) => {
-              if (item && item.id) {
+              if (item && item.id && !isRetiredItemId(item.id)) {
                 const localItem = tableMap.get(item.id);
                 tableMap.set(item.id, { ...localItem, ...item });
               }
             });
+
+            for (const retiredId of RETIRED_ITEM_IDS) {
+              if (tableMap.has(retiredId) || remoteIds.has(retiredId)) {
+                tableMap.delete(retiredId);
+                remoteIds.delete(retiredId);
+                supabase.from(dbTable).delete().eq('id', retiredId).then(({ error }) => {
+                  if (error) {
+                    console.warn(`Could not remove leftover item ${retiredId} from ${dbTable}:`, error.message);
+                  }
+                });
+              }
+            }
 
             // Cloud is the source of truth. Only keep (and upload) rows created in
             // the last 5 minutes that have not reached the server yet. Older
             // local-only rows are leftover cache and must not be resurrected.
             const keepLocalOnly = new Set<string>();
             for (const [localId, localItem] of Array.from(tableMap.entries())) {
+              if (isRetiredItemId(localId)) {
+                tableMap.delete(localId);
+                continue;
+              }
               if (remoteIds.has(localId)) continue;
               const timestamp = Number(String(localId).split('-')[1]);
               const isNewLocal = Number.isFinite(timestamp) && Date.now() - timestamp < 300000;
@@ -460,6 +492,9 @@ export const syncEngine = {
    * Item-level upsert mutation: Always saves locally instantly; pushes to Supabase Cloud if available.
    */
   upsertItem: async <T extends { id: string }>(appTable: AppTable, item: T): Promise<boolean> => {
+    if (isRetiredItemId(item.id)) {
+      return true;
+    }
     const syncPayload: SyncPayload<T> = {
       type: 'UPDATE',
       table: appTable,

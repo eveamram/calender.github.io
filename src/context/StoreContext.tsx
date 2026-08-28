@@ -509,7 +509,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const factoryResetAllData = async () => {
     // Local cache only — never wipe the shared household cloud database.
     Object.keys(localStorage)
-      .filter((key) => key.startsWith('calender_app_table_'))
+      .filter((key) => key.startsWith('calender_app_table'))
       .forEach((key) => localStorage.removeItem(key));
     localStorage.removeItem('calender_profile');
     localStorage.removeItem('calender_tab');
