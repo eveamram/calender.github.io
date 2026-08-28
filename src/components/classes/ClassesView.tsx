@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useStore, getTodayDateString, formatTime12Hour } from '../../context/StoreContext';
+import { useStore, formatTime12Hour } from '../../context/StoreContext';
 import { CalendarEvent, ClassItem } from '../../types';
 import { classPersonaColor } from '../../utils/personaColor';
 import {
@@ -10,7 +10,8 @@ import {
   hiddenOfficeHoursPayload,
   OfficeHourSlot,
 } from '../../utils/officeHours';
-import { Plus, Clock, MapPin, Trash2, Edit3, AlertCircle, GraduationCap, UserCheck } from 'lucide-react';
+import { Plus, Clock, MapPin, Trash2, Edit3, GraduationCap, UserCheck } from 'lucide-react';
+import { UpcomingExams } from './UpcomingExams';
 
 interface ClassesViewProps {
   onOpenAddClassModal: (day?: number, classToEdit?: ClassItem) => void;
@@ -147,7 +148,7 @@ const ClassCardItem: React.FC<ClassCardProps> = ({
 };
 
 export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, onOpenAddExamModal }) => {
-  const { classes, events, deleteClass, deleteEvent, updateClass, filterByProfile, activeProfile, profileColors } = useStore();
+  const { classes, deleteClass, updateClass, filterByProfile, activeProfile, profileColors } = useStore();
   const [selectedMobileDay, setSelectedMobileDay] = useState<number>(getTodayDayNum());
   const [addingOfficeId, setAddingOfficeId] = useState<string | null>(null);
   const [officeDraftTime, setOfficeDraftTime] = useState('');
@@ -217,13 +218,6 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
     });
     setAddingOfficeId(null);
   };
-
-  const filteredExams = useMemo(() => {
-    const today = getTodayDateString();
-    const allExams = events.filter((e) => e.event_type === 'exam' && e.event_date >= today);
-    const result = filterByProfile(allExams);
-    return [...result].sort((a, b) => a.event_date.localeCompare(b.event_date));
-  }, [events, filterByProfile]);
 
   // Map classes by day of week (1=Mon ... 5=Fri)
   const classesByDay = useMemo(() => {
@@ -423,145 +417,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
         </div>
       </div>
 
-      {/* UPCOMING EXAMS SECTION */}
-      <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200/80 shadow-2xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="p-2 rounded-xl bg-red-50 text-red-600 shrink-0">
-              <AlertCircle className="w-5 h-5 stroke-[2.5]" />
-            </div>
-            <div className="min-w-0">
-              <h2 className="text-lg font-bold text-slate-900 tracking-tight">Upcoming Exams</h2>
-              <p className="text-xs text-slate-500 font-medium hidden sm:block">Scheduled tests and midterm examinations</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg whitespace-nowrap">
-              {filteredExams.length} {filteredExams.length === 1 ? 'Exam' : 'Exams'}
-            </span>
-            {onOpenAddExamModal && (
-              <button
-                type="button"
-                onClick={() => onOpenAddExamModal()}
-                className="inline-flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white font-bold px-3.5 py-2 min-h-[44px] rounded-xl text-xs shadow-md shadow-red-500/20 transition-all cursor-pointer active:scale-95 whitespace-nowrap"
-              >
-                <Plus className="w-4 h-4 stroke-[3]" />
-                <span>Add Exam</span>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {filteredExams.length === 0 ? (
-          <div className="py-6 text-center text-xs text-slate-400 font-medium">
-            No upcoming exams scheduled. Great job staying ahead!
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {filteredExams.map((exam) => {
-              const ownerName = exam.profile || 'Eve';
-              const badgeColor = profileColors[ownerName] || '#2563eb';
-
-              // Calculate Days Remaining
-              const todayObj = new Date();
-              todayObj.setHours(0, 0, 0, 0);
-              const examDateObj = new Date(exam.event_date + 'T00:00:00');
-              const diffTime = examDateObj.getTime() - todayObj.getTime();
-              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-              let countdownLabel = `In ${diffDays} days`;
-              if (diffDays === 0) countdownLabel = 'Today!';
-              else if (diffDays === 1) countdownLabel = 'Tomorrow';
-
-              const barColor = exam.color || '#ef4444';
-
-              return (
-                <div
-                  key={exam.id}
-                  className="p-4 pt-5 rounded-xl border border-slate-200/80 bg-white hover:bg-slate-50/80 transition-all space-y-2 relative group cursor-pointer overflow-hidden"
-                  onClick={() => onOpenAddExamModal?.(exam)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      onOpenAddExamModal?.(exam);
-                    }
-                  }}
-                >
-                  <div
-                    className="absolute top-0 left-0 right-0 h-1.5"
-                    style={{ backgroundColor: barColor }}
-                  />
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-md">
-                        {exam.event_date}
-                      </span>
-                      <span
-                        className="text-[10px] font-bold text-white px-2 py-0.5 rounded-md shadow-xs"
-                        style={{ backgroundColor: barColor }}
-                      >
-                        {countdownLabel}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {activeProfile === 'Both' && (
-                        <span
-                          className="text-[10px] font-bold text-white px-2 py-0.5 rounded-md"
-                          style={{ backgroundColor: badgeColor }}
-                        >
-                          {ownerName}
-                        </span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onOpenAddExamModal?.(exam);
-                        }}
-                        className="text-slate-300 hover:text-red-600 transition-colors p-1 cursor-pointer"
-                        title="Edit Exam"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteEvent(exam.id);
-                        }}
-                        className="text-slate-300 hover:text-red-500 transition-colors p-1 cursor-pointer"
-                        title="Delete Exam"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-
-                  <h4 className="text-sm font-bold text-slate-900">{exam.title}</h4>
-
-                  <div className="flex items-center gap-3 text-xs font-semibold text-slate-600 pt-1">
-                    {exam.start_time && (
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 shrink-0" style={{ color: barColor }} />
-                        {formatTime12Hour(exam.start_time)} {exam.end_time ? `- ${formatTime12Hour(exam.end_time)}` : ''}
-                      </span>
-                    )}
-                    {exam.location && (
-                      <span className="flex items-center gap-1 truncate">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                        {exam.location}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      <UpcomingExams onOpenAddExamModal={onOpenAddExamModal} />
 
       {/* PROFESSOR OFFICE HOURS SCHEDULE SECTION */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-2xs space-y-4">

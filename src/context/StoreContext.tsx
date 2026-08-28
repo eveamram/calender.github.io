@@ -135,6 +135,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
 
   const [activeTab, setActiveTabState] = useState<AppTab>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const fromUrl = params.get('tab');
+    if (fromUrl === 'calendar' || fromUrl === 'classes' || fromUrl === 'todo' || fromUrl === 'habits' || fromUrl === 'books') {
+      return fromUrl;
+    }
     const saved = localStorage.getItem('calender_tab');
     if (saved === 'meals' || saved === 'grocery') return 'calendar';
     return (saved as AppTab) || 'calendar';
