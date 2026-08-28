@@ -50,17 +50,20 @@ jobs:
           mkdir -p assets
           cp -R dist/assets/. assets/
           # Keep previous app.js/app.css URLs working for cached phone/computer pages.
-          if [ -f assets/app-v8.js ]; then
-            cp assets/app-v8.js assets/app.js
-            cp assets/app-v8.js assets/app-v7.js
+          if [ -f assets/app-v9.js ]; then
+            cp assets/app-v9.js assets/app.js
+            cp assets/app-v9.js assets/app-v8.js
+            cp assets/app-v9.js assets/app-v7.js
           fi
-          if [ -f assets/app-v8.js.map ]; then
-            cp assets/app-v8.js.map assets/app.js.map
-            cp assets/app-v8.js.map assets/app-v7.js.map
+          if [ -f assets/app-v9.js.map ]; then
+            cp assets/app-v9.js.map assets/app.js.map
+            cp assets/app-v9.js.map assets/app-v8.js.map
+            cp assets/app-v9.js.map assets/app-v7.js.map
           fi
-          if [ -f assets/app-v8.css ]; then
-            cp assets/app-v8.css assets/app.css
-            cp assets/app-v8.css assets/app-v7.css
+          if [ -f assets/app-v9.css ]; then
+            cp assets/app-v9.css assets/app.css
+            cp assets/app-v9.css assets/app-v8.css
+            cp assets/app-v9.css assets/app-v7.css
           fi
           git add assets
           if git diff --staged --quiet; then

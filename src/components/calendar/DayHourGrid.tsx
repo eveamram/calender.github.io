@@ -248,9 +248,11 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
       : Boolean(evt.is_completed || task?.is_completed || completedEventIds.includes(evt.id));
     const isMuted = isPast || isCompleted;
     const isExam = evt.event_type === 'exam';
+    const examHighlight = CATEGORY_METAS.exam.color;
     const dense = Boolean(opts?.dense);
     const inGrid = Boolean(opts?.inGrid);
     const showTime = !evt.is_habit_item && parseTimeToMinutes(evt.start_time) !== null;
+    const accentColor = isExam ? examHighlight : evtColor;
 
     return (
       <div
@@ -263,14 +265,20 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
             ? 'items-start p-1.5 rounded-lg border'
             : 'items-center justify-between p-3 rounded-xl border'
         } ${
-          isMuted ? 'bg-slate-50/40 border-slate-100/70' : 'bg-white hover:bg-slate-50 border-slate-100'
+          isExam
+            ? isMuted
+              ? 'border-red-100'
+              : 'border-red-200'
+            : isMuted
+              ? 'bg-slate-50/40 border-slate-100/70'
+              : 'bg-white hover:bg-slate-50 border-slate-100'
         }`}
         style={{
-          borderLeft: `3px solid ${evtColor}`,
+          borderLeft: `3.5px solid ${accentColor}`,
           backgroundColor: isExam
             ? isMuted
-              ? '#f8fafc'
-              : '#ffffff'
+              ? '#fef2f2'
+              : '#fecaca'
             : isMuted
               ? undefined
               : `${evtColor}18`,
@@ -304,7 +312,11 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
           <div className="min-w-0 flex-1">
             <h4
               className={`font-semibold leading-tight ${dense ? 'text-[11px]' : 'text-xs'} truncate ${
-                isCompleted || isPast ? 'line-through text-slate-400 opacity-75' : 'text-slate-900'
+                isCompleted || isPast
+                  ? 'line-through text-slate-400 opacity-75'
+                  : isExam
+                    ? 'text-red-800'
+                    : 'text-slate-900'
               }`}
             >
               {evt.title}

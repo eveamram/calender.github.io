@@ -628,7 +628,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                   ? 'opacity-70'
                                   : ''
                           }`}
-                          style={e.event_type === 'exam' ? { backgroundColor: '#ffffff', borderLeft: `3.5px solid ${evtColor}` } : { backgroundColor: `${evtColor}25`, borderLeft: `3.5px solid ${evtColor}` }}
+                          style={
+                            e.event_type === 'exam'
+                              ? {
+                                  backgroundColor: isCompleted || isPastChip ? '#fef2f2' : '#fecaca',
+                                  borderLeft: `3.5px solid ${CATEGORY_METAS.exam.color}`,
+                                  color: isCompleted || isPastChip ? undefined : '#991b1b',
+                                }
+                              : { backgroundColor: `${evtColor}25`, borderLeft: `3.5px solid ${evtColor}` }
+                          }
                         >
                           <span className="truncate leading-tight">{e.title}</span>
                         </div>
