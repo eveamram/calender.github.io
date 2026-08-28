@@ -7,6 +7,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Calendar" />
     <meta name="theme-color" content="#8B7CF6" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
     <title>calender.</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,7 +23,36 @@
   </head>
   <body class="bg-slate-50 text-slate-900 font-sans antialiased">
     <div id="root"></div>
-    <link rel="stylesheet" href="./assets/app.css?v=clean2" />
-    <script type="module" src="./assets/app.js?v=clean2"></script>
+    <script>
+      (function () {
+        var retired = {
+          'hbt-1787432450370-wtikf': 1,
+          'tsk-1787439097233-tgyqw': 1,
+          'tsk-1787440158272-6ko41': 1,
+          'tsk-1787587530334-wn7mk': 1,
+          'tsk-1787616192331-htk1c': 1
+        };
+        try {
+          var keys = Object.keys(localStorage);
+          for (var i = 0; i < keys.length; i++) {
+            var key = keys[i];
+            if (key.indexOf('calender_app_table') !== 0) continue;
+            if (key.indexOf('calender_app_table_v6_') !== 0) {
+              localStorage.removeItem(key);
+              continue;
+            }
+            var raw = localStorage.getItem(key);
+            if (!raw) continue;
+            var parsed = JSON.parse(raw);
+            if (!Array.isArray(parsed)) continue;
+            localStorage.setItem(key, JSON.stringify(parsed.filter(function (item) {
+              return !item || !item.id || !retired[item.id];
+            })));
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="stylesheet" href="./assets/app-v7.css" />
+    <script type="module" src="./assets/app-v7.js"></script>
   </body>
 </html>
