@@ -401,28 +401,25 @@ export const syncEngine = {
               }
             });
 
-            // Push local-only rows that never landed in the cloud (e.g. extra columns used to 400).
+            // Cloud is the source of truth. Only keep (and upload) rows created in
+            // the last 5 minutes that have not reached the server yet. Older
+            // local-only rows are leftover cache and must not be resurrected.
             const keepLocalOnly = new Set<string>();
             for (const [localId, localItem] of Array.from(tableMap.entries())) {
               if (remoteIds.has(localId)) continue;
               const timestamp = Number(String(localId).split('-')[1]);
               const isNewLocal = Number.isFinite(timestamp) && Date.now() - timestamp < 300000;
-              if (isNewLocal) {
-                keepLocalOnly.add(localId);
-                continue;
-              }
+              if (!isNewLocal) continue;
+              keepLocalOnly.add(localId);
               const uploaded = await upsertToSupabase(appTable, localItem);
               if (uploaded.ok) {
                 remoteIds.add(localId);
-              } else {
-                keepLocalOnly.add(localId);
-                if (uploaded.errorMessage) {
-                  console.warn(`Supabase backfill warning [${appTable}]:`, uploaded.errorMessage);
-                }
+                keepLocalOnly.delete(localId);
+              } else if (uploaded.errorMessage) {
+                console.warn(`Supabase pending-upload warning [${appTable}]:`, uploaded.errorMessage);
               }
             }
 
-            // Drop local rows the cloud no longer has, except ones we just failed (or haven't tried) to upload.
             Array.from(tableMap.keys()).forEach((localId) => {
               if (!remoteIds.has(localId) && !keepLocalOnly.has(localId)) {
                 tableMap.delete(localId);

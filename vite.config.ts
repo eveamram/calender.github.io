@@ -12,11 +12,11 @@ export default defineConfig({
         handler(html) {
           return html
             .replace(
-              '<link rel="stylesheet" href="./assets/app.css?v=hour1" />',
+              '<link rel="stylesheet" href="./assets/app.css?v=clean1" />',
               ''
             )
             .replace(
-              '<script type="module" src="./assets/app.js?v=hour1"></script>',
+              '<script type="module" src="./assets/app.js?v=clean1"></script>',
               '<script type="module" src="/src/main.tsx"></script>'
             );
         },
