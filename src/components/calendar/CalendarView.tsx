@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useStore, getTodayDateString } from '../../context/StoreContext';
+import { useStore, getTodayDateString, isGoogleSyncedEvent } from '../../context/StoreContext';
 import { CalendarEvent, CATEGORY_METAS, ClassItem, EventType, HabitItem } from '../../types';
 import { getAnniversaryEvent, getCommonHolidayEvent } from '../../utils/holidays';
 import { classPersonaColor, habitItemColor } from '../../utils/personaColor';
@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { DayHourGrid, ScheduleItem } from './DayHourGrid';
+import { GoogleCalendarBar } from './GoogleCalendarBar';
 
 const isItemPastTime = (evt: any, dateStr: string): boolean => {
   const todayStr = getTodayDateString();
@@ -53,6 +54,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     setSelectedDate,
     toggleEventComplete,
     deleteEvent,
+    removeGoogleEventFromCalendar,
     tasks,
     habits,
     habitCompletions,
@@ -288,13 +290,18 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       return updated;
     });
 
+    if (isGoogleSyncedEvent(evt)) {
+      await removeGoogleEventFromCalendar(evt);
+      return;
+    }
+
     if (events.some((e) => e.id === evt.id)) {
       await deleteEvent(evt.id);
     }
   };
 
   const handleToggleAnyEventComplete = async (evt: ScheduleItem) => {
-    if (isClassScheduleItem(evt)) return;
+    if (isClassScheduleItem(evt) || isGoogleSyncedEvent(evt)) return;
 
     if (evt.is_habit_item && evt.habit_original_id) {
       if (!evt.is_completed) {
@@ -359,6 +366,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
   return (
     <div className="min-h-screen bg-[#faf9f6] text-slate-800 px-3 sm:px-6 md:px-8 py-4 sm:py-6 relative pb-20">
+      <div className="mb-4">
+        <GoogleCalendarBar />
+      </div>
       {/* MOBILE LAYOUT (< lg screens) */}
       <div className="lg:hidden space-y-4">
         {/* 1. SELECTED DAY SCHEDULE FIRST */}

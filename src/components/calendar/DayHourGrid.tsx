@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle, Circle, Pencil, Trash2 } from 'lucide-react';
-import { formatTime12Hour } from '../../context/StoreContext';
+import { formatTime12Hour, isGoogleSyncedEvent } from '../../context/StoreContext';
 import {
   CalendarEvent,
   CATEGORY_METAS,
@@ -242,6 +242,7 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
     const ownerName = (evt.profile || 'Eve') as ProfilePersona;
     const badgeColor = profileColors[ownerName] || '#2563eb';
     const isClassItem = isClassScheduleItem(evt);
+    const isGoogleItem = isGoogleSyncedEvent(evt);
     const isPast = isItemPastTime(evt, selectedDate, todayStr);
     const isCompleted = isClassItem
       ? false
@@ -285,7 +286,7 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
         }}
       >
         <div className={`flex min-w-0 flex-1 ${dense ? 'items-start gap-1.5' : 'items-center gap-3'}`}>
-          {!isClassItem && (
+          {!isClassItem && !isGoogleItem && (
             <button
               type="button"
               onClick={(e) => {
@@ -339,6 +340,11 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
               {!showTime && !evt.is_habit_item && !dense && (
                 <span className="font-medium text-slate-400">All day</span>
               )}
+              {isGoogleItem && (
+                <span className="text-[9px] font-black tracking-wide text-[#4285F4] bg-[#e8f0fe] px-1.5 py-0.5 rounded">
+                  G
+                </span>
+              )}
 
               {activeProfile === 'Both' && (
                 <span
@@ -364,7 +370,15 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
               onOpenItem(evt);
             }}
             className="p-0.5 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
-            title={isClassItem ? 'Edit Class' : evt.is_habit_item ? 'Edit Habit' : 'Edit Event'}
+            title={
+              isClassItem
+                ? 'Edit Class'
+                : evt.is_habit_item
+                  ? 'Edit Habit'
+                  : isGoogleItem
+                    ? 'View Google event'
+                    : 'Edit Event'
+            }
           >
             <Pencil className={dense ? 'w-3 h-3' : 'w-3.5 h-3.5'} />
           </button>
@@ -377,7 +391,7 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
                 onDelete(evt);
               }}
               className="p-0.5 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
-              title="Delete Event"
+              title={isGoogleItem ? 'Remove from this calendar' : 'Delete Event'}
             >
               <Trash2 className={dense ? 'w-3 h-3' : 'w-3.5 h-3.5'} />
             </button>

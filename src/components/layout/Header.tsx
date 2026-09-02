@@ -54,7 +54,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
   const profiles: ProfilePersona[] = ['Eve', 'Abbie', 'Both'];
 
   return (
-    <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/60 px-3 sm:px-4 md:px-6 py-2.5 transition-all max-w-full overflow-x-hidden">
+    <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/60 px-3 sm:px-4 md:px-6 py-2.5 transition-all max-w-full">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-3">
         {/* Left: Brand Logo */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
@@ -121,7 +121,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
                   style={isSelected ? { backgroundColor: currentColor } : undefined}
                 >
                   {p === 'Both' ? <Users className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
-                  <span>{p}</span>
+                  <span className="hidden min-[400px]:inline">{p}</span>
                 </button>
               );
             })}
@@ -130,10 +130,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
           {/* Settings Button */}
           <button
             onClick={() => setIsSettingsOpen(true)}
-            className="flex items-center justify-center min-h-[36px] min-w-[36px] sm:min-h-[40px] sm:min-w-[40px] rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200/60 transition-all cursor-pointer shrink-0"
+            className="flex items-center justify-center gap-1 min-h-[36px] px-2.5 sm:min-h-[40px] sm:px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/60 transition-all cursor-pointer shrink-0"
             title="App Settings"
           >
             <Settings className="w-4 h-4" />
+            <span className="text-[11px] font-bold">Settings</span>
           </button>
         </div>
       </div>

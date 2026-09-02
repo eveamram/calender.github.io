@@ -32,6 +32,8 @@ export interface CalendarEvent {
   task_id?: string;
   is_completed?: boolean;
   profile?: ProfilePersona;
+  source?: 'local' | 'google' | 'ics';
+  google_calendar_id?: string;
   created_at?: string;
   updated_at?: string;
 }

@@ -27,6 +27,10 @@ BEGIN
   END IF;
 END $$;
 
+-- Google Calendar sync writes into this same events table using ids prefixed
+-- with gcal-{calendarKey}-. Those rows are replaced on each sync and should
+-- not be edited by the app UI.
+
 -- 1. Events Table
 CREATE TABLE IF NOT EXISTS public.events (
   id TEXT PRIMARY KEY,
@@ -155,11 +159,16 @@ CREATE TABLE IF NOT EXISTS public.date_colors (
   color TEXT NOT NULL
 );
 
+-- 11. Google events removed from this app calendar (Google itself is never changed)
+CREATE TABLE IF NOT EXISTS public.google_hidden_events (
+  id TEXT PRIMARY KEY
+);
+
 -- ====================================================================
 -- ROW LEVEL SECURITY (RLS) & AUTHORIZATION POLICIES
 -- ====================================================================
 
--- Enable RLS on all 10 tables
+-- Enable RLS on all tables
 ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.classes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
@@ -170,6 +179,7 @@ ALTER TABLE public.meal_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.book_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.profile_colors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.date_colors ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.google_hidden_events ENABLE ROW LEVEL SECURITY;
 
 -- Drop existing policies if any to prevent duplication errors
 DROP POLICY IF EXISTS "Anon public access for events" ON public.events;
@@ -182,6 +192,7 @@ DROP POLICY IF EXISTS "Anon public access for meal_items" ON public.meal_items;
 DROP POLICY IF EXISTS "Anon public access for book_items" ON public.book_items;
 DROP POLICY IF EXISTS "Anon public access for profile_colors" ON public.profile_colors;
 DROP POLICY IF EXISTS "Anon public access for date_colors" ON public.date_colors;
+DROP POLICY IF EXISTS "Anon public access for google_hidden_events" ON public.google_hidden_events;
 
 -- Anon (logged-out) visitors must have no table access.
 -- Do not recreate "Anon public access for ..." policies.
@@ -200,10 +211,11 @@ CREATE POLICY "Authenticated access for meal_items" ON public.meal_items FOR ALL
 CREATE POLICY "Authenticated access for book_items" ON public.book_items FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Authenticated access for profile_colors" ON public.profile_colors FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Authenticated access for date_colors" ON public.date_colors FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Authenticated access for google_hidden_events" ON public.google_hidden_events FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 -- ====================================================================
 -- SUPABASE REALTIME REPLICATION PUBLICATION
--- Enable websocket change notifications for all 10 tables
+-- Enable websocket change notifications for all tables
 -- ====================================================================
 
 DO $$
@@ -219,6 +231,7 @@ BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.book_items;
     ALTER PUBLICATION supabase_realtime ADD TABLE public.profile_colors;
     ALTER PUBLICATION supabase_realtime ADD TABLE public.date_colors;
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.google_hidden_events;
   END IF;
 EXCEPTION
   WHEN duplicate_object THEN NULL;

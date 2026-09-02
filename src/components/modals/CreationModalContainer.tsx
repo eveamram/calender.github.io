@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useStore, getTodayDateString } from '../../context/StoreContext';
+import { useStore, getTodayDateString, formatTime12Hour, isGoogleSyncedEvent } from '../../context/StoreContext';
 import {
   EventType,
   ProfilePersona,
@@ -79,6 +79,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   const {
     addEvent,
     updateEvent,
+    removeGoogleEventFromCalendar,
     addClass,
     updateClass,
     addTask,
@@ -502,6 +503,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   const getSheetTitle = () => {
     switch (modalType) {
       case 'event':
+        if (eventToEdit && isGoogleSyncedEvent(eventToEdit)) return 'Google Event';
         if (evtType === 'exam' || initialEventType === 'exam') {
           return eventToEdit ? 'Edit Exam' : 'Add Exam';
         }
@@ -541,7 +543,49 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
       )}
 
       {/* 1. ADD / EDIT EVENT FORM */}
-      {modalType === 'event' && (
+      {modalType === 'event' && eventToEdit && isGoogleSyncedEvent(eventToEdit) && (
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-blue-100 bg-[#e8f0fe]/60 p-4 space-y-2">
+            <p className="text-[10px] font-black uppercase tracking-wider text-[#4285F4]">Synced from Google</p>
+            <h4 className="text-base font-extrabold text-slate-900">{eventToEdit.title}</h4>
+            <p className="text-xs font-medium text-slate-600">
+              {formatDateDisplay(eventToEdit.event_date)}
+              {eventToEdit.start_time
+                ? ` · ${formatTime12Hour(eventToEdit.start_time)}${eventToEdit.end_time ? ` – ${formatTime12Hour(eventToEdit.end_time)}` : ''}`
+                : ' · All day'}
+            </p>
+            {eventToEdit.location && (
+              <p className="text-xs font-medium text-slate-500">📍 {eventToEdit.location}</p>
+            )}
+            {eventToEdit.profile && (
+              <p className="text-xs font-bold text-slate-500">Shown for {eventToEdit.profile}</p>
+            )}
+          </div>
+          <p className="text-[11px] font-medium text-slate-500">
+            Removing it here only takes it off this calendar. Google Calendar is not changed, and it will not come back on the next sync.
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold px-4 py-3 rounded-2xl text-sm cursor-pointer"
+            >
+              Close
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                await removeGoogleEventFromCalendar(eventToEdit);
+                onClose();
+              }}
+              className="w-full bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold px-4 py-3 rounded-2xl text-sm cursor-pointer"
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+      )}
+      {modalType === 'event' && !(eventToEdit && isGoogleSyncedEvent(eventToEdit)) && (
         <form onSubmit={handleEvtSubmit} className="space-y-4 md:space-y-5 w-full">
           {/* Event Title */}
           <MobileFormField
