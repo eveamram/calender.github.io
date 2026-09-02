@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useStore, getTodayDateString } from '../../context/StoreContext';
 import { HabitItem } from '../../types';
-import { Plus, Check, Trash2, Pencil, Calendar as CalendarIcon, RotateCcw, Calendar, Sparkles } from 'lucide-react';
+import { Plus, Check, Trash2, Pencil, Calendar as CalendarIcon, RotateCcw, Calendar, Sparkles, Minus } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { habitItemColor } from '../../utils/personaColor';
 
@@ -19,6 +19,10 @@ const WEEK_DAYS = [
   { dayNum: 7, label: 'Sun' },
 ];
 
+type HabitLayout = 'week' | 'number';
+const HABIT_LAYOUT_KEY = 'calender_habit_layout';
+const MAX_HABIT_COUNT = 99;
+
 export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
   const {
     habits,
@@ -34,6 +38,25 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
   const todayStr = getTodayDateString();
 
   const [weekOffset, setWeekOffset] = useState<number>(0);
+  const [habitLayout, setHabitLayout] = useState<HabitLayout>(() => {
+    try {
+      const saved = localStorage.getItem(HABIT_LAYOUT_KEY);
+      if (saved === 'week' || saved === 'number') return saved;
+    } catch {
+      /* ignore */
+    }
+    return 'week';
+  });
+  const [selectedCountDate, setSelectedCountDate] = useState<string>(todayStr);
+
+  const chooseLayout = (layout: HabitLayout) => {
+    setHabitLayout(layout);
+    try {
+      localStorage.setItem(HABIT_LAYOUT_KEY, layout);
+    } catch {
+      /* ignore */
+    }
+  };
 
   // Dynamic persona color for page-level controls (Add Habit, banner, today pill, week selector)
   const activePersonColor = useMemo(() => {
@@ -73,6 +96,12 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
     });
   }, [todayStr, weekOffset]);
 
+  const countDate = useMemo(() => {
+    if (currentWeekDates.some((w) => w.dateStr === selectedCountDate)) return selectedCountDate;
+    const todayInWeek = currentWeekDates.find((w) => w.isToday);
+    return todayInWeek?.dateStr || currentWeekDates[0]?.dateStr || todayStr;
+  }, [currentWeekDates, selectedCountDate, todayStr]);
+
   const weekRangeLabel = useMemo(() => {
     if (currentWeekDates.length === 0) return '';
     const start = currentWeekDates[0].dateStr;
@@ -85,16 +114,18 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
   }, [habits, filterByProfile]);
 
   // Compute today's completed count
-  const isHabitDoneOn = (habitId: string, dateStr: string) =>
-    habitCompletions.some(
-      (hc) =>
-        hc.habit_id === habitId &&
-        hc.date === dateStr &&
-        (hc.completed || (hc.current_quantity ?? 0) > 0)
-    );
+  const getHabitQuantity = (habitId: string, dateStr: string) => {
+    const completion = habitCompletions.find((hc) => hc.habit_id === habitId && hc.date === dateStr);
+    if (!completion) return 0;
+    if (typeof completion.current_quantity === 'number') return Math.max(0, completion.current_quantity);
+    return completion.completed ? 1 : 0;
+  };
+
+  const isHabitDoneOn = (habitId: string, dateStr: string, target = 1) =>
+    getHabitQuantity(habitId, dateStr) >= Math.max(1, target);
 
   const todayDoneCount = useMemo(() => {
-    return filteredHabits.filter((h) => isHabitDoneOn(h.id, todayStr)).length;
+    return filteredHabits.filter((h) => isHabitDoneOn(h.id, todayStr, h.target_quantity || 1)).length;
   }, [filteredHabits, habitCompletions, todayStr]);
 
   const [confirmResetWeek, setConfirmResetWeek] = useState(false);
@@ -103,7 +134,17 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
     if (!isCompleted) {
       confetti({ particleCount: 20, spread: 45, origin: { y: 0.8 } });
     }
-    await toggleHabitCompletion(habit.id, dateStr);
+    await toggleHabitCompletion(habit.id, dateStr, isCompleted ? 0 : 1);
+  };
+
+  const handleCountChange = async (habit: HabitItem, dateStr: string, nextQty: number) => {
+    const qty = Math.max(0, Math.min(MAX_HABIT_COUNT, nextQty));
+    const prev = getHabitQuantity(habit.id, dateStr);
+    const target = habit.target_quantity && habit.target_quantity > 0 ? habit.target_quantity : 1;
+    if (qty > prev && ((prev < 1 && qty >= 1) || (prev < target && qty >= target))) {
+      confetti({ particleCount: 20, spread: 45, origin: { y: 0.8 } });
+    }
+    await toggleHabitCompletion(habit.id, dateStr, qty);
   };
 
   const handleResetThisWeek = async () => {
@@ -134,7 +175,7 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
             </span>
           </div>
           <p className="text-xs text-[#68748A] font-medium">
-            Track weekly habit progress and choose which ones appear on your Daily Schedule.
+            Switch between a weekly check grid and a times-per-day count.
           </p>
         </div>
 
@@ -163,13 +204,36 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
           <Sparkles className="w-3.5 h-3.5" />
         </div>
         <p className="text-xs text-[#182238] font-medium">
-          Checkmarks reset every Monday. Toggle <span className="font-bold" style={{ color: activePersonColor }}>Schedule</span> to view habit items on your daily calendar agenda.
+          {habitLayout === 'number'
+            ? 'Use + and − to log how many times you did a habit that day. Set a daily target when you add the habit.'
+            : 'Tap a weekday to mark it done. Switch to Number to log times per day instead.'}{' '}
+          Toggle <span className="font-bold" style={{ color: activePersonColor }}>Schedule</span> to show a habit on your daily agenda.
         </p>
       </div>
 
       {/* Week Navigation Bar */}
       <div className="bg-white rounded-2xl p-4 border border-[#E7EAF0] shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center bg-[#F4F5F8] p-1 rounded-2xl border border-[#E7EAF0]">
+            <button
+              type="button"
+              onClick={() => chooseLayout('week')}
+              className={`px-3 py-1.5 rounded-xl text-[11px] font-extrabold cursor-pointer transition-all ${
+                habitLayout === 'week' ? 'bg-white text-[#182238] shadow-2xs' : 'text-[#68748A]'
+              }`}
+            >
+              Week
+            </button>
+            <button
+              type="button"
+              onClick={() => chooseLayout('number')}
+              className={`px-3 py-1.5 rounded-xl text-[11px] font-extrabold cursor-pointer transition-all ${
+                habitLayout === 'number' ? 'bg-white text-[#182238] shadow-2xs' : 'text-[#68748A]'
+              }`}
+            >
+              Number
+            </button>
+          </div>
           <div className="flex items-center gap-2 text-xs font-bold text-[#182238]">
             <CalendarIcon className="w-4 h-4" style={{ color: activePersonColor }} />
             <span>{weekOffset === 0 ? 'This Week' : weekRangeLabel}</span>
@@ -183,28 +247,34 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
             }`}
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>{confirmResetWeek ? 'Click to confirm' : 'Reset Checkmarks'}</span>
+            <span>{confirmResetWeek ? 'Click to confirm' : habitLayout === 'number' ? 'Reset counts' : 'Reset Checkmarks'}</span>
           </button>
         </div>
 
         <div className="grid grid-cols-7 gap-1 w-full sm:flex sm:w-auto sm:items-center sm:gap-1.5">
-          {currentWeekDates.map((w) => (
-            <div
-              key={w.dateStr}
-              style={w.isToday ? { backgroundColor: activePersonColor, color: '#ffffff' } : undefined}
-              className={`flex flex-col items-center justify-center px-1 sm:px-3 py-1 rounded-xl text-xs font-bold transition-all min-h-[44px] ${
-                w.isToday ? 'shadow-2xs' : 'text-[#68748A] bg-[#F4F5F8]'
-              }`}
-            >
-              <span className="text-[10px] opacity-80">{w.label}</span>
-              <span>{w.dateStr.split('-')[2]}</span>
-            </div>
-          ))}
+          {currentWeekDates.map((w) => {
+            const isSelected = habitLayout === 'number' && w.dateStr === countDate;
+            const highlight = isSelected || (habitLayout === 'week' && w.isToday);
+            return (
+              <button
+                key={w.dateStr}
+                type="button"
+                onClick={() => habitLayout === 'number' && setSelectedCountDate(w.dateStr)}
+                style={highlight ? { backgroundColor: activePersonColor, color: '#ffffff' } : undefined}
+                className={`flex flex-col items-center justify-center px-1 sm:px-3 py-1 rounded-xl text-xs font-bold transition-all min-h-[44px] ${
+                  highlight ? 'shadow-2xs' : 'text-[#68748A] bg-[#F4F5F8]'
+                } ${habitLayout === 'number' ? 'cursor-pointer' : 'cursor-default'}`}
+              >
+                <span className="text-[10px] opacity-80">{w.label}</span>
+                <span>{w.dateStr.split('-')[2]}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* Habits List Header */}
-      {filteredHabits.length > 0 && (
+      {filteredHabits.length > 0 && habitLayout === 'week' && (
         <div className="hidden md:flex items-center justify-between px-4 text-xs font-bold text-[#68748A]">
           <span>Habit Name & Schedule Setting</span>
           <div className="flex items-center gap-2 pr-8">
@@ -239,11 +309,16 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
             const isShownInDailySchedule = Boolean(h.show_in_daily_schedule);
 
             // Compute completed count for this week
+            const dailyTarget = h.target_quantity && h.target_quantity > 0 ? h.target_quantity : 1;
             const weekCompletedCount = currentWeekDates.filter((w) =>
-              isHabitDoneOn(h.id, w.dateStr)
+              isHabitDoneOn(h.id, w.dateStr, habitLayout === 'number' ? dailyTarget : 1)
             ).length;
             const targetTotal = activeDays.length;
             const progressPercent = Math.min(100, Math.round((weekCompletedCount / (targetTotal || 1)) * 100));
+            const selectedQty = getHabitQuantity(h.id, countDate);
+            const isScheduledForCountDay = activeDays.includes(
+              currentWeekDates.find((w) => w.dateStr === countDate)?.dayNum || 0
+            );
 
             return (
               <div
@@ -340,18 +415,57 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
                         />
                       </div>
                       <span className="text-[11px] text-[#68748A] font-medium shrink-0">
-                        {weekCompletedCount} of {targetTotal}
+                        {habitLayout === 'number'
+                          ? `${selectedQty}${dailyTarget > 1 ? ` / ${dailyTarget}` : ''} ${countDate === todayStr ? 'today' : ''}`
+                          : `${weekCompletedCount} of ${targetTotal}`}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Right: Mon..Sun Checkmark Buttons */}
+                {habitLayout === 'number' ? (
+                  <div className="flex items-center justify-between md:justify-end gap-3 w-full md:w-auto border-t md:border-t-0 pt-3 md:pt-0 border-[#E7EAF0] shrink-0">
+                    <div className="text-left md:text-right">
+                      <p className="text-[10px] font-bold text-[#68748A] uppercase tracking-wider">
+                        {countDate === todayStr ? 'Today' : currentWeekDates.find((w) => w.dateStr === countDate)?.label}
+                      </p>
+                      <p className="text-[11px] font-medium text-[#68748A]">
+                        {dailyTarget > 1 ? `Goal ${dailyTarget}×` : 'Times today'}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={!isScheduledForCountDay || selectedQty <= 0}
+                        onClick={() => handleCountChange(h, countDate, selectedQty - 1)}
+                        className="w-10 h-10 rounded-xl bg-[#F4F5F8] border border-[#E7EAF0] flex items-center justify-center text-[#182238] cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#E7EAF0]"
+                        title="Remove one"
+                      >
+                        <Minus className="w-4 h-4 stroke-[2.5]" />
+                      </button>
+                      <span
+                        className="min-w-[2.5rem] text-center text-xl font-black tabular-nums"
+                        style={{ color: selectedQty >= dailyTarget ? habitAccentColor : '#182238' }}
+                      >
+                        {selectedQty}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={!isScheduledForCountDay || selectedQty >= MAX_HABIT_COUNT}
+                        onClick={() => handleCountChange(h, countDate, selectedQty + 1)}
+                        className="w-10 h-10 rounded-xl text-white flex items-center justify-center cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90"
+                        style={{ backgroundColor: habitAccentColor }}
+                        title="Add one"
+                      >
+                        <Plus className="w-4 h-4 stroke-[2.5]" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
                 <div className="grid grid-cols-7 gap-1 sm:gap-1.5 w-full md:w-auto border-t md:border-t-0 pt-3 md:pt-0 border-[#E7EAF0] shrink-0 justify-items-center">
                   {currentWeekDates.map((w) => {
                     const isScheduledForDay = activeDays.includes(w.dayNum);
-                    const completion = habitCompletions.find((hc) => hc.habit_id === h.id && hc.date === w.dateStr);
-                    const isCompleted = completion?.completed || false;
+                    const isCompleted = isHabitDoneOn(h.id, w.dateStr, 1);
 
                     return (
                       <button
@@ -382,6 +496,7 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
                     );
                   })}
                 </div>
+                )}
               </div>
             );
           })}

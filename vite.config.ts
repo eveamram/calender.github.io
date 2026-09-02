@@ -12,11 +12,11 @@ export default defineConfig({
         handler(html) {
           return html
             .replace(
-              '<link rel="stylesheet" href="./assets/app-v14.css" />',
+              '<link rel="stylesheet" href="./assets/app-v15.css" />',
               ''
             )
             .replace(
-              '<script type="module" src="./assets/app-v14.js"></script>',
+              '<script type="module" src="./assets/app-v15.js"></script>',
               '<script type="module" src="/src/main.tsx"></script>'
             );
         },
@@ -30,10 +30,10 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       output: {
-        entryFileNames: 'assets/app-v14.js',
+        entryFileNames: 'assets/app-v15.js',
         chunkFileNames: 'assets/[name].js',
         assetFileNames: (assetInfo) => {
-          if (assetInfo.name && assetInfo.name.endsWith('.css')) return 'assets/app-v14.css';
+          if (assetInfo.name && assetInfo.name.endsWith('.css')) return 'assets/app-v15.css';
           return 'assets/[name][extname]';
         },
       },

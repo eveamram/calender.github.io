@@ -905,29 +905,13 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             </button>
           </div>
 
-          {/* Target Goal (More options) */}
-          <div>
-            <button
-              type="button"
-              onClick={() => setShowHbtMore(!showHbtMore)}
-              className="flex items-center justify-center gap-1.5 w-full text-xs font-bold text-slate-600 hover:text-slate-900 py-1 transition-colors cursor-pointer"
-            >
-              <span>{showHbtMore ? 'Fewer options' : 'More options'}</span>
-              {showHbtMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-            </button>
-
-            {showHbtMore && (
-              <div className="pt-2">
-                <MobileFormField
-                  label="Daily Target Goal"
-                  type="number"
-                  value={hbtQty}
-                  onChange={(e) => setHbtQty(e.target.value)}
-                  placeholder="e.g. 8 (glasses, pages)"
-                />
-              </div>
-            )}
-          </div>
+          <MobileFormField
+            label="Times per day (optional)"
+            type="number"
+            value={hbtQty}
+            onChange={(e) => setHbtQty(e.target.value)}
+            placeholder="e.g. 8 — leave blank for once a day"
+          />
 
           {/* Submit Action */}
           <div className="sticky bottom-0 z-10 bg-white pt-2">
