@@ -109,6 +109,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   const [evtDate, setEvtDate] = useState(initialDate || getTodayDateString());
   const [evtStartTime, setEvtStartTime] = useState('09:00');
   const [evtEndTime, setEvtEndTime] = useState('10:00');
+  const [evtNoTime, setEvtNoTime] = useState(false);
   const [evtLocation, setEvtLocation] = useState('');
   const [evtColor, setEvtColor] = useState('');
   const [evtProfile, setEvtProfile] = useState<ProfilePersona>(defaultProfile);
@@ -122,8 +123,12 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         setEvtTitle(eventToEdit.title);
         setEvtType((eventToEdit.event_type as EventType) || initialEventType || 'personal');
         setEvtDate(eventToEdit.event_date);
-        setEvtStartTime(eventToEdit.start_time || '09:00');
-        setEvtEndTime(eventToEdit.end_time || '10:00');
+        const start = (eventToEdit.start_time || '').trim();
+        const end = (eventToEdit.end_time || '').trim();
+        const startUnknown = !start || start.toLowerCase() === 'all day' || start.toLowerCase() === 'all-day';
+        setEvtNoTime(startUnknown);
+        setEvtStartTime(startUnknown ? '09:00' : start);
+        setEvtEndTime(startUnknown ? '10:00' : end);
         setEvtLocation(eventToEdit.location || '');
         setEvtColor(eventToEdit.color || (eventToEdit.event_type === 'exam' ? CATEGORY_METAS.exam.color : DEFAULT_COLOR_SWATCHES[0].hex));
         setEvtProfile(eventToEdit.profile || defaultProfile);
@@ -135,6 +140,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         setEvtColor(initialEventType === 'exam' ? CATEGORY_METAS.exam.color : DEFAULT_COLOR_SWATCHES[0].hex);
         setEvtStartTime('09:00');
         setEvtEndTime('10:00');
+        setEvtNoTime(false);
         setEvtProfile(defaultProfile);
       }
     }
@@ -324,14 +330,16 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
     setErrorMsg(null);
     try {
       const finalColor = evtColor || (evtType === 'exam' ? CATEGORY_METAS.exam.color : undefined);
+      const startTime = evtNoTime ? '' : evtStartTime.trim();
+      const endTime = evtNoTime ? '' : evtEndTime.trim();
       let ok = false;
       if (eventToEdit) {
         ok = await updateEvent(eventToEdit.id, {
           title: evtTitle.trim(),
           event_type: evtType,
           event_date: evtDate,
-          start_time: evtStartTime,
-          end_time: evtEndTime,
+          start_time: startTime,
+          end_time: endTime,
           location: evtLocation.trim() || undefined,
           color: finalColor,
           profile: evtProfile,
@@ -341,8 +349,8 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
           title: evtTitle.trim(),
           event_type: evtType,
           event_date: evtDate,
-          start_time: evtStartTime,
-          end_time: evtEndTime,
+          start_time: startTime || undefined,
+          end_time: endTime || undefined,
           location: evtLocation.trim() || undefined,
           color: finalColor,
           profile: evtProfile,
@@ -579,25 +587,66 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             />
           </div>
 
-          {/* Start Time & End Time Grid on Desktop */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 md:gap-4">
-            <MobileSelectField
-              label="Start Time"
-              type="time"
-              displayValue={formatTimeDisplay(evtStartTime)}
-              value={evtStartTime}
-              onChange={(e) => setEvtStartTime(e.target.value)}
-              isRed={isExamModal}
-            />
-            <MobileSelectField
-              label="End Time"
-              type="time"
-              displayValue={formatTimeDisplay(evtEndTime)}
-              value={evtEndTime}
-              onChange={(e) => setEvtEndTime(e.target.value)}
-              isRed={isExamModal}
-            />
+          <div className="space-y-1.5 w-full">
+            <label className={`block text-xs font-semibold tracking-tight ${isExamModal ? 'text-red-800' : 'text-slate-700'}`}>
+              Time
+            </label>
+            <div className="grid grid-cols-2 bg-slate-100/90 p-1.5 rounded-2xl gap-1 items-center border border-slate-200/50 w-full">
+              <button
+                type="button"
+                onClick={() => setEvtNoTime(false)}
+                className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer min-h-[38px] ${
+                  !evtNoTime ? 'bg-[#0f172a] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-200/50'
+                }`}
+              >
+                Has times
+              </button>
+              <button
+                type="button"
+                onClick={() => setEvtNoTime(true)}
+                className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer min-h-[38px] ${
+                  evtNoTime ? 'bg-[#0f172a] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-200/50'
+                }`}
+              >
+                Don&apos;t know
+              </button>
+            </div>
           </div>
+
+          {!evtNoTime && (
+            <div className="space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 md:gap-4">
+                <MobileSelectField
+                  label="Start Time"
+                  type="time"
+                  displayValue={formatTimeDisplay(evtStartTime)}
+                  value={evtStartTime}
+                  onChange={(e) => setEvtStartTime(e.target.value)}
+                  isRed={isExamModal}
+                />
+                <MobileSelectField
+                  label="End Time"
+                  type="time"
+                  displayValue={evtEndTime ? formatTimeDisplay(evtEndTime) : 'Not sure'}
+                  value={evtEndTime}
+                  onChange={(e) => setEvtEndTime(e.target.value)}
+                  isRed={isExamModal}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setEvtEndTime('')}
+                className="text-[11px] font-bold text-slate-500 hover:text-slate-800 cursor-pointer"
+              >
+                Clear end time — I don&apos;t know when it ends
+              </button>
+            </div>
+          )}
+          {evtNoTime && (
+            <p className="text-[11px] font-medium text-slate-500 -mt-2">
+              This event will show as all day. You can add times later.
+            </p>
+          )}
 
           {/* Color & Persona */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 md:gap-4 items-start">
