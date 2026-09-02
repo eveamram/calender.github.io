@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useStore, getTodayDateString, isGoogleSyncedEvent } from '../../context/StoreContext';
+import { useStore, getTodayDateString } from '../../context/StoreContext';
 import { CalendarEvent, CATEGORY_METAS, ClassItem, EventType, HabitItem } from '../../types';
 import { getAnniversaryEvent, getCommonHolidayEvent } from '../../utils/holidays';
 import { classPersonaColor, habitItemColor } from '../../utils/personaColor';
@@ -53,7 +53,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     setSelectedDate,
     toggleEventComplete,
     deleteEvent,
-    removeGoogleEventFromCalendar,
     tasks,
     habits,
     habitCompletions,
@@ -289,18 +288,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       return updated;
     });
 
-    if (isGoogleSyncedEvent(evt)) {
-      await removeGoogleEventFromCalendar(evt);
-      return;
-    }
-
     if (events.some((e) => e.id === evt.id)) {
       await deleteEvent(evt.id);
     }
   };
 
   const handleToggleAnyEventComplete = async (evt: ScheduleItem) => {
-    if (isClassScheduleItem(evt) || isGoogleSyncedEvent(evt)) return;
+    if (isClassScheduleItem(evt)) return;
 
     if (evt.is_habit_item && evt.habit_original_id) {
       if (!evt.is_completed) {

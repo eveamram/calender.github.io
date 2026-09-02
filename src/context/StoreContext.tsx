@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
   ProfilePersona,
   AppTab,
@@ -12,27 +12,6 @@ import {
   BookItem,
 } from '../types';
 import { syncEngine, SyncStatus, TABLE_MAP } from '../lib/syncEngine';
-import {
-  GoogleCalendarConfig,
-  GoogleCalendarLink,
-  clearGoogleToken,
-  emptyGoogleConfig,
-  fetchGoogleEventsForCalendars,
-  filterIncomingEvents,
-  GOOGLE_HIDDEN_STORE_ID,
-  parseHiddenGoogleEventIds,
-  getGoogleAccessToken,
-  hasCachedGoogleToken,
-  googleEventPrefix,
-  isGoogleSyncedEvent,
-  listGoogleCalendars,
-  loadGoogleConfig,
-  mergeCalendarLists,
-  resolvedGoogleClientId,
-  revokeGoogleAccess,
-  saveGoogleConfig,
-} from '../lib/googleCalendar';
-import { parseIcsToEvents } from '../lib/ics';
 
 interface StoreContextType {
   // Sync Status Feedback
@@ -115,17 +94,6 @@ interface StoreContextType {
   clearBookItems: () => Promise<boolean>;
 
   factoryResetAllData: () => Promise<void>;
-
-  googleConfig: GoogleCalendarConfig;
-  googleSyncing: boolean;
-  googleSyncError: string | null;
-  setGoogleClientId: (clientId: string) => void;
-  connectGoogleCalendar: () => Promise<void>;
-  disconnectGoogleCalendar: () => Promise<void>;
-  updateGoogleCalendarLink: (calendarId: string, updates: Partial<Pick<GoogleCalendarLink, 'enabled' | 'profile'>>) => Promise<void>;
-  syncGoogleCalendars: (opts?: { interactive?: boolean }) => Promise<void>;
-  importIcsFile: (icsText: string, profile: ProfilePersona) => Promise<number>;
-  removeGoogleEventFromCalendar: (evt: CalendarEvent) => Promise<void>;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -161,8 +129,6 @@ export const isAnniversaryEvent = (evt: CalendarEvent): boolean => {
   return titleLower.includes('anniversary') || titleLower.includes('birthday');
 };
 
-export { isGoogleSyncedEvent } from '../lib/googleCalendar';
-
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeProfile, setActiveProfileState] = useState<ProfilePersona>(() => {
     return (localStorage.getItem('calender_profile') as ProfilePersona) || 'Eve';
@@ -182,15 +148,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [selectedDate, setSelectedDate] = useState<string>(getTodayDateString());
   const [syncStatus, setSyncStatus] = useState<SyncStatus>(() => syncEngine.getSyncStatus());
-  const [googleConfig, setGoogleConfig] = useState<GoogleCalendarConfig>(() => loadGoogleConfig());
-  const [googleSyncing, setGoogleSyncing] = useState(false);
-  const [googleSyncError, setGoogleSyncError] = useState<string | null>(null);
-  const googleConfigRef = useRef(googleConfig);
-  googleConfigRef.current = googleConfig;
-  const activeProfileRef = useRef(activeProfile);
-  activeProfileRef.current = activeProfile;
-  const eventsRef = useRef<CalendarEvent[]>([]);
-  const googleHiddenIdsRef = useRef<Set<string>>(new Set(googleConfig.hiddenEventIds || []));
 
   // Persona Colors Configuration (Server-Synced via profile_colors table)
   const [profileColors, setProfileColors] = useState<Record<ProfilePersona, string>>({
@@ -239,6 +196,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
 
     const unsubSync = syncEngine.subscribeToSync((storeData) => {
+      setEvents(storeData.events || []);
       setClasses(storeData.classes || []);
       setTasks(storeData.tasks || []);
       setHabits(storeData.habits || []);
@@ -246,24 +204,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setGroceryItems(storeData.groceryItems || []);
       setMealItems(storeData.mealItems || []);
       setBookItems(storeData.bookItems || []);
-      const hiddenRows = storeData.googleHiddenEvents || [];
-      const fromHiddenTable = hiddenRows.map((row: { id?: string }) => row.id).filter(Boolean) as string[];
-      const dateColorRows = storeData.dateColors || [];
-      const hiddenFromDateColors = dateColorRows
-        .filter((dc: { id?: string }) => dc.id === GOOGLE_HIDDEN_STORE_ID)
-        .flatMap((dc: { color?: string }) => parseHiddenGoogleEventIds(dc.color));
-      const hidden = new Set([
-        ...(googleConfigRef.current.hiddenEventIds || []),
-        ...fromHiddenTable,
-        ...hiddenFromDateColors,
-      ]);
-      googleHiddenIdsRef.current = hidden;
-      setEvents((storeData.events || []).filter((evt: CalendarEvent) => !hidden.has(evt.id)));
 
-      if (Array.isArray(dateColorRows) && dateColorRows.length > 0) {
+      if (storeData.dateColors && Array.isArray(storeData.dateColors) && storeData.dateColors.length > 0) {
         const colorMap: Record<string, string> = {};
-        dateColorRows.forEach((dc: { id: string; color: string }) => {
-          if (dc.id && dc.color && dc.id !== GOOGLE_HIDDEN_STORE_ID) colorMap[dc.id] = dc.color;
+        storeData.dateColors.forEach((dc: { id: string; color: string }) => {
+          if (dc.id && dc.color) colorMap[dc.id] = dc.color;
         });
         setDateColors((prev) => ({ ...prev, ...colorMap }));
       }
@@ -337,183 +282,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return await syncEngine.deleteItem('events', id);
   };
 
-  eventsRef.current = events;
-
-  const persistGoogleConfig = (next: GoogleCalendarConfig) => {
-    googleConfigRef.current = next;
-    googleHiddenIdsRef.current = new Set([
-      ...googleHiddenIdsRef.current,
-      ...(next.hiddenEventIds || []),
-    ]);
-    setGoogleConfig(next);
-    saveGoogleConfig(next);
-  };
-
-  const replaceCalendarEvents = async (calendarId: string, nextEvents: CalendarEvent[]) => {
-    await syncEngine.replaceByIdPrefix('events', googleEventPrefix(calendarId), nextEvents);
-  };
-
-  const suppressedGoogleIds = (): Set<string> => {
-    return new Set([
-      ...googleHiddenIdsRef.current,
-      ...(googleConfigRef.current.hiddenEventIds || []),
-    ]);
-  };
-
-  const syncGoogleCalendars = useCallback(async (opts?: { interactive?: boolean }) => {
-    const config = googleConfigRef.current;
-    const clientId = resolvedGoogleClientId(config);
-    const enabled = config.calendars.filter((cal) => cal.enabled);
-    if (!clientId || enabled.length === 0) {
-      setGoogleSyncing(false);
-      if (opts?.interactive && clientId && enabled.length === 0) {
-        setGoogleSyncError('Turn on at least one Google calendar to sync.');
-      }
-      return;
-    }
-
-    setGoogleSyncing(true);
-    setGoogleSyncError(null);
-    try {
-      const token = await getGoogleAccessToken(clientId, Boolean(opts?.interactive));
-      const byCalendar = await fetchGoogleEventsForCalendars(token, enabled);
-      const hidden = suppressedGoogleIds();
-      let existing = eventsRef.current;
-      for (const calendar of enabled) {
-        const prefix = googleEventPrefix(calendar.id);
-        const filtered = filterIncomingEvents(byCalendar[calendar.id] || [], existing, hidden, {
-          ignoreIdPrefix: prefix,
-        });
-        await replaceCalendarEvents(calendar.id, filtered);
-        existing = [...existing.filter((evt) => !evt.id.startsWith(prefix)), ...filtered];
-      }
-      persistGoogleConfig({ ...googleConfigRef.current, lastSyncedAt: Date.now() });
-    } catch (err: any) {
-      const message = err?.message || 'Could not sync Google Calendar';
-      if (opts?.interactive) setGoogleSyncError(message);
-      else console.warn('Google Calendar background sync skipped:', message);
-    } finally {
-      setGoogleSyncing(false);
-    }
-  }, []);
-
-  const setGoogleClientId = (clientId: string) => {
-    persistGoogleConfig({ ...googleConfigRef.current, clientId: clientId.trim() });
-  };
-
-  const connectGoogleCalendar = async () => {
-    const clientId = resolvedGoogleClientId(googleConfigRef.current);
-    if (!clientId) {
-      setGoogleSyncError('Paste your Google OAuth Client ID first. Settings has the setup steps.');
-      return;
-    }
-    setGoogleSyncing(true);
-    setGoogleSyncError(null);
-    try {
-      const token = await getGoogleAccessToken(clientId, true);
-      const listed = await listGoogleCalendars(token);
-      const merged = mergeCalendarLists(
-        listed,
-        googleConfigRef.current.calendars,
-        activeProfileRef.current
-      );
-      if (!merged.some((cal) => cal.enabled) && merged[0]) {
-        merged[0].enabled = true;
-      }
-      const primary = merged.find((cal) => cal.primary);
-      persistGoogleConfig({
-        ...googleConfigRef.current,
-        clientId,
-        email: primary?.id || merged[0]?.id || googleConfigRef.current.email,
-        calendars: merged,
-      });
-      await syncGoogleCalendars({ interactive: false });
-    } catch (err: any) {
-      setGoogleSyncError(err?.message || 'Could not connect Google Calendar');
-      setGoogleSyncing(false);
-    }
-  };
-
-  const disconnectGoogleCalendar = async () => {
-    const calendars = googleConfigRef.current.calendars;
-    setGoogleSyncing(true);
-    try {
-      for (const calendar of calendars) {
-        await replaceCalendarEvents(calendar.id, []);
-      }
-      await revokeGoogleAccess();
-      clearGoogleToken();
-      persistGoogleConfig({
-        ...emptyGoogleConfig(),
-        clientId: resolvedGoogleClientId(googleConfigRef.current),
-        hiddenEventIds: googleConfigRef.current.hiddenEventIds || [],
-      });
-      setGoogleSyncError(null);
-    } catch (err: any) {
-      setGoogleSyncError(err?.message || 'Could not disconnect Google Calendar');
-    } finally {
-      setGoogleSyncing(false);
-    }
-  };
-
-  const updateGoogleCalendarLink = async (
-    calendarId: string,
-    updates: Partial<Pick<GoogleCalendarLink, 'enabled' | 'profile'>>
-  ) => {
-    const current = googleConfigRef.current;
-    const calendars = current.calendars.map((cal) =>
-      cal.id === calendarId ? { ...cal, ...updates } : cal
-    );
-    persistGoogleConfig({ ...current, calendars });
-    const updated = calendars.find((cal) => cal.id === calendarId);
-    if (!updated) return;
-    if (!updated.enabled) {
-      await replaceCalendarEvents(calendarId, []);
-      return;
-    }
-    await syncGoogleCalendars({ interactive: false });
-  };
-
-  const importIcsFile = async (icsText: string, profile: ProfilePersona): Promise<number> => {
-    const parsed = filterIncomingEvents(
-      parseIcsToEvents(icsText, profile),
-      eventsRef.current,
-      suppressedGoogleIds()
-    );
-    for (const evt of parsed) {
-      await syncEngine.upsertItem('events', {
-        ...evt,
-        created_at: new Date().toISOString(),
-      });
-    }
-    return parsed.length;
-  };
-
-  const removeGoogleEventFromCalendar = async (evt: CalendarEvent) => {
-    if (!evt?.id) return;
-    const hiddenEventIds = Array.from(
-      new Set([...(googleConfigRef.current.hiddenEventIds || []), ...googleHiddenIdsRef.current, evt.id])
-    );
-    persistGoogleConfig({ ...googleConfigRef.current, hiddenEventIds });
-    googleHiddenIdsRef.current.add(evt.id);
-    await syncEngine.upsertItem('googleHiddenEvents', { id: evt.id });
-    await syncEngine.upsertItem('dateColors', {
-      id: GOOGLE_HIDDEN_STORE_ID,
-      color: JSON.stringify(hiddenEventIds),
-    });
-    await syncEngine.deleteItem('events', evt.id);
-  };
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      if (!hasCachedGoogleToken()) return;
-      void syncGoogleCalendars({ interactive: false });
-    }, 1600);
-    return () => window.clearTimeout(timer);
-  }, [syncGoogleCalendars]);
-
   const clearCalendarEventsExceptAnniversaries = async () => {
-    const toDelete = events.filter((e) => !isAnniversaryEvent(e) && !isGoogleSyncedEvent(e));
+    const toDelete = events.filter((e) => !isAnniversaryEvent(e));
     for (const evt of toDelete) {
       await syncEngine.deleteItem('events', evt.id);
     }
@@ -812,16 +582,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         deleteBookItem,
         clearBookItems,
         factoryResetAllData,
-        googleConfig,
-        googleSyncing,
-        googleSyncError,
-        setGoogleClientId,
-        connectGoogleCalendar,
-        disconnectGoogleCalendar,
-        updateGoogleCalendarLink,
-        syncGoogleCalendars,
-        importIcsFile,
-        removeGoogleEventFromCalendar,
       }}
     >
       {children}

@@ -19,7 +19,6 @@ export const APP_TABLES = [
   'bookItems',
   'profileColors',
   'dateColors',
-  'googleHiddenEvents',
 ] as const;
 
 export type AppTable = typeof APP_TABLES[number];
@@ -36,7 +35,6 @@ export const TABLE_MAP: Record<AppTable, string> = {
   bookItems: 'book_items',
   profileColors: 'profile_colors',
   dateColors: 'date_colors',
-  googleHiddenEvents: 'google_hidden_events',
 };
 
 // Columns that exist (or will exist) on each Postgres table.
@@ -52,7 +50,6 @@ const DB_COLUMNS: Record<AppTable, readonly string[]> = {
   bookItems: ['id', 'title', 'author', 'status', 'current_page', 'total_pages', 'eve_page', 'abbie_page', 'rating', 'genre', 'profile', 'created_at', 'updated_at'],
   profileColors: ['id', 'color'],
   dateColors: ['id', 'color'],
-  googleHiddenEvents: ['id'],
 };
 
 function toDbPayload(appTable: AppTable, item: Record<string, any>): Record<string, any> {
@@ -68,14 +65,6 @@ function toDbPayload(appTable: AppTable, item: Record<string, any>): Record<stri
 function unknownColumnFromError(message?: string): string | null {
   const match = message?.match(/Could not find the '([^']+)' column/);
   return match?.[1] ?? null;
-}
-
-function chunkArray<T>(items: T[], size: number): T[][] {
-  const chunks: T[][] = [];
-  for (let i = 0; i < items.length; i += size) {
-    chunks.push(items.slice(i, i + size));
-  }
-  return chunks;
 }
 
 async function upsertToSupabase(
@@ -109,8 +98,6 @@ export const REVERSE_TABLE_MAP: Record<string, AppTable> = {
   book_items: 'bookItems',
   profile_colors: 'profileColors',
   date_colors: 'dateColors',
-  google_hidden_events: 'googleHiddenEvents',
-  googleHiddenEvents: 'googleHiddenEvents',
   // Backward compatibility aliases if legacy camelCase tables exist
   habitCompletions: 'habitCompletions',
   groceryItems: 'groceryItems',
@@ -452,9 +439,6 @@ export const syncEngine = {
                 continue;
               }
               if (remoteIds.has(localId)) continue;
-              // Google-synced rows are replaced by the Google sync pass, not
-              // resurrected from leftover cache when the cloud copy is gone.
-              if (String(localId).startsWith('gcal-')) continue;
               const timestamp = Number(String(localId).split('-')[1]);
               const isNewLocal = Number.isFinite(timestamp) && Date.now() - timestamp < 300000;
               if (!isNewLocal) continue;
@@ -475,14 +459,6 @@ export const syncEngine = {
             });
             saveLocalSnapshot(appTable);
           } else if (error) {
-            const missingTable =
-              appTable === 'googleHiddenEvents' &&
-              (error.code === 'PGRST205' ||
-                error.code === '42P01' ||
-                /does not exist|could not find the table|schema cache/i.test(error.message || ''));
-            if (missingTable) {
-              return;
-            }
             const errMsg = `Cloud table '${dbTable}' sync notice: ${error.message}`;
             console.warn(errMsg, error);
             fetchErrors.push(errMsg);
@@ -547,89 +523,6 @@ export const syncEngine = {
       console.log(`Supabase upsert SUCCESS [${appTable} -> ${dbTable}]`);
     } catch (err: any) {
       console.warn(`Supabase upsert exception [${appTable} -> ${dbTable}]:`, err);
-      updateSyncStatus({ syncError: `Saved locally. Cloud sync exception: ${err?.message || err}` });
-      return true;
-    }
-
-    updateSyncStatus({ lastSyncedAt: Date.now(), syncError: null });
-    return true;
-  },
-
-  /**
-   * Replace every row whose id starts with `prefix` (used for Google Calendar sync).
-   * Applies locally first, then batch-upserts / deletes in the cloud.
-   */
-  replaceByIdPrefix: async <T extends { id: string }>(
-    appTable: AppTable,
-    prefix: string,
-    items: T[]
-  ): Promise<boolean> => {
-    const tableMap = memoryStore.get(appTable) || new Map();
-    const oldIds = Array.from(tableMap.keys()).filter((id) => String(id).startsWith(prefix));
-    const newIds = new Set(items.map((item) => item.id));
-    const toDelete = oldIds.filter((id) => !newIds.has(id));
-    const now = Date.now();
-
-    for (const id of toDelete) {
-      applyMemoryMutation({ type: 'DELETE', table: appTable, id, timestamp: now });
-    }
-    for (const item of items) {
-      if (isRetiredItemId(item.id)) continue;
-      applyMemoryMutation({
-        type: 'UPDATE',
-        table: appTable,
-        id: item.id,
-        payload: item,
-        timestamp: now,
-      });
-    }
-    notifyGlobalListeners();
-    if (broadcastChannel) {
-      for (const id of toDelete) {
-        broadcastChannel.postMessage({ type: 'DELETE', table: appTable, id, timestamp: now });
-      }
-      for (const item of items) {
-        broadcastChannel.postMessage({
-          type: 'UPDATE',
-          table: appTable,
-          id: item.id,
-          payload: item,
-          timestamp: now,
-        });
-      }
-    }
-
-    if (!isSupabaseConfigured()) return true;
-
-    const dbTable = TABLE_MAP[appTable];
-    try {
-      for (const chunk of chunkArray(toDelete, 100)) {
-        const { error } = await supabase.from(dbTable).delete().in('id', chunk);
-        if (error) {
-          console.warn(`Supabase batch delete warning [${appTable}]:`, error.message);
-        }
-      }
-      for (const chunk of chunkArray(items, 80)) {
-        let payloads = chunk.map((item) => toDbPayload(appTable, item as Record<string, any>));
-        for (let attempt = 0; attempt < 6; attempt += 1) {
-          const { error } = await supabase.from(dbTable).upsert(payloads).select();
-          if (!error) break;
-          const unknownCol = unknownColumnFromError(error.message);
-          if (error.code === 'PGRST204' && unknownCol) {
-            payloads = payloads.map((row) => {
-              const next = { ...row };
-              delete next[unknownCol];
-              return next;
-            });
-            continue;
-          }
-          console.warn(`Supabase batch upsert warning [${appTable}]:`, error.message);
-          updateSyncStatus({ syncError: `Saved locally. Cloud sync notice: ${error.message}` });
-          break;
-        }
-      }
-    } catch (err: any) {
-      console.warn(`Supabase batch replace exception [${appTable}]:`, err);
       updateSyncStatus({ syncError: `Saved locally. Cloud sync exception: ${err?.message || err}` });
       return true;
     }

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { ProfilePersona } from '../../types';
 import {
@@ -9,8 +9,6 @@ import {
   Cloud,
   RefreshCw,
   Database,
-  CalendarDays,
-  Upload,
 } from 'lucide-react';
 const PERSONA_COLORS = [
   { label: 'Royal Blue', hex: '#2563eb' },
@@ -33,8 +31,6 @@ export const SettingsModal: React.FC = () => {
     clearAnniversariesOnly,
     clearCalendarEventsExceptAnniversaries,
     syncStatus,
-    importIcsFile,
-    activeProfile,
   } = useStore();
 
 
@@ -45,11 +41,6 @@ export const SettingsModal: React.FC = () => {
   const [confirmResetHolidays, setConfirmResetHolidays] = useState(false);
   const [confirmResetEvents, setConfirmResetEvents] = useState(false);
   const [resetConfirmText, setResetConfirmText] = useState('');
-  const icsInputRef = useRef<HTMLInputElement>(null);
-  const [importProfile, setImportProfile] = useState<ProfilePersona>(
-    activeProfile === 'Both' ? 'Eve' : activeProfile
-  );
-  const [isImporting, setIsImporting] = useState(false);
 
   if (!isSettingsOpen) return null;
 
@@ -82,7 +73,7 @@ export const SettingsModal: React.FC = () => {
             </div>
             <div>
               <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">App Settings</h2>
-              <p className="text-xs text-slate-500 font-medium">Google Calendar sync, colors, and data</p>
+              <p className="text-xs text-slate-500 font-medium">Manage persona themes and app customization</p>
             </div>
           </div>
           <button
@@ -101,97 +92,8 @@ export const SettingsModal: React.FC = () => {
           </div>
         )}
 
-        {/* Import calendar file */}
-        <div id="google-calendar-settings" className="space-y-3">
-          <div>
-            <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <CalendarDays className="w-4 h-4 text-blue-600" />
-              Import calendar
-            </h3>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">
-              Download a calendar file from Google, then import it here. Those events are added to this calendar. Events you already entered are not duplicated.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3.5 space-y-2">
-            <p className="text-[11px] font-extrabold text-slate-800 uppercase tracking-wider">
-              How to download from Google
-            </p>
-            <ol className="list-decimal pl-4 space-y-1.5 text-[11px] text-slate-600 font-medium">
-              <li>Open Google Calendar on a computer.</li>
-              <li>Settings (gear) → <span className="font-bold text-slate-800">Import &amp; export</span> → <span className="font-bold text-slate-800">Export</span>.</li>
-              <li>If you get a zip file, open it and use the <span className="font-mono">.ics</span> file inside.</li>
-            </ol>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-bold text-slate-500">Add as</span>
-            {(['Eve', 'Abbie', 'Both'] as ProfilePersona[]).map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setImportProfile(p)}
-                className={`text-[11px] font-extrabold px-2.5 py-1 rounded-lg cursor-pointer ${
-                  importProfile === p ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'
-                }`}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
-
-          <button
-            type="button"
-            onClick={() => icsInputRef.current?.click()}
-            disabled={isImporting}
-            className="w-full inline-flex items-center justify-center gap-2 font-extrabold px-4 py-3 rounded-2xl text-sm bg-slate-900 hover:bg-slate-800 text-white cursor-pointer disabled:opacity-50"
-          >
-            {isImporting ? (
-              <>
-                <RefreshCw className="w-4 h-4 animate-spin" />
-                Importing…
-              </>
-            ) : (
-              <>
-                <Upload className="w-4 h-4" />
-                Import calendar file
-              </>
-            )}
-          </button>
-          <input
-            ref={icsInputRef}
-            type="file"
-            accept=".ics,.zip,text/calendar,application/zip"
-            className="hidden"
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              e.target.value = '';
-              if (!file) return;
-              const name = file.name.toLowerCase();
-              if (name.endsWith('.zip')) {
-                showToast('Open the zip first, then import the .ics file inside it.');
-                return;
-              }
-              setIsImporting(true);
-              try {
-                const text = await file.text();
-                const count = await importIcsFile(text, importProfile);
-                showToast(
-                  count
-                    ? `Added ${count} event${count === 1 ? '' : 's'} to the calendar`
-                    : 'No new events to add — they may already be on the calendar'
-                );
-              } catch {
-                showToast('Could not read that calendar file. Use a .ics file.');
-              } finally {
-                setIsImporting(false);
-              }
-            }}
-          />
-        </div>
-
         {/* Color Customization Section */}
-        <div className="border-t border-slate-100 pt-5 space-y-3">
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
               <Palette className="w-4 h-4 text-blue-600" />
