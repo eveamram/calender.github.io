@@ -50,20 +50,31 @@ jobs:
           mkdir -p assets
           cp -R dist/assets/. assets/
           # Keep previous app.js/app.css URLs working for cached phone/computer pages.
-          if [ -f assets/app-v9.js ]; then
-            cp assets/app-v9.js assets/app.js
-            cp assets/app-v9.js assets/app-v8.js
-            cp assets/app-v9.js assets/app-v7.js
+          LATEST_JS=$(ls assets/app-v*.js 2>/dev/null | sort -V | tail -1)
+          LATEST_CSS=$(ls assets/app-v*.css 2>/dev/null | sort -V | tail -1)
+          if [ -n "$LATEST_JS" ]; then
+            cp "$LATEST_JS" assets/app.js
+            cp "$LATEST_JS" assets/app-v7.js
+            cp "$LATEST_JS" assets/app-v8.js
+            cp "$LATEST_JS" assets/app-v9.js
+            cp "$LATEST_JS" assets/app-v10.js
+            cp "$LATEST_JS" assets/app-v11.js
           fi
-          if [ -f assets/app-v9.js.map ]; then
-            cp assets/app-v9.js.map assets/app.js.map
-            cp assets/app-v9.js.map assets/app-v8.js.map
-            cp assets/app-v9.js.map assets/app-v7.js.map
+          if [ -f "${LATEST_JS}.map" ]; then
+            cp "${LATEST_JS}.map" assets/app.js.map
+            cp "${LATEST_JS}.map" assets/app-v7.js.map
+            cp "${LATEST_JS}.map" assets/app-v8.js.map
+            cp "${LATEST_JS}.map" assets/app-v9.js.map
+            cp "${LATEST_JS}.map" assets/app-v10.js.map
+            cp "${LATEST_JS}.map" assets/app-v11.js.map
           fi
-          if [ -f assets/app-v9.css ]; then
-            cp assets/app-v9.css assets/app.css
-            cp assets/app-v9.css assets/app-v8.css
-            cp assets/app-v9.css assets/app-v7.css
+          if [ -n "$LATEST_CSS" ]; then
+            cp "$LATEST_CSS" assets/app.css
+            cp "$LATEST_CSS" assets/app-v7.css
+            cp "$LATEST_CSS" assets/app-v8.css
+            cp "$LATEST_CSS" assets/app-v9.css
+            cp "$LATEST_CSS" assets/app-v10.css
+            cp "$LATEST_CSS" assets/app-v11.css
           fi
           git add assets
           if git diff --staged --quiet; then

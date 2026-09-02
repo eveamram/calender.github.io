@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { ProfilePersona } from '../../types';
 import { envGoogleClientId, resolvedGoogleClientId } from '../../lib/googleCalendar';
@@ -56,19 +56,9 @@ export const SettingsModal: React.FC = () => {
   const [confirmResetEvents, setConfirmResetEvents] = useState(false);
   const [resetConfirmText, setResetConfirmText] = useState('');
   const [clientIdDraft, setClientIdDraft] = useState(() => resolvedGoogleClientId(googleConfig));
-  const [showGoogleSetup, setShowGoogleSetup] = useState(() => !resolvedGoogleClientId(googleConfig));
   const icsInputRef = useRef<HTMLInputElement>(null);
   const googleConnected = googleConfig.calendars.length > 0;
   const googleOrigin = typeof window !== 'undefined' ? window.location.origin : '';
-
-  useEffect(() => {
-    if (!isSettingsOpen) return;
-    if (sessionStorage.getItem('calender_open_google_settings') !== '1') return;
-    sessionStorage.removeItem('calender_open_google_settings');
-    window.setTimeout(() => {
-      document.getElementById('google-calendar-settings')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 50);
-  }, [isSettingsOpen]);
 
   if (!isSettingsOpen) return null;
 
@@ -120,46 +110,8 @@ export const SettingsModal: React.FC = () => {
           </div>
         )}
 
-        {/* Color Customization Section */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <Palette className="w-4 h-4 text-blue-600" />
-              Persona Badge Colors
-            </h3>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-            {profiles.map((p) => {
-              const currentColor = profileColors[p] || (p === 'Eve' ? '#2563eb' : p === 'Abbie' ? '#ec4899' : '#059669');
-
-              return (
-                <div
-                  key={p}
-                  className="flex items-center justify-between p-3.5 rounded-2xl border border-slate-200 bg-slate-50/60"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div
-                      className="w-4 h-4 rounded-full border border-black/10 shadow-xs shrink-0"
-                      style={{ backgroundColor: currentColor }}
-                    />
-                    <span className="text-xs font-bold text-slate-900">{p}</span>
-                  </div>
-
-                  <button
-                    onClick={() => handleOpenColorPicker(p)}
-                    className="text-[11px] font-bold text-blue-600 hover:underline cursor-pointer"
-                  >
-                    Change Color
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
         {/* Google Calendar */}
-        <div id="google-calendar-settings" className="border-t border-slate-100 pt-5 space-y-3">
+        <div id="google-calendar-settings" className="space-y-3">
           <div className="flex items-start justify-between gap-3">
             <div>
               <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -167,7 +119,7 @@ export const SettingsModal: React.FC = () => {
                 Google Calendar
               </h3>
               <p className="text-xs text-slate-500 font-medium mt-0.5">
-                One-way sync: Google events appear here. Already-entered events are not duplicated. Removing a Google event only deletes it from this calendar — Google is unchanged, and it stays gone after the next sync.
+                Google Calendar does not give you an API key. You create an OAuth Client ID in Google Cloud, paste it here, then connect.
               </p>
             </div>
             {googleSyncing && (
@@ -184,34 +136,44 @@ export const SettingsModal: React.FC = () => {
             </div>
           )}
 
-          <button
-            type="button"
-            onClick={() => setShowGoogleSetup((open) => !open)}
-            className="text-[11px] font-bold text-blue-600 hover:underline cursor-pointer"
-          >
-            {showGoogleSetup ? 'Hide setup steps' : 'Show Google Cloud setup'}
-          </button>
-
-          {showGoogleSetup && (
+          {!googleConnected && (
             <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3.5 space-y-3">
+              <p className="text-[11px] font-extrabold text-slate-800 uppercase tracking-wider">
+                How to get the Client ID
+              </p>
               <ol className="list-decimal pl-4 space-y-1.5 text-[11px] text-slate-600 font-medium">
                 <li>
-                  In{' '}
+                  Open{' '}
                   <a
                     href="https://console.cloud.google.com/apis/credentials"
                     target="_blank"
                     rel="noreferrer"
                     className="text-blue-600 font-bold hover:underline"
                   >
-                    Google Cloud Console
+                    Google Cloud Credentials
                   </a>
-                  , enable the <span className="font-bold text-slate-800">Google Calendar API</span>.
+                  {' '}(or APIs &amp; Services → Credentials).
                 </li>
                 <li>
-                  Create an <span className="font-bold text-slate-800">OAuth client ID</span> of type{' '}
+                  Enable the{' '}
+                  <a
+                    href="https://console.cloud.google.com/apis/library/calendar-json.googleapis.com"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-blue-600 font-bold hover:underline"
+                  >
+                    Google Calendar API
+                  </a>
+                  .
+                </li>
+                <li>
+                  Click <span className="font-bold text-slate-800">Create credentials</span> →{' '}
+                  <span className="font-bold text-slate-800">OAuth client ID</span> → type{' '}
                   <span className="font-bold text-slate-800">Web application</span>.
                 </li>
-                <li>Add this JavaScript origin, then paste the Client ID below.</li>
+                <li>
+                  Under Authorized JavaScript origins, add this exact origin:
+                </li>
               </ol>
               <div className="flex items-center gap-1.5">
                 <code className="flex-1 text-[11px] font-mono font-bold bg-white border border-slate-200 rounded-xl px-3 py-2 truncate">
@@ -233,21 +195,25 @@ export const SettingsModal: React.FC = () => {
                   <Copy className="w-4 h-4" />
                 </button>
               </div>
-              <input
-                type="text"
-                value={clientIdDraft}
-                onChange={(e) => setClientIdDraft(e.target.value)}
-                onBlur={() => setGoogleClientId(clientIdDraft)}
-                placeholder="….apps.googleusercontent.com"
-                className="w-full text-xs font-mono font-bold px-3 py-2 border border-slate-200 rounded-xl bg-white"
-              />
-              {envGoogleClientId() && (
-                <p className="text-[10px] text-slate-400 font-medium">
-                  A Client ID is already built into this app. You can override it here.
-                </p>
-              )}
+              <p className="text-[11px] text-slate-600 font-medium">
+                Copy the Client ID (it ends with <span className="font-mono">.apps.googleusercontent.com</span>). That is not an API key.
+              </p>
             </div>
           )}
+
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
+              OAuth Client ID
+            </label>
+            <input
+              type="text"
+              value={clientIdDraft}
+              onChange={(e) => setClientIdDraft(e.target.value)}
+              onBlur={() => setGoogleClientId(clientIdDraft)}
+              placeholder="123456789-abc.apps.googleusercontent.com"
+              className="w-full text-xs font-mono font-bold px-3 py-2.5 border border-slate-200 rounded-xl bg-white"
+            />
+          </div>
 
           <div className="flex flex-wrap items-center gap-2">
             {googleConnected ? (
@@ -276,7 +242,7 @@ export const SettingsModal: React.FC = () => {
                   setGoogleClientId(clientIdDraft);
                   void connectGoogleCalendar();
                 }}
-                disabled={googleSyncing}
+                disabled={googleSyncing || !clientIdDraft.trim()}
                 className="font-extrabold px-4 py-2 rounded-2xl text-xs bg-slate-900 hover:bg-slate-800 text-white cursor-pointer disabled:opacity-50"
               >
                 Connect Google Calendar
@@ -353,6 +319,44 @@ export const SettingsModal: React.FC = () => {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Color Customization Section */}
+        <div className="border-t border-slate-100 pt-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Palette className="w-4 h-4 text-blue-600" />
+              Persona Badge Colors
+            </h3>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            {profiles.map((p) => {
+              const currentColor = profileColors[p] || (p === 'Eve' ? '#2563eb' : p === 'Abbie' ? '#ec4899' : '#059669');
+
+              return (
+                <div
+                  key={p}
+                  className="flex items-center justify-between p-3.5 rounded-2xl border border-slate-200 bg-slate-50/60"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className="w-4 h-4 rounded-full border border-black/10 shadow-xs shrink-0"
+                      style={{ backgroundColor: currentColor }}
+                    />
+                    <span className="text-xs font-bold text-slate-900">{p}</span>
+                  </div>
+
+                  <button
+                    onClick={() => handleOpenColorPicker(p)}
+                    className="text-[11px] font-bold text-blue-600 hover:underline cursor-pointer"
+                  >
+                    Change Color
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* Data Reset Section */}

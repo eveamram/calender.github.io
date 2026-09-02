@@ -10,7 +10,6 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { DayHourGrid, ScheduleItem } from './DayHourGrid';
-import { GoogleCalendarBar } from './GoogleCalendarBar';
 
 const isItemPastTime = (evt: any, dateStr: string): boolean => {
   const todayStr = getTodayDateString();
@@ -366,9 +365,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
   return (
     <div className="min-h-screen bg-[#faf9f6] text-slate-800 px-3 sm:px-6 md:px-8 py-4 sm:py-6 relative pb-20">
-      <div className="mb-4">
-        <GoogleCalendarBar />
-      </div>
       {/* MOBILE LAYOUT (< lg screens) */}
       <div className="lg:hidden space-y-4">
         {/* 1. SELECTED DAY SCHEDULE FIRST */}
