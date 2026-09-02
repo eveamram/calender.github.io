@@ -7,21 +7,54 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Calendar" />
     <meta name="theme-color" content="#8B7CF6" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
     <title>calender.</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/svg+xml" href="./assets/favicon-DP6Vm7NV.svg" />
-    <link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192-C97JAyKB.png" />
-    <link rel="apple-touch-icon" href="./assets/apple-touch-icon-D-wAE_ww.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon-D-wAE_ww.png" />
-    <link rel="apple-touch-icon" sizes="192x192" href="./assets/icon-192-C97JAyKB.png" />
-    <link rel="apple-touch-icon-precomposed" href="./assets/apple-touch-icon-D-wAE_ww.png" />
-    <link rel="manifest" href="./assets/manifest-CHCCiz0i.json" />
-    <script type="module" crossorigin src="./assets/index-CQ0qG25h.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-DDuMTkBT.css">
+    <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png" />
+    <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="./assets/icon-192.png" />
+    <link rel="apple-touch-icon-precomposed" href="./assets/apple-touch-icon.png" />
+    <link rel="manifest" href="./assets/manifest.json" />
+    <script type="module" crossorigin src="./assets/app-v11.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/app-v11.css">
   </head>
   <body class="bg-slate-50 text-slate-900 font-sans antialiased">
     <div id="root"></div>
+    <script>
+      (function () {
+        var retired = {
+          'hbt-1787432450370-wtikf': 1,
+          'tsk-1787439097233-tgyqw': 1,
+          'tsk-1787440158272-6ko41': 1,
+          'tsk-1787587530334-wn7mk': 1,
+          'tsk-1787616192331-htk1c': 1
+        };
+        try {
+          var keys = Object.keys(localStorage);
+          for (var i = 0; i < keys.length; i++) {
+            var key = keys[i];
+            if (key.indexOf('calender_app_table') !== 0) continue;
+            if (key.indexOf('calender_app_table_v6_') !== 0) {
+              localStorage.removeItem(key);
+              continue;
+            }
+            var raw = localStorage.getItem(key);
+            if (!raw) continue;
+            var parsed = JSON.parse(raw);
+            if (!Array.isArray(parsed)) continue;
+            localStorage.setItem(key, JSON.stringify(parsed.filter(function (item) {
+              return !item || !item.id || !retired[item.id];
+            })));
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
   </body>
 </html>
