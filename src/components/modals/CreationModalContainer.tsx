@@ -111,7 +111,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   const [evtDate, setEvtDate] = useState(initialDate || getTodayDateString());
   const [evtStartTime, setEvtStartTime] = useState('09:00');
   const [evtEndTime, setEvtEndTime] = useState('10:00');
-  const [evtNoTime, setEvtNoTime] = useState(false);
+  const [evtAllDay, setEvtAllDay] = useState(false);
   const [evtLocation, setEvtLocation] = useState('');
   const [evtColor, setEvtColor] = useState('');
   const [evtProfile, setEvtProfile] = useState<ProfilePersona>(defaultProfile);
@@ -129,10 +129,10 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         setEvtDate(eventToEdit.event_date);
         const start = (eventToEdit.start_time || '').trim();
         const end = (eventToEdit.end_time || '').trim();
-        const startUnknown = !start || start.toLowerCase() === 'all day' || start.toLowerCase() === 'all-day';
-        setEvtNoTime(startUnknown);
-        setEvtStartTime(startUnknown ? '09:00' : start);
-        setEvtEndTime(startUnknown ? '10:00' : end);
+        const isAllDay = !start || start.toLowerCase() === 'all day' || start.toLowerCase() === 'all-day';
+        setEvtAllDay(isAllDay);
+        setEvtStartTime(isAllDay ? '09:00' : start);
+        setEvtEndTime(isAllDay ? '10:00' : end);
         setEvtLocation(eventToEdit.location || '');
         setEvtColor(eventToEdit.color || (eventToEdit.event_type === 'exam' ? CATEGORY_METAS.exam.color : DEFAULT_COLOR_SWATCHES[0].hex));
         setEvtProfile(eventToEdit.profile || defaultProfile);
@@ -150,7 +150,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         setEvtColor(initialEventType === 'exam' ? CATEGORY_METAS.exam.color : DEFAULT_COLOR_SWATCHES[0].hex);
         setEvtStartTime('09:00');
         setEvtEndTime('10:00');
-        setEvtNoTime(false);
+        setEvtAllDay(false);
         setEvtProfile(defaultProfile);
         setEvtRepeat('none');
         const jsDay = new Date(`${(initialDate || getTodayDateString())}T00:00:00`).getDay();
@@ -347,8 +347,8 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
     setErrorMsg(null);
     try {
       const finalColor = evtColor || (evtType === 'exam' ? CATEGORY_METAS.exam.color : undefined);
-      const startTime = evtNoTime ? '' : evtStartTime.trim();
-      const endTime = evtNoTime ? '' : evtEndTime.trim();
+      const startTime = evtAllDay ? 'all day' : evtStartTime.trim();
+      const endTime = evtAllDay ? '' : evtEndTime.trim();
       let ok = false;
       if (eventToEdit) {
         ok = await updateEvent(eventToEdit.id, {
@@ -619,26 +619,26 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             <div className="grid grid-cols-2 bg-slate-100/90 p-1.5 rounded-2xl gap-1 items-center border border-slate-200/50 w-full">
               <button
                 type="button"
-                onClick={() => setEvtNoTime(false)}
+                onClick={() => setEvtAllDay(false)}
                 className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer min-h-[38px] ${
-                  !evtNoTime ? 'bg-[#0f172a] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-200/50'
+                  !evtAllDay ? 'bg-[#0f172a] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-200/50'
                 }`}
               >
                 Has times
               </button>
               <button
                 type="button"
-                onClick={() => setEvtNoTime(true)}
+                onClick={() => setEvtAllDay(true)}
                 className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer min-h-[38px] ${
-                  evtNoTime ? 'bg-[#0f172a] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-200/50'
+                  evtAllDay ? 'bg-[#0f172a] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-200/50'
                 }`}
               >
-                Don&apos;t know
+                All day
               </button>
             </div>
           </div>
 
-          {!evtNoTime && (
+          {!evtAllDay && (
             <div className="space-y-2">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 md:gap-4">
                 <MobileSelectField
@@ -667,9 +667,9 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               </button>
             </div>
           )}
-          {evtNoTime && (
+          {evtAllDay && (
             <p className="text-[11px] font-medium text-slate-500 -mt-2">
-              This event will show as all day. You can add times later.
+              This event sits in All day at the top of the schedule, with no start or end time.
             </p>
           )}
 
