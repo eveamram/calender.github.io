@@ -10,7 +10,7 @@ import {
   ChevronRight,
   Plus,
 } from 'lucide-react';
-import { DayHourGrid, ScheduleItem } from './DayHourGrid';
+import { DayHourGrid, parseTimeToMinutes, ScheduleItem } from './DayHourGrid';
 
 const isItemPastTime = (evt: any, dateStr: string): boolean => {
   const todayStr = getTodayDateString();
@@ -34,6 +34,34 @@ const isItemPastTime = (evt: any, dateStr: string): boolean => {
 
 const isClassScheduleItem = (evt: { is_class_item?: boolean; event_type?: string }) =>
   Boolean(evt.is_class_item || evt.event_type === 'class');
+
+function isAllDayTime(timeStr?: string): boolean {
+  if (!timeStr) return true;
+  const lower = timeStr.trim().toLowerCase();
+  return lower === '' || lower === 'all day' || lower === 'all-day';
+}
+
+function scheduleRange(item: { start_time?: string; end_time?: string }): { start: number; end: number } | 'all-day' | null {
+  if (isAllDayTime(item.start_time)) return 'all-day';
+  const start = parseTimeToMinutes(item.start_time);
+  if (start === null) return null;
+  const end = parseTimeToMinutes(item.end_time);
+  return { start, end: end !== null && end > start ? end : start + 60 };
+}
+
+function examHidesClass(
+  exam: { start_time?: string; end_time?: string; profile?: string },
+  cls: { start_time?: string; end_time?: string; profile?: string }
+): boolean {
+  const examP = exam.profile || 'Both';
+  const clsP = cls.profile || 'Both';
+  if (examP !== 'Both' && clsP !== 'Both' && examP !== clsP) return false;
+  const examRange = scheduleRange(exam);
+  const classRange = scheduleRange(cls);
+  if (examRange === 'all-day') return true;
+  if (!examRange || !classRange || classRange === 'all-day') return false;
+  return examRange.start < classRange.end && classRange.start < examRange.end;
+}
 
 
 interface CalendarViewProps {
@@ -250,7 +278,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         } as CalendarEvent & { is_habit_item?: boolean; habit_original_id?: string };
       });
 
-    const combined = [...eventList, ...classEvents, ...habitEvents];
+    const exams = eventList.filter((e) => e.event_type === 'exam');
+    const visibleClassEvents = classEvents.filter(
+      (cls) => !exams.some((exam) => examHidesClass(exam, cls))
+    );
+
+    const combined = [...eventList, ...visibleClassEvents, ...habitEvents];
     return combined.sort((a, b) => {
       const aAnniv = isAnniversaryTitle(a.title) ? 0 : 1;
       const bAnniv = isAnniversaryTitle(b.title) ? 0 : 1;
