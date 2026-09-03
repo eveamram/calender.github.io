@@ -1,7 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { useStore, getTodayDateString } from '../../context/StoreContext';
 import { CalendarEvent, CATEGORY_METAS, ClassItem, EventType, HabitItem, eventAccentColor } from '../../types';
-import { asAllDayIfAnniversary, getAnniversaryEvent, getCommonHolidayEvent } from '../../utils/holidays';
+import {
+  asAllDayIfAnniversary,
+  getAnniversaryEvent,
+  getCommonHolidayEvent,
+  isAnniversaryDate,
+  isAnniversaryTitle,
+} from '../../utils/holidays';
+import { celebrateComplete } from '../../utils/heartBurst';
 import { eventOccursOn, eventRepeats, occurrenceEventId, resolveMasterEvent } from '../../utils/eventRepeat';
 import { buildScheduleItemsForDate, shiftDate, weekDatesFrom, weekdayNumFromDate } from '../../utils/scheduleItems';
 import {
@@ -9,9 +16,9 @@ import {
   ChevronRight,
   Plus,
 } from 'lucide-react';
-import confetti from 'canvas-confetti';
 import { compactTimeLabel, DayHourGrid, parseTimeToMinutes, ScheduleItem } from './DayHourGrid';
 import { WeekView } from './WeekView';
+import { HeartsBackdrop } from './HeartsBackdrop';
 
 type CalView = 'day' | 'week' | 'month';
 const CAL_VIEW_KEY = 'calender_cal_view';
@@ -268,6 +275,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   }, [calendarDays, eventsByDate, classes, filteredHabits, habitCompletions, filterByProfile, profileColors, activeProfile]);
 
   const todayStr = useMemo(() => getTodayDateString(), []);
+  const selectedIsAnniversary = isAnniversaryDate(selectedDate);
 
   const selectMonth = (newMonthDate: Date) => {
     setCurrentMonthDate(newMonthDate);
@@ -356,13 +364,24 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
     if (evt.is_habit_item && evt.habit_original_id) {
       if (!evt.is_completed) {
-        confetti({ particleCount: 25, spread: 50, origin: { y: 0.8 } });
+        celebrateComplete({
+          dateStr: evt.event_date || selectedDate,
+          title: evt.title,
+          fallbackConfetti: true,
+        });
       }
       await toggleHabitCompletion(evt.habit_original_id, evt.event_date || selectedDate);
       return;
     }
 
     const isCurrentlyDone = evt.is_completed || completedEventIds.includes(evt.id);
+    if (!isCurrentlyDone) {
+      celebrateComplete({
+        dateStr: evt.event_date || selectedDate,
+        title: evt.title,
+        fallbackConfetti: false,
+      });
+    }
 
     setCompletedEventIds((prev) => {
       const updated = isCurrentlyDone ? prev.filter((id) => id !== evt.id) : [...prev, evt.id];
@@ -492,7 +511,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       )}
 
       {calView === 'day' && (
-        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs">
+        <div
+          className={`relative overflow-hidden rounded-2xl p-4 sm:p-5 border shadow-xs ${
+            selectedIsAnniversary ? 'bg-rose-50 border-rose-200/80' : 'bg-white border-slate-200/80'
+          }`}
+        >
+          {selectedIsAnniversary && <HeartsBackdrop density="day" />}
+          <div className="relative z-10">
           <DayHourGrid
             items={selectedDayItems as ScheduleItem[]}
             selectedDate={selectedDate}
@@ -507,6 +532,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             onAddEvent={(startTime) => onOpenAddModal(selectedDate, undefined, startTime)}
             scrollMaxHeightClass="max-h-[calc(100vh-14rem)]"
           />
+          </div>
         </div>
       )}
 
@@ -530,6 +556,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 const dayItems = monthItemsByDate.get(dayObj.dateStr) || [];
                 const d = new Date(dayObj.dateStr + 'T00:00:00');
                 const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                const isAnniv = isAnniversaryDate(dayObj.dateStr);
                 const visible = dayItems.slice(0, 3);
                 const extra = dayItems.length - visible.length;
 
@@ -538,18 +565,23 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     key={dayObj.dateStr}
                     onClick={() => setSelectedDate(dayObj.dateStr)}
                     onDoubleClick={(e) => handleDayDoubleClick(e, dayObj.dateStr)}
-                    className={`min-h-[76px] lg:min-h-[112px] p-1 lg:p-1.5 border-r border-b border-slate-100 flex flex-col cursor-pointer ${
-                      !dayObj.isCurrentMonth
-                        ? 'bg-slate-50/50 text-slate-300'
-                        : isSelected
-                          ? 'bg-blue-50/70'
-                          : isToday
-                            ? 'bg-rose-50/40'
-                            : isWeekend
-                              ? 'bg-amber-50/20 hover:bg-slate-50'
-                              : 'bg-white hover:bg-slate-50'
+                    className={`relative overflow-hidden min-h-[76px] lg:min-h-[112px] p-1 lg:p-1.5 border-r border-b border-slate-100 flex flex-col cursor-pointer ${
+                      isAnniv
+                        ? isSelected
+                          ? 'bg-rose-100/90'
+                          : 'bg-rose-50'
+                        : !dayObj.isCurrentMonth
+                          ? 'bg-slate-50/50 text-slate-300'
+                          : isSelected
+                            ? 'bg-blue-50/70'
+                            : isToday
+                              ? 'bg-rose-50/40'
+                              : isWeekend
+                                ? 'bg-amber-50/20 hover:bg-slate-50'
+                                : 'bg-white hover:bg-slate-50'
                     }`}
                   >
+                    {isAnniv && <HeartsBackdrop density="cell" />}
                     <button
                       type="button"
                       onClick={(e) => {
@@ -557,20 +589,22 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                         setSelectedDate(dayObj.dateStr);
                         chooseView('day');
                       }}
-                      className={`mb-0.5 w-7 h-7 rounded-full text-xs font-extrabold cursor-pointer ${
+                      className={`relative z-10 mb-0.5 w-7 h-7 rounded-full text-xs font-extrabold cursor-pointer ${
                         isToday
                           ? 'bg-rose-500 text-white'
-                          : isSelected
+                          : isSelected && !isAnniv
                             ? 'bg-blue-600 text-white'
-                            : dayObj.isCurrentMonth
-                              ? 'text-slate-800 hover:bg-slate-200/70'
-                              : 'text-slate-300'
+                            : isAnniv
+                              ? 'bg-rose-500 text-white'
+                              : dayObj.isCurrentMonth
+                                ? 'text-slate-800 hover:bg-slate-200/70'
+                                : 'text-slate-300'
                       }`}
                       title="Open day"
                     >
                       {dayObj.dayNum}
                     </button>
-                    <div className="space-y-0.5 flex-1 min-h-0 overflow-hidden">
+                    <div className="relative z-10 space-y-0.5 flex-1 min-h-0 overflow-hidden">
                       {visible.map((e) => {
                         const meta = CATEGORY_METAS[e.event_type as EventType] || CATEGORY_METAS.personal;
                         const evtColor = eventAccentColor(e) || meta.color;
@@ -580,6 +614,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           : Boolean(e.is_completed || completedEventIds.includes(e.id));
                         const isPastChip = isItemPastTime(e, dayObj.dateStr);
                         const timeLabel = compactTimeLabel(e.start_time);
+                        const isAnnivItem = isAnniversaryTitle(e.title);
                         return (
                           <button
                             key={e.id}
@@ -590,14 +625,23 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                               handleOpenScheduleItem(e);
                             }}
                             title={e.title}
-                            className={`w-full text-left text-[10px] lg:text-[11px] font-bold truncate px-1 py-0.5 rounded-md cursor-pointer ${
+                            className={`relative overflow-hidden w-full text-left text-[10px] lg:text-[11px] font-bold truncate px-1 py-0.5 rounded-md cursor-pointer ${
                               isCompleted || isPastChip ? 'opacity-60' : ''
                             } ${isCompleted ? 'line-through' : ''}`}
-                            style={{
-                              backgroundColor: `${evtColor}28`,
-                              borderLeft: `3px solid ${evtColor}`,
-                              color: '#0f172a',
-                            }}
+                            style={
+                              isAnnivItem
+                                ? {
+                                    background:
+                                      'linear-gradient(90deg, #fce7f3 0%, #fbcfe8 55%, #fce7f3 100%)',
+                                    borderLeft: '3px solid #ec4899',
+                                    color: '#9d174d',
+                                  }
+                                : {
+                                    backgroundColor: `${evtColor}28`,
+                                    borderLeft: `3px solid ${evtColor}`,
+                                    color: '#0f172a',
+                                  }
+                            }
                           >
                             {timeLabel ? `${timeLabel} ` : ''}
                             {e.title}
@@ -626,8 +670,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
           <div
             id="daily-schedule-panel"
-            className="mt-4 lg:mt-0 lg:col-span-4 bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs sticky top-20"
+            className={`relative overflow-hidden mt-4 lg:mt-0 lg:col-span-4 rounded-2xl p-4 sm:p-5 border shadow-xs sticky top-20 ${
+              selectedIsAnniversary ? 'bg-rose-50 border-rose-200/80' : 'bg-white border-slate-200/80'
+            }`}
           >
+            {selectedIsAnniversary && <HeartsBackdrop density="day" />}
+            <div className="relative z-10">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
               <div>
                 <div className="flex items-center gap-2">
@@ -638,7 +686,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-slate-400 font-medium mt-0.5">Daily schedule</p>
+                <p className="text-xs text-slate-400 font-medium mt-0.5">
+                  {selectedIsAnniversary ? 'Anniversary 💕' : 'Daily schedule'}
+                </p>
               </div>
               <button
                 type="button"
@@ -663,6 +713,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               onAddEvent={(startTime) => onOpenAddModal(selectedDate, undefined, startTime)}
               scrollMaxHeightClass="max-h-[min(52vh,28rem)] lg:max-h-[calc(100vh-12rem)]"
             />
+            </div>
           </div>
         </div>
       )}

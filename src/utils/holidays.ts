@@ -105,8 +105,16 @@ export function getAnniversaryEvent(dateStr: string): CalendarEvent | null {
   };
 }
 
+export function isAnniversaryTitle(title?: string): boolean {
+  return (title || '').toLowerCase().includes('anniversary');
+}
+
+export function isAnniversaryDate(dateStr: string): boolean {
+  return getAnniversaryEvent(dateStr) != null;
+}
+
 export function asAllDayIfAnniversary(evt: CalendarEvent): CalendarEvent {
-  if (!evt.title.toLowerCase().includes('anniversary')) return evt;
+  if (!isAnniversaryTitle(evt.title)) return evt;
   return { ...evt, start_time: undefined, end_time: undefined };
 }
 

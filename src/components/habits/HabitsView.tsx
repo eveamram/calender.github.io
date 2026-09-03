@@ -4,6 +4,7 @@ import { HabitItem } from '../../types';
 import { Plus, Check, Trash2, Pencil, Calendar as CalendarIcon, RotateCcw, Calendar, Sparkles, Minus } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { habitItemColor } from '../../utils/personaColor';
+import { celebrateComplete } from '../../utils/heartBurst';
 
 interface HabitsViewProps {
   onOpenAddModal: (habitToEdit?: HabitItem | null) => void;
@@ -110,7 +111,7 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
 
   const handleToggleCheck = async (habit: HabitItem, dateStr: string, isCompleted: boolean) => {
     if (!isCompleted) {
-      confetti({ particleCount: 20, spread: 45, origin: { y: 0.8 } });
+      celebrateComplete({ dateStr, fallbackConfetti: true });
     }
     await toggleHabitCompletion(habit.id, dateStr, isCompleted ? 0 : 1);
   };
@@ -120,7 +121,7 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
     const prev = getHabitQuantity(habit.id, dateStr);
     const target = habit.target_quantity && habit.target_quantity > 0 ? habit.target_quantity : 1;
     if (qty > prev && ((prev < 1 && qty >= 1) || (prev < target && qty >= target))) {
-      confetti({ particleCount: 20, spread: 45, origin: { y: 0.8 } });
+      celebrateComplete({ dateStr, fallbackConfetti: true });
     }
     await toggleHabitCompletion(habit.id, dateStr, qty);
   };
