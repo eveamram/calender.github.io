@@ -9,9 +9,6 @@ import {
   TaskItem,
   eventAccentColor,
 } from '../../types';
-import { isAnniversaryTitle } from '../../utils/holidays';
-import { HeartsBackdrop } from './HeartsBackdrop';
-
 export type ScheduleItem = CalendarEvent & {
   is_class_item?: boolean;
   is_habit_item?: boolean;
@@ -270,7 +267,6 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
     const dense = Boolean(opts?.dense);
     const inGrid = Boolean(opts?.inGrid);
     const showTime = !evt.is_habit_item && parseTimeToMinutes(evt.start_time) !== null;
-    const isAnniv = isAnniversaryTitle(evt.title);
 
     return (
       <div
@@ -279,33 +275,23 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
           e.stopPropagation();
           onOpenItem(evt);
         }}
-        className={`relative overflow-hidden flex cursor-pointer group transition-all ${
+        className={`flex cursor-pointer group transition-all ${
           inGrid ? 'h-full overflow-hidden' : ''
         } ${
           dense
             ? 'items-start p-1.5 rounded-lg border'
             : 'items-center justify-between p-3 rounded-xl border'
         } ${
-          isAnniv
-            ? 'border-rose-200'
-            : isMuted
-              ? 'bg-slate-50/40 border-slate-100/70'
-              : 'bg-white hover:bg-slate-50 border-slate-100'
+          isMuted
+            ? 'bg-slate-50/40 border-slate-100/70'
+            : 'bg-white hover:bg-slate-50 border-slate-100'
         }`}
         style={{
-          borderLeft: `3.5px solid ${isAnniv ? '#ec4899' : evtColor}`,
-          backgroundColor: isAnniv
-            ? undefined
-            : isMuted
-              ? undefined
-              : `${evtColor}18`,
-          background: isAnniv
-            ? 'linear-gradient(90deg, #fff1f5 0%, #fce7f3 50%, #fbcfe8 100%)'
-            : undefined,
+          borderLeft: `3.5px solid ${evtColor}`,
+          backgroundColor: isMuted ? undefined : `${evtColor}18`,
         }}
       >
-        {isAnniv && <HeartsBackdrop density="chip" />}
-        <div className={`relative z-10 flex min-w-0 flex-1 ${dense ? 'items-start gap-1.5' : 'items-center gap-3'}`}>
+        <div className={`flex min-w-0 flex-1 ${dense ? 'items-start gap-1.5' : 'items-center gap-3'}`}>
           {!isClassItem && (
             <button
               type="button"
@@ -335,9 +321,7 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
               className={`font-semibold leading-tight ${dense ? 'text-[11px]' : 'text-xs'} truncate ${
                 isCompleted || isPast
                   ? 'line-through text-slate-400 opacity-75'
-                  : isAnniv
-                    ? 'text-rose-800'
-                    : 'text-slate-900'
+                  : 'text-slate-900'
               }`}
             >
               {evt.title}
@@ -377,7 +361,7 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
           </div>
         </div>
 
-        <div className={`relative z-10 flex items-center shrink-0 ${dense ? 'gap-0 ml-0.5' : 'gap-1 ml-2'}`}>
+        <div className={`flex items-center shrink-0 ${dense ? 'gap-0 ml-0.5' : 'gap-1 ml-2'}`}>
           <button
             type="button"
             onClick={(e) => {

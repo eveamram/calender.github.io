@@ -1,7 +1,5 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { CATEGORY_METAS, EventType, ProfilePersona, eventAccentColor } from '../../types';
-import { isAnniversaryDate, isAnniversaryTitle } from '../../utils/holidays';
-import { HeartsBackdrop } from './HeartsBackdrop';
 import { formatTime12Hour } from '../../context/StoreContext';
 import { hhmmFromMinutes, packOverlappingLanes, parseTimeToMinutes, ScheduleItem } from './DayHourGrid';
 
@@ -99,13 +97,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
   const allDayMax = Math.max(1, ...columns.map((c) => c.allDay.length));
 
   const chipStyle = (evt: ScheduleItem) => {
-    if (isAnniversaryTitle(evt.title)) {
-      return {
-        background: 'linear-gradient(90deg, #fce7f3 0%, #fbcfe8 55%, #fce7f3 100%)',
-        borderLeft: '3px solid #ec4899',
-        color: '#9d174d',
-      };
-    }
     const meta = CATEGORY_METAS[evt.event_type as EventType] || CATEGORY_METAS.personal;
     const color = eventAccentColor(evt) || meta.color;
     return {
@@ -124,24 +115,22 @@ export const WeekView: React.FC<WeekViewProps> = ({
             {weekDates.map((dateStr) => {
               const isToday = dateStr === todayStr;
               const isSelected = dateStr === selectedDate;
-              const isAnniv = isAnniversaryDate(dateStr);
               return (
                 <button
                   key={dateStr}
                   type="button"
                   onClick={() => onSelectDate(dateStr)}
                   onDoubleClick={() => onOpenDay(dateStr)}
-                  className={`relative overflow-hidden py-2.5 px-1 text-center border-l border-slate-100 cursor-pointer ${
-                    isAnniv ? 'bg-rose-50' : isToday ? 'bg-rose-50' : isSelected ? 'bg-blue-50' : 'bg-white hover:bg-slate-50'
+                  className={`py-2.5 px-1 text-center border-l border-slate-100 cursor-pointer ${
+                    isToday ? 'bg-rose-50' : isSelected ? 'bg-blue-50' : 'bg-white hover:bg-slate-50'
                   }`}
                 >
-                  {isAnniv && <HeartsBackdrop density="chip" />}
-                  <div className="relative z-10 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                     {weekdayShort(dateStr)}
                   </div>
                   <div
-                    className={`relative z-10 mx-auto mt-0.5 w-8 h-8 rounded-full flex items-center justify-center text-sm font-black ${
-                      isAnniv || isToday ? 'bg-rose-500 text-white' : isSelected ? 'bg-blue-600 text-white' : 'text-slate-800'
+                    className={`mx-auto mt-0.5 w-8 h-8 rounded-full flex items-center justify-center text-sm font-black ${
+                      isToday ? 'bg-rose-500 text-white' : isSelected ? 'bg-blue-600 text-white' : 'text-slate-800'
                     }`}
                   >
                     {dayNum(dateStr)}
@@ -158,13 +147,12 @@ export const WeekView: React.FC<WeekViewProps> = ({
             {columns.map((col) => (
               <div
                 key={col.dateStr}
-                className={`relative overflow-hidden border-l border-slate-100 p-1 min-h-[2.5rem] space-y-0.5 ${
-                  isAnniversaryDate(col.dateStr) ? 'bg-rose-50/80' : col.dateStr === todayStr ? 'bg-rose-50/40' : ''
+                className={`border-l border-slate-100 p-1 min-h-[2.5rem] space-y-0.5 ${
+                  col.dateStr === todayStr ? 'bg-rose-50/40' : ''
                 }`}
                 onClick={() => onAddEvent(col.dateStr, 'all day')}
                 style={{ minHeight: `${Math.max(2.5, allDayMax * 1.35)}rem` }}
               >
-                {isAnniversaryDate(col.dateStr) && <HeartsBackdrop density="chip" />}
                 {col.allDay.map((evt) => (
                   <button
                     key={evt.id}
@@ -173,7 +161,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                       e.stopPropagation();
                       onOpenItem(evt);
                     }}
-                    className="relative z-10 w-full text-left text-[10px] font-bold truncate px-1.5 py-0.5 rounded-md cursor-pointer"
+                    className="w-full text-left text-[10px] font-bold truncate px-1.5 py-0.5 rounded-md cursor-pointer"
                     style={chipStyle(evt)}
                     title={evt.title}
                   >
@@ -206,12 +194,8 @@ export const WeekView: React.FC<WeekViewProps> = ({
                 {columns.map((col) => (
                   <div
                     key={col.dateStr}
-                    className={`relative overflow-hidden border-l border-slate-100 cursor-pointer ${
-                      isAnniversaryDate(col.dateStr)
-                        ? 'bg-rose-50/50'
-                        : col.dateStr === todayStr
-                          ? 'bg-rose-50/30'
-                          : ''
+                    className={`relative border-l border-slate-100 cursor-pointer ${
+                      col.dateStr === todayStr ? 'bg-rose-50/30' : ''
                     }`}
                     onClick={(e) => {
                       const rect = e.currentTarget.getBoundingClientRect();
@@ -219,7 +203,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
                       onAddEvent(col.dateStr, hhmmFromMinutes(START_HOUR * 60 + (y / HOUR_HEIGHT) * 60));
                     }}
                   >
-                    {isAnniversaryDate(col.dateStr) && <HeartsBackdrop density="week" />}
                     {col.timed.map((t) => {
                       const top = ((t.startMin - START_HOUR * 60) / 60) * HOUR_HEIGHT;
                       const height = Math.max(22, ((t.endMin - t.startMin) / 60) * HOUR_HEIGHT);
