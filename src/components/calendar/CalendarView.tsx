@@ -3,33 +3,29 @@ import { useStore, getTodayDateString } from '../../context/StoreContext';
 import { CalendarEvent, CATEGORY_METAS, ClassItem, EventType, HabitItem } from '../../types';
 import { asAllDayIfAnniversary, getAnniversaryEvent, getCommonHolidayEvent } from '../../utils/holidays';
 import { eventOccursOn, eventRepeats, occurrenceEventId, resolveMasterEvent } from '../../utils/eventRepeat';
-import { classPersonaColor, habitItemColor } from '../../utils/personaColor';
+import { buildScheduleItemsForDate, shiftDate, weekDatesFrom, weekdayNumFromDate } from '../../utils/scheduleItems';
 import {
   ChevronLeft,
   ChevronRight,
   Plus,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { DayHourGrid, ScheduleItem } from './DayHourGrid';
+import { compactTimeLabel, DayHourGrid, parseTimeToMinutes, ScheduleItem } from './DayHourGrid';
+import { WeekView } from './WeekView';
 
-const isItemPastTime = (evt: any, dateStr: string): boolean => {
+type CalView = 'day' | 'week' | 'month';
+const CAL_VIEW_KEY = 'calender_cal_view';
+
+const isItemPastTime = (evt: { end_time?: string; start_time?: string; due_time?: string }, dateStr: string): boolean => {
   const todayStr = getTodayDateString();
   if (dateStr < todayStr) return true;
   if (dateStr > todayStr) return false;
 
   const now = new Date();
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
-  const targetTimeStr = evt.end_time || evt.start_time || evt.due_time;
-  if (!targetTimeStr) return false;
-
-  const parts = targetTimeStr.split(':');
-  if (parts.length < 2) return false;
-  const eventHours = parseInt(parts[0], 10);
-  const eventMinutes = parseInt(parts[1], 10);
-  if (isNaN(eventHours) || isNaN(eventMinutes)) return false;
-
-  return currentMinutes >= (eventHours * 60 + eventMinutes);
+  const mins = parseTimeToMinutes(evt.end_time || evt.start_time || evt.due_time);
+  if (mins === null) return false;
+  return currentMinutes >= mins;
 };
 
 const isClassScheduleItem = (evt: { is_class_item?: boolean; event_type?: string }) =>
@@ -37,7 +33,7 @@ const isClassScheduleItem = (evt: { is_class_item?: boolean; event_type?: string
 
 
 interface CalendarViewProps {
-  onOpenAddModal: (initialDate?: string, eventToEdit?: CalendarEvent) => void;
+  onOpenAddModal: (initialDate?: string, eventToEdit?: CalendarEvent, initialStartTime?: string) => void;
   onOpenEditClass?: (cls: ClassItem, day?: number) => void;
   onOpenEditHabit?: (habit: HabitItem) => void;
 }
@@ -65,6 +61,23 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   } = useStore();
 
   const [currentMonthDate, setCurrentMonthDate] = useState(() => new Date());
+  const [calView, setCalView] = useState<CalView>(() => {
+    try {
+      const saved = localStorage.getItem(CAL_VIEW_KEY);
+      if (saved === 'day' || saved === 'week' || saved === 'month') return saved;
+    } catch {
+      /* ignore */
+    }
+    return 'week';
+  });
+  const chooseView = (view: CalView) => {
+    setCalView(view);
+    try {
+      localStorage.setItem(CAL_VIEW_KEY, view);
+    } catch {
+      /* ignore */
+    }
+  };
 
   // Hidden and Completed IDs for auto-generated holidays & events
   const [hiddenEventIds, setHiddenEventIds] = useState<string[]>(() => {
@@ -97,6 +110,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const filteredEvents = useMemo(() => {
     return filterByProfile(events);
   }, [events, filterByProfile]);
+
+  const weekDates = useMemo(() => weekDatesFrom(selectedDate), [selectedDate]);
+
+  const formattedSelectedDateHeader = useMemo(() => {
+    const parts = selectedDate.split('-');
+    if (parts.length !== 3) return selectedDate;
+    const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    return d.toLocaleDateString('default', { weekday: 'long', month: 'short', day: 'numeric' });
+  }, [selectedDate]);
 
   const calendarDays = useMemo(() => {
     const firstDayIndex = new Date(year, month, 1).getDay(); // 0 = Sun
@@ -146,43 +168,44 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       map.get(evt.event_date)!.push(asAllDayIfAnniversary({ ...evt, is_completed: isComp }));
     });
 
-    calendarDays.forEach((dayObj) => {
-      const list = map.get(dayObj.dateStr) || [];
+    const datesToExpand = new Set(calendarDays.map((d) => d.dateStr));
+    weekDates.forEach((d) => datesToExpand.add(d));
 
-      // Dynamic 30th Anniversary
-      const annivEvt = getAnniversaryEvent(dayObj.dateStr);
+    datesToExpand.forEach((dateStr) => {
+      const list = map.get(dateStr) || [];
+
+      const annivEvt = getAnniversaryEvent(dateStr);
       if (annivEvt && !hiddenEventIds.includes(annivEvt.id)) {
         const hasAnniv = list.some((e) => e.title.includes('Anniversary'));
         if (!hasAnniv) {
-          if (!map.has(dayObj.dateStr)) map.set(dayObj.dateStr, []);
+          if (!map.has(dateStr)) map.set(dateStr, []);
           const isComp = completedEventIds.includes(annivEvt.id);
-          map.get(dayObj.dateStr)!.push(asAllDayIfAnniversary({ ...annivEvt, is_completed: isComp }));
+          map.get(dateStr)!.push(asAllDayIfAnniversary({ ...annivEvt, is_completed: isComp }));
         }
       }
 
-      // Dynamic Common Secular Holidays
-      const holidayEvt = getCommonHolidayEvent(dayObj.dateStr);
+      const holidayEvt = getCommonHolidayEvent(dateStr);
       if (holidayEvt && !hiddenEventIds.includes(holidayEvt.id)) {
         const hasHoliday = list.some((e) => e.title === holidayEvt.title);
         if (!hasHoliday) {
-          if (!map.has(dayObj.dateStr)) map.set(dayObj.dateStr, []);
+          if (!map.has(dateStr)) map.set(dateStr, []);
           const isComp = completedEventIds.includes(holidayEvt.id);
-          map.get(dayObj.dateStr)!.push({ ...holidayEvt, is_completed: isComp });
+          map.get(dateStr)!.push({ ...holidayEvt, is_completed: isComp });
         }
       }
 
       filteredEvents.forEach((evt) => {
         if (!eventRepeats(evt)) return;
-        if (!eventOccursOn(evt, dayObj.dateStr)) return;
-        const occId = occurrenceEventId(evt.id, dayObj.dateStr);
+        if (!eventOccursOn(evt, dateStr)) return;
+        const occId = occurrenceEventId(evt.id, dateStr);
         if (hiddenEventIds.includes(occId) || hiddenEventIds.includes(evt.id)) return;
-        if (!map.has(dayObj.dateStr)) map.set(dayObj.dateStr, []);
+        if (!map.has(dateStr)) map.set(dateStr, []);
         const isComp = completedEventIds.includes(occId);
-        map.get(dayObj.dateStr)!.push(
+        map.get(dateStr)!.push(
           asAllDayIfAnniversary({
             ...evt,
             id: occId,
-            event_date: dayObj.dateStr,
+            event_date: dateStr,
             is_completed: isComp,
           })
         );
@@ -190,69 +213,59 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     });
 
     return map;
-  }, [filteredEvents, calendarDays, hiddenEventIds, completedEventIds]);
+  }, [filteredEvents, calendarDays, weekDates, hiddenEventIds, completedEventIds]);
 
   const selectedDayItems = useMemo(() => {
-    const eventList = eventsByDate.get(selectedDate) || [];
-    const dateObj = new Date(selectedDate + 'T00:00:00');
-    let jsDay = dateObj.getDay(); // 0=Sun, 1=Mon...
-    const dayOfWeekNum = jsDay === 0 ? 7 : jsDay; // 1..7 (Mon..Sun)
-
-    // Filter classes for the selected date's day of week (1=Mon ... 5=Fri)
-    const filteredClasses = filterByProfile(classes);
-    const classEvents: CalendarEvent[] = filteredClasses
-      .filter((cls) => {
-        const activeDays = cls.days_of_week && cls.days_of_week.length > 0 ? cls.days_of_week : [1, 2, 3, 4, 5];
-        return activeDays.includes(dayOfWeekNum);
-      })
-      .map((cls) => {
-        const ownerProf = cls.profile || 'Eve';
-        const classColor = classPersonaColor(cls.profile, activeProfile, profileColors, cls.color);
-        return {
-          id: `class-item-${cls.id}`,
-          title: `📚 ${cls.name}${cls.room ? ` (${cls.room})` : ''}`,
-          event_type: 'class',
-          event_date: selectedDate,
-          start_time: cls.start_time,
-          end_time: cls.end_time,
-          location: cls.room || cls.instructor,
-          color: classColor,
-          profile: cls.profile || 'Both',
-          is_completed: false,
-          is_class_item: true,
-          class_original_id: cls.id,
-        } as CalendarEvent & { is_class_item?: boolean; class_original_id?: string };
-      });
-
-    // Filter habits enabled via Habits tab setting show_in_daily_schedule
-    const habitEvents: CalendarEvent[] = filteredHabits
-      .filter((h) => Boolean(h.show_in_daily_schedule))
-      .filter((h) => {
-        const activeDays = h.active_days && h.active_days.length > 0 ? h.active_days : [1, 2, 3, 4, 5, 6, 7];
-        return activeDays.includes(dayOfWeekNum);
-      })
-      .map((h) => {
-        const isDone = habitCompletions.some(
-          (hc) => hc.habit_id === h.id && hc.date === selectedDate && hc.completed
-        );
-        const habitColor = habitItemColor(h.color, h.profile, profileColors);
-        return {
-          id: `habit-evt-${h.id}`,
-          title: `${h.emoji || '✨'} ${h.title}`,
-          event_type: 'personal',
-          event_date: selectedDate,
-          start_time: 'Habit',
-          color: habitColor,
-          profile: h.profile || 'Both',
-          is_completed: isDone,
-          is_habit_item: true,
-          habit_original_id: h.id,
-        } as CalendarEvent & { is_habit_item?: boolean; habit_original_id?: string };
-      });
-
-    const combined = [...eventList, ...classEvents, ...habitEvents];
-    return combined.sort((a, b) => (a.start_time || '00:00').localeCompare(b.start_time || '00:00'));
+    return buildScheduleItemsForDate({
+      dateStr: selectedDate,
+      eventList: eventsByDate.get(selectedDate) || [],
+      classes: filterByProfile(classes),
+      habits: filteredHabits,
+      habitCompletions,
+      activeProfile,
+      profileColors,
+    });
   }, [eventsByDate, selectedDate, classes, filteredHabits, habitCompletions, filterByProfile, profileColors, activeProfile]);
+
+  const weekItemsByDate = useMemo(() => {
+    const map = new Map<string, ScheduleItem[]>();
+    const filteredClasses = filterByProfile(classes);
+    weekDates.forEach((dateStr) => {
+      map.set(
+        dateStr,
+        buildScheduleItemsForDate({
+          dateStr,
+          eventList: eventsByDate.get(dateStr) || [],
+          classes: filteredClasses,
+          habits: filteredHabits,
+          habitCompletions,
+          activeProfile,
+          profileColors,
+        })
+      );
+    });
+    return map;
+  }, [weekDates, eventsByDate, classes, filteredHabits, habitCompletions, filterByProfile, profileColors, activeProfile]);
+
+  const monthItemsByDate = useMemo(() => {
+    const map = new Map<string, ScheduleItem[]>();
+    const filteredClasses = filterByProfile(classes);
+    calendarDays.forEach((dayObj) => {
+      map.set(
+        dayObj.dateStr,
+        buildScheduleItemsForDate({
+          dateStr: dayObj.dateStr,
+          eventList: eventsByDate.get(dayObj.dateStr) || [],
+          classes: filteredClasses,
+          habits: filteredHabits,
+          habitCompletions,
+          activeProfile,
+          profileColors,
+        })
+      );
+    });
+    return map;
+  }, [calendarDays, eventsByDate, classes, filteredHabits, habitCompletions, filterByProfile, profileColors, activeProfile]);
 
   const todayStr = useMemo(() => getTodayDateString(), []);
 
@@ -282,18 +295,43 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     setSelectedDate(todayStr);
   };
 
+  const handlePrev = () => {
+    if (calView === 'month') handlePrevMonth();
+    else {
+      const next = shiftDate(selectedDate, calView === 'week' ? -7 : -1);
+      setSelectedDate(next);
+      setCurrentMonthDate(new Date(next + 'T00:00:00'));
+    }
+  };
+
+  const handleNext = () => {
+    if (calView === 'month') handleNextMonth();
+    else {
+      const next = shiftDate(selectedDate, calView === 'week' ? 7 : 1);
+      setSelectedDate(next);
+      setCurrentMonthDate(new Date(next + 'T00:00:00'));
+    }
+  };
+
+  const toolbarTitle = useMemo(() => {
+    if (calView === 'month') return monthName;
+    if (calView === 'week') {
+      const start = new Date(weekDates[0] + 'T00:00:00');
+      const end = new Date(weekDates[6] + 'T00:00:00');
+      const sameMonth = start.getMonth() === end.getMonth();
+      if (sameMonth) {
+        return `${start.toLocaleString('default', { month: 'long' })} ${start.getDate()}–${end.getDate()}, ${start.getFullYear()}`;
+      }
+      return `${start.toLocaleString('default', { month: 'short' })} ${start.getDate()} – ${end.toLocaleString('default', { month: 'short' })} ${end.getDate()}, ${end.getFullYear()}`;
+    }
+    return formattedSelectedDateHeader;
+  }, [calView, monthName, weekDates, formattedSelectedDateHeader]);
+
   const handleDayDoubleClick = (e: React.MouseEvent, dateStr: string) => {
     e.stopPropagation();
     setSelectedDate(dateStr);
     onOpenAddModal(dateStr);
   };
-
-  const formattedSelectedDateHeader = useMemo(() => {
-    const parts = selectedDate.split('-');
-    if (parts.length !== 3) return selectedDate;
-    const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-    return d.toLocaleDateString('default', { weekday: 'long', month: 'short', day: 'numeric' });
-  }, [selectedDate]);
 
   const handleDeleteAnyEvent = async (evt: ScheduleItem) => {
     if (evt.is_habit_item && evt.habit_original_id) {
@@ -320,7 +358,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       if (!evt.is_completed) {
         confetti({ particleCount: 25, spread: 50, origin: { y: 0.8 } });
       }
-      await toggleHabitCompletion(evt.habit_original_id, selectedDate);
+      await toggleHabitCompletion(evt.habit_original_id, evt.event_date || selectedDate);
       return;
     }
 
@@ -339,12 +377,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     }
   };
 
-  const weekdayNumFromDate = (dateStr: string) => {
-    const dateObj = new Date(dateStr + 'T00:00:00');
-    const jsDay = dateObj.getDay();
-    return jsDay === 0 ? 7 : jsDay;
-  };
-
   const handleOpenScheduleItem = (evt: ScheduleItem) => {
     const isSyntheticClass =
       Boolean(evt.is_class_item) ||
@@ -358,7 +390,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           : undefined);
       const cls = classId ? classes.find((c) => c.id === classId) : undefined;
       if (cls && onOpenEditClass) {
-        onOpenEditClass(cls, weekdayNumFromDate(selectedDate));
+        onOpenEditClass(cls, weekdayNumFromDate(evt.event_date || selectedDate));
       }
       return;
     }
@@ -381,34 +413,86 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
   return (
     <div className="min-h-screen bg-[#faf9f6] text-slate-800 px-3 sm:px-6 md:px-8 py-4 sm:py-6 relative pb-20">
-      {/* MOBILE LAYOUT (< lg screens) */}
-      <div className="lg:hidden space-y-4">
-        {/* 1. SELECTED DAY SCHEDULE FIRST */}
-        <div id="daily-schedule-panel" className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-2xs space-y-3">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold text-slate-900 tracking-tight">
-                  {formattedSelectedDateHeader}
-                </h2>
-                {selectedDate === todayStr && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 uppercase tracking-wider">
-                    Today
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-slate-400 font-medium">Daily Schedule</p>
-            </div>
-
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+        <div className="flex items-center gap-2 flex-wrap">
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">{toolbarTitle}</h2>
+          {selectedDate === todayStr && calView !== 'month' && (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 uppercase tracking-wider">
+              Today
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center bg-white border border-slate-200 rounded-xl p-0.5">
             <button
-              onClick={() => onOpenAddModal(selectedDate)}
-              className="p-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-2xs transition-all cursor-pointer"
-              title="Add Event"
+              type="button"
+              onClick={handlePrev}
+              className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 cursor-pointer"
+              aria-label="Previous"
             >
-              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={handleTodayClick}
+              className="px-2.5 py-1 text-xs font-bold text-slate-800 hover:bg-slate-100 rounded-lg cursor-pointer"
+            >
+              Today
+            </button>
+            <button
+              type="button"
+              onClick={handleNext}
+              className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 cursor-pointer"
+              aria-label="Next"
+            >
+              <ChevronRight className="w-4 h-4" />
             </button>
           </div>
+          <div className="flex items-center bg-white border border-slate-200 rounded-xl p-0.5">
+            {(['day', 'week', 'month'] as CalView[]).map((view) => (
+              <button
+                key={view}
+                type="button"
+                onClick={() => chooseView(view)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold capitalize cursor-pointer ${
+                  calView === view ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                {view}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => onOpenAddModal(selectedDate)}
+            className="flex items-center gap-1 bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-1.5 rounded-xl text-xs cursor-pointer"
+          >
+            <Plus className="w-4 h-4 stroke-[2.5]" />
+            <span className="hidden sm:inline">Add</span>
+          </button>
+        </div>
+      </div>
 
+      {calView === 'week' && (
+        <WeekView
+          weekDates={weekDates}
+          itemsByDate={weekItemsByDate}
+          selectedDate={selectedDate}
+          todayStr={todayStr}
+          activeProfile={activeProfile}
+          profileColors={profileColors}
+          onSelectDate={setSelectedDate}
+          onOpenDay={(dateStr) => {
+            setSelectedDate(dateStr);
+            chooseView('day');
+          }}
+          onOpenItem={handleOpenScheduleItem}
+          onAddEvent={(dateStr, startTime) => onOpenAddModal(dateStr, undefined, startTime)}
+        />
+      )}
+
+      {calView === 'day' && (
+        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs">
           <DayHourGrid
             items={selectedDayItems as ScheduleItem[]}
             selectedDate={selectedDate}
@@ -420,304 +504,179 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             onOpenItem={handleOpenScheduleItem}
             onToggleComplete={handleToggleAnyEventComplete}
             onDelete={handleDeleteAnyEvent}
-            onAddEvent={() => onOpenAddModal(selectedDate)}
-            scrollMaxHeightClass="max-h-[min(52vh,28rem)]"
+            onAddEvent={(startTime) => onOpenAddModal(selectedDate, undefined, startTime)}
+            scrollMaxHeightClass="max-h-[calc(100vh-14rem)]"
           />
         </div>
+      )}
 
-        {/* 2. COMPACT MONTHLY CALENDAR SECOND */}
-        <div className="bg-white rounded-3xl p-4 border border-slate-200/70 shadow-xs space-y-3">
-          {/* Month Header Nav */}
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-extrabold text-slate-900">{monthName}</h3>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={handlePrevMonth}
-                className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button
-                onClick={handleTodayClick}
-                className="px-2.5 py-1 text-xs font-bold text-slate-900 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors cursor-pointer"
-              >
-                Today
-              </button>
-              <button
-                onClick={handleNextMonth}
-                className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* 7-Column Days Header */}
-          <div className="grid grid-cols-7 text-center text-[11px] font-bold text-slate-400 pb-1">
-            <span>Sun</span>
-            <span>Mon</span>
-            <span>Tue</span>
-            <span>Wed</span>
-            <span>Thu</span>
-            <span>Fri</span>
-            <span>Sat</span>
-          </div>
-
-          <div className="grid grid-cols-7 gap-1 text-center w-full">
-            {calendarDays.map((dayObj) => {
-              const isSelected = dayObj.dateStr === selectedDate;
-              const isToday = dayObj.dateStr === todayStr;
-              const dayEvts = eventsByDate.get(dayObj.dateStr) || [];
-              const hasEvents = dayEvts.length > 0;
-              const d = new Date(dayObj.dateStr + 'T00:00:00');
-              const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-
-              return (
-                <button
-                  key={dayObj.dateStr}
-                  onClick={() => {
-                    if (isSelected) {
-                      onOpenAddModal(dayObj.dateStr);
-                      return;
-                    }
-                    setSelectedDate(dayObj.dateStr);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  onDoubleClick={() => onOpenAddModal(dayObj.dateStr)}
-                  className={`flex flex-col items-center justify-center min-h-[44px] h-11 sm:h-12 rounded-xl sm:rounded-2xl text-xs transition-all relative border cursor-pointer ${
-                    !dayObj.isCurrentMonth
-                      ? 'text-slate-300 border-transparent bg-slate-50/40'
-                      : isSelected
-                      ? 'bg-blue-50/80 border-2 border-blue-600 text-blue-700 font-black scale-105 shadow-xs'
-                      : isToday
-                      ? 'bg-rose-500 text-white font-black shadow-xs ring-2 ring-rose-300'
-                      : isWeekend
-                      ? 'text-slate-700 bg-amber-50/30 border-slate-100 hover:bg-slate-100'
-                      : 'text-slate-700 bg-white border-slate-100 hover:bg-slate-100'
-                  }`}
-                >
-                  <span>{dayObj.dayNum}</span>
-
-                  {hasEvents && (
-                    <div className="flex items-center gap-0.5 mt-0.5">
-                      {dayEvts.slice(0, 3).map((e, idx) => {
-                        const meta = CATEGORY_METAS[e.event_type as EventType] || CATEGORY_METAS.personal;
-                        const dotColor = e.color || meta.color || '#3b82f6';
-                        return (
-                          <div
-                            key={idx}
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              isToday ? 'bg-white' : ''
-                            }`}
-                            style={!isToday ? { backgroundColor: dotColor } : undefined}
-                          />
-                        );
-                      })}
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* DESKTOP LAYOUT (Month Grid 8-cols | Agenda Sidebar 4-cols) */}
-      <div className="hidden lg:grid grid-cols-12 gap-6 items-start">
-        {/* Desktop Month Grid */}
-        <div className="col-span-8 bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4">
-          <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-            <div className="flex items-center gap-4">
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">{monthName}</h2>
-              <button
-                onClick={handleTodayClick}
-                className="text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
-              >
-                Today
-              </button>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
-                <button
-                  onClick={handlePrevMonth}
-                  aria-label="Previous month"
-                  className="p-1.5 rounded-lg hover:bg-white text-slate-600 transition-colors cursor-pointer"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={handleNextMonth}
-                  aria-label="Next month"
-                  className="p-1.5 rounded-lg hover:bg-white text-slate-600 transition-colors cursor-pointer"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-
-              <button
-                onClick={() => onOpenAddModal(selectedDate)}
-                className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-xs transition-all cursor-pointer"
-              >
-                <Plus className="w-4 h-4 stroke-[2.5]" />
-                <span>Add Event</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-7 text-center text-xs font-bold text-slate-400 py-2 border-b border-slate-100">
-            <span>Sun</span>
-            <span>Mon</span>
-            <span>Tue</span>
-            <span>Wed</span>
-            <span>Thu</span>
-            <span>Fri</span>
-            <span>Sat</span>
-          </div>
-
-          <div className="grid grid-cols-7 gap-2">
-            {calendarDays.map((dayObj) => {
-              const isSelected = dayObj.dateStr === selectedDate;
-              const isToday = dayObj.dateStr === todayStr;
-              const dayEvts = eventsByDate.get(dayObj.dateStr) || [];
-              const d = new Date(dayObj.dateStr + 'T00:00:00');
-              const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-
-              return (
+      {calView === 'month' && (
+        <div className="lg:grid lg:grid-cols-12 lg:gap-5 items-start">
+          <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+            <div className="grid grid-cols-7 border-b border-slate-200">
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((label) => (
                 <div
-                  key={dayObj.dateStr}
-                  onClick={() => setSelectedDate(dayObj.dateStr)}
-                  onDoubleClick={(e) => handleDayDoubleClick(e, dayObj.dateStr)}
-                  className={`min-h-[105px] p-2 rounded-2xl border transition-all flex flex-col justify-between cursor-pointer group ${
-                    !dayObj.isCurrentMonth
-                      ? 'bg-slate-50/40 border-slate-100 text-slate-300'
-                      : isSelected
-                      ? 'bg-blue-50/60 border-2 border-blue-500 shadow-xs'
-                      : isToday
-                      ? 'bg-rose-50/50 border-2 border-rose-400 shadow-xs'
-                      : isWeekend
-                      ? 'bg-amber-50/20 border-slate-100 hover:bg-slate-50'
-                      : 'bg-white border-slate-100 hover:bg-slate-50'
-                  }`}
+                  key={label}
+                  className="py-2 text-center text-[11px] font-bold uppercase tracking-wider text-slate-400"
                 >
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={`text-xs font-extrabold px-2 py-0.5 rounded-full ${
+                  {label}
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7">
+              {calendarDays.map((dayObj) => {
+                const isSelected = dayObj.dateStr === selectedDate;
+                const isToday = dayObj.dateStr === todayStr;
+                const dayItems = monthItemsByDate.get(dayObj.dateStr) || [];
+                const d = new Date(dayObj.dateStr + 'T00:00:00');
+                const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                const visible = dayItems.slice(0, 3);
+                const extra = dayItems.length - visible.length;
+
+                return (
+                  <div
+                    key={dayObj.dateStr}
+                    onClick={() => setSelectedDate(dayObj.dateStr)}
+                    onDoubleClick={(e) => handleDayDoubleClick(e, dayObj.dateStr)}
+                    className={`min-h-[76px] lg:min-h-[112px] p-1 lg:p-1.5 border-r border-b border-slate-100 flex flex-col cursor-pointer ${
+                      !dayObj.isCurrentMonth
+                        ? 'bg-slate-50/50 text-slate-300'
+                        : isSelected
+                          ? 'bg-blue-50/70'
+                          : isToday
+                            ? 'bg-rose-50/40'
+                            : isWeekend
+                              ? 'bg-amber-50/20 hover:bg-slate-50'
+                              : 'bg-white hover:bg-slate-50'
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedDate(dayObj.dateStr);
+                        chooseView('day');
+                      }}
+                      className={`mb-0.5 w-7 h-7 rounded-full text-xs font-extrabold cursor-pointer ${
                         isToday
-                          ? 'bg-rose-500 text-white shadow-2xs'
+                          ? 'bg-rose-500 text-white'
                           : isSelected
-                          ? 'bg-blue-600 text-white'
-                          : 'text-slate-700'
+                            ? 'bg-blue-600 text-white'
+                            : dayObj.isCurrentMonth
+                              ? 'text-slate-800 hover:bg-slate-200/70'
+                              : 'text-slate-300'
                       }`}
+                      title="Open day"
                     >
                       {dayObj.dayNum}
-                    </span>
-
-                  </div>
-
-                  <div className="space-y-1 mt-1 flex-1">
-                    {dayEvts.slice(0, 3).map((e) => {
-                      const meta = CATEGORY_METAS[e.event_type as EventType] || CATEGORY_METAS.personal;
-                      const evtColor = e.color || meta.color || '#3b82f6';
-                      const isClassChip = isClassScheduleItem(e);
-                      const isCompleted = isClassChip
-                        ? false
-                        : Boolean(e.is_completed || completedEventIds.includes(e.id));
-                      const isPastChip = isItemPastTime(e, dayObj.dateStr);
-                      const isPastClass = isClassChip && isItemPastTime(e, dayObj.dateStr);
-
-                      return (
-                        <div
-                          key={e.id}
-                          onClick={(evt) => {
-                            evt.stopPropagation();
-                            setSelectedDate(e.event_date);
+                    </button>
+                    <div className="space-y-0.5 flex-1 min-h-0 overflow-hidden">
+                      {visible.map((e) => {
+                        const meta = CATEGORY_METAS[e.event_type as EventType] || CATEGORY_METAS.personal;
+                        const evtColor = e.event_type === 'exam' ? CATEGORY_METAS.exam.color : e.color || meta.color;
+                        const isClassChip = isClassScheduleItem(e);
+                        const isCompleted = isClassChip
+                          ? false
+                          : Boolean(e.is_completed || completedEventIds.includes(e.id));
+                        const isPastChip = isItemPastTime(e, dayObj.dateStr);
+                        const timeLabel = compactTimeLabel(e.start_time);
+                        return (
+                          <button
+                            key={e.id}
+                            type="button"
+                            onClick={(evt) => {
+                              evt.stopPropagation();
+                              setSelectedDate(dayObj.dateStr);
+                              handleOpenScheduleItem(e);
+                            }}
+                            title={e.title}
+                            className={`w-full text-left text-[10px] lg:text-[11px] font-bold truncate px-1 py-0.5 rounded-md cursor-pointer ${
+                              isCompleted || isPastChip ? 'opacity-60' : ''
+                            } ${isCompleted ? 'line-through' : ''}`}
+                            style={
+                              e.event_type === 'exam'
+                                ? {
+                                    backgroundColor: isCompleted || isPastChip ? '#fef2f2' : '#fecaca',
+                                    borderLeft: `3px solid ${CATEGORY_METAS.exam.color}`,
+                                    color: '#991b1b',
+                                  }
+                                : {
+                                    backgroundColor: `${evtColor}28`,
+                                    borderLeft: `3px solid ${evtColor}`,
+                                    color: '#0f172a',
+                                  }
+                            }
+                          >
+                            {timeLabel ? `${timeLabel} ` : ''}
+                            {e.title}
+                          </button>
+                        );
+                      })}
+                      {extra > 0 && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedDate(dayObj.dateStr);
+                            chooseView('day');
                           }}
-                          onDoubleClick={(evt) => {
-                            evt.stopPropagation();
-                            onOpenAddModal(e.event_date, resolveMasterEvent(e, events));
-                          }}
-                          title={e.title}
-                          aria-label={e.title}
-                          className={`text-[11px] font-bold px-2 py-1 rounded-xl flex items-start justify-between transition-all cursor-pointer text-slate-900 hover:scale-[1.02] shadow-2xs ${
-                            isClassChip
-                              ? isPastClass
-                                ? 'opacity-70'
-                                : ''
-                              : isCompleted
-                                ? 'line-through opacity-50'
-                                : isPastChip
-                                  ? 'opacity-70'
-                                  : ''
-                          }`}
-                          style={
-                            e.event_type === 'exam'
-                              ? {
-                                  backgroundColor: isCompleted || isPastChip ? '#fef2f2' : '#fecaca',
-                                  borderLeft: `3.5px solid ${CATEGORY_METAS.exam.color}`,
-                                  color: isCompleted || isPastChip ? undefined : '#991b1b',
-                                }
-                              : { backgroundColor: `${evtColor}25`, borderLeft: `3.5px solid ${evtColor}` }
-                          }
+                          className="text-[10px] font-extrabold text-blue-700 pl-1 cursor-pointer"
                         >
-                          <span className="truncate leading-tight">{e.title}</span>
-                        </div>
-                      );
-                    })}
-                    {dayEvts.length > 3 && (
-                      <div className="text-[10px] font-extrabold pl-1 text-blue-700">
-                        +{dayEvts.length - 3} more
-                      </div>
-                    )}
+                          +{extra} more
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Desktop Schedule Sidebar */}
-        <div className="col-span-4 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-2xs space-y-4 sticky top-20">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-bold text-slate-900">{formattedSelectedDateHeader}</h3>
-                {selectedDate === todayStr && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 uppercase tracking-wider">
-                    Today
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-slate-400 font-medium mt-0.5">Daily Schedule</p>
+                );
+              })}
             </div>
-
-            <button
-              onClick={() => onOpenAddModal(selectedDate)}
-              className="p-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-2xs transition-all cursor-pointer"
-              title="Add Event"
-            >
-              <Plus className="w-4 h-4 stroke-[2.5]" />
-            </button>
           </div>
 
-          <DayHourGrid
-            items={selectedDayItems as ScheduleItem[]}
-            selectedDate={selectedDate}
-            todayStr={todayStr}
-            activeProfile={activeProfile}
-            profileColors={profileColors}
-            tasks={tasks}
-            completedEventIds={completedEventIds}
-            onOpenItem={handleOpenScheduleItem}
-            onToggleComplete={handleToggleAnyEventComplete}
-            onDelete={handleDeleteAnyEvent}
-            onAddEvent={() => onOpenAddModal(selectedDate)}
-            scrollMaxHeightClass="max-h-[calc(100vh-12rem)]"
-          />
+          <div
+            id="daily-schedule-panel"
+            className="mt-4 lg:mt-0 lg:col-span-4 bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs sticky top-20"
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900">{formattedSelectedDateHeader}</h3>
+                  {selectedDate === todayStr && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 uppercase tracking-wider">
+                      Today
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-400 font-medium mt-0.5">Daily schedule</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => onOpenAddModal(selectedDate)}
+                className="p-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-2xs transition-all cursor-pointer"
+                title="Add Event"
+              >
+                <Plus className="w-4 h-4 stroke-[2.5]" />
+              </button>
+            </div>
+            <DayHourGrid
+              items={selectedDayItems as ScheduleItem[]}
+              selectedDate={selectedDate}
+              todayStr={todayStr}
+              activeProfile={activeProfile}
+              profileColors={profileColors}
+              tasks={tasks}
+              completedEventIds={completedEventIds}
+              onOpenItem={handleOpenScheduleItem}
+              onToggleComplete={handleToggleAnyEventComplete}
+              onDelete={handleDeleteAnyEvent}
+              onAddEvent={(startTime) => onOpenAddModal(selectedDate, undefined, startTime)}
+              scrollMaxHeightClass="max-h-[min(52vh,28rem)] lg:max-h-[calc(100vh-12rem)]"
+            />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
+
 
 export default CalendarView;

@@ -49,6 +49,7 @@ interface CreationModalContainerProps {
   modalType: 'event' | 'class' | 'task' | 'habit' | 'book' | null;
   onClose: () => void;
   initialDate?: string;
+  initialStartTime?: string;
   initialEventType?: EventType;
   eventToEdit?: CalendarEvent | null;
   classToEdit?: ClassItem | null;
@@ -71,6 +72,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   modalType,
   onClose,
   initialDate,
+  initialStartTime,
   initialEventType,
   eventToEdit,
   classToEdit,
@@ -148,16 +150,34 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         setEvtType(initialEventType || 'personal');
         setEvtLocation('');
         setEvtColor(initialEventType === 'exam' ? CATEGORY_METAS.exam.color : DEFAULT_COLOR_SWATCHES[0].hex);
-        setEvtStartTime('09:00');
-        setEvtEndTime('10:00');
-        setEvtAllDay(false);
+        const rawStart = (initialStartTime || '').trim();
+        const startLower = rawStart.toLowerCase();
+        const isAllDay = !rawStart || startLower === 'all day' || startLower === 'all-day';
+        if (rawStart && isAllDay) {
+          setEvtAllDay(true);
+          setEvtStartTime('09:00');
+          setEvtEndTime('10:00');
+        } else if (rawStart) {
+          setEvtAllDay(false);
+          setEvtStartTime(rawStart);
+          const parts = rawStart.split(':');
+          const h = parseInt(parts[0], 10);
+          const m = parseInt(parts[1] || '0', 10);
+          const endH = Number.isNaN(h) ? 10 : (h + 1) % 24;
+          const endM = Number.isNaN(m) ? 0 : m;
+          setEvtEndTime(`${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`);
+        } else {
+          setEvtStartTime('09:00');
+          setEvtEndTime('10:00');
+          setEvtAllDay(false);
+        }
         setEvtProfile(defaultProfile);
         setEvtRepeat('none');
         const jsDay = new Date(`${(initialDate || getTodayDateString())}T00:00:00`).getDay();
         setEvtRepeatDays([jsDay === 0 ? 7 : jsDay]);
       }
     }
-  }, [modalType, initialDate, initialEventType, eventToEdit, defaultProfile]);
+  }, [modalType, initialDate, initialStartTime, initialEventType, eventToEdit, defaultProfile]);
 
   // 2. CLASS FORM STATE
   const [clsName, setClsName] = useState('');

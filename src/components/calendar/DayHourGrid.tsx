@@ -82,7 +82,7 @@ interface TimedLayoutItem {
   laneCount: number;
 }
 
-function packOverlappingLanes(
+export function packOverlappingLanes(
   timed: { item: ScheduleItem; startMin: number; endMin: number }[]
 ): TimedLayoutItem[] {
   if (timed.length === 0) return [];
@@ -132,6 +132,23 @@ function packOverlappingLanes(
   return layouts;
 }
 
+export function compactTimeLabel(timeStr?: string): string {
+  const mins = parseTimeToMinutes(timeStr);
+  if (mins === null) return '';
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  const suffix = h >= 12 ? 'p' : 'a';
+  const h12 = h % 12 || 12;
+  return m === 0 ? `${h12}${suffix}` : `${h12}:${String(m).padStart(2, '0')}${suffix}`;
+}
+
+export function hhmmFromMinutes(totalMins: number): string {
+  const snapped = Math.max(0, Math.min(23 * 60 + 30, Math.round(totalMins / 30) * 30));
+  const h = Math.floor(snapped / 60);
+  const m = snapped % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
 export interface DayHourGridProps {
   items: ScheduleItem[];
   selectedDate: string;
@@ -143,7 +160,7 @@ export interface DayHourGridProps {
   onOpenItem: (evt: ScheduleItem) => void;
   onToggleComplete: (evt: ScheduleItem) => void;
   onDelete: (evt: ScheduleItem) => void;
-  onAddEvent: () => void;
+  onAddEvent: (startTime?: string) => void;
   scrollMaxHeightClass?: string;
 }
 
@@ -257,7 +274,10 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
     return (
       <div
         key={evt.id}
-        onClick={() => onOpenItem(evt)}
+        onClick={(e) => {
+          e.stopPropagation();
+          onOpenItem(evt);
+        }}
         className={`flex cursor-pointer group transition-all ${
           inGrid ? 'h-full overflow-hidden' : ''
         } ${
@@ -387,33 +407,39 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
     );
   };
 
-  if (items.length === 0) {
-    return (
-      <div className="py-6 text-center space-y-1.5">
-        <p className="text-xs font-medium text-slate-400">Your day is clear.</p>
-        <button
-          onClick={onAddEvent}
-          className="text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/70 border border-slate-200/50 px-3 py-1 rounded-lg transition-colors cursor-pointer"
-        >
-          + Add event
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-3 pt-0.5">
-      {untimed.length > 0 && (
-        <div className="space-y-1.5 pb-2 border-b border-slate-100">
-          {untimed.map((evt) => renderItemCard(evt))}
+      <div className="grid grid-cols-[48px_minmax(0,1fr)] gap-1 pb-2 border-b border-slate-100">
+        <div className="pt-1.5 text-[9px] font-bold uppercase tracking-wider text-slate-400 text-right pr-1">
+          All day
         </div>
-      )}
+        <div
+          className="space-y-1 min-w-0 min-h-[2rem] rounded-lg cursor-pointer hover:bg-slate-50/80"
+          onClick={() => onAddEvent('all day')}
+          title="Add all-day event"
+        >
+          {untimed.length === 0 ? (
+            <p className="text-[11px] text-slate-400 py-1.5 px-1">Click to add an all-day event</p>
+          ) : (
+            untimed.map((evt) => renderItemCard(evt, { dense: true }))
+          )}
+        </div>
+      </div>
 
       <div
         ref={scrollRef}
         className={`overflow-y-auto overscroll-contain pr-0.5 ${scrollMaxHeightClass}`}
       >
-        <div className="relative" style={{ height: gridHeight + LABEL_OFFSET + 8 }}>
+        <div
+          className="relative cursor-pointer"
+          style={{ height: gridHeight + LABEL_OFFSET + 8 }}
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const y = e.clientY - rect.top - LABEL_OFFSET;
+            onAddEvent(hhmmFromMinutes(startHour * 60 + (y / HOUR_HEIGHT) * 60));
+          }}
+          title="Click a time to add"
+        >
           {hours.map((hour) => (
             <div
               key={hour}

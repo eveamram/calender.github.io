@@ -20,6 +20,7 @@ const MainAppContent: React.FC = () => {
   >(null);
 
   const [initialModalDate, setInitialModalDate] = useState<string | undefined>(undefined);
+  const [initialStartTime, setInitialStartTime] = useState<string | undefined>(undefined);
   const [initialEventType, setInitialEventType] = useState<EventType | undefined>(undefined);
   const [eventToEdit, setEventToEdit] = useState<CalendarEvent | null>(null);
   const [classToEdit, setClassToEdit] = useState<ClassItem | null>(null);
@@ -34,6 +35,7 @@ const MainAppContent: React.FC = () => {
     setHabitToEdit(null);
     setInitialClassDay(undefined);
     setInitialEventType(undefined);
+    setInitialStartTime(undefined);
     switch (activeTab) {
       case 'calendar':
         setActiveModal('event');
@@ -64,8 +66,9 @@ const MainAppContent: React.FC = () => {
       <main className="flex-1 pb-28 lg:pb-8">
         {activeTab === 'calendar' && (
           <CalendarView
-            onOpenAddModal={(date?: string, evtToEdit?: CalendarEvent) => {
+            onOpenAddModal={(date?: string, evtToEdit?: CalendarEvent, startTime?: string) => {
               setInitialModalDate(date);
+              setInitialStartTime(evtToEdit ? undefined : startTime);
               setInitialEventType(undefined);
               setEventToEdit(evtToEdit || null);
               setActiveModal('event');
@@ -119,6 +122,7 @@ const MainAppContent: React.FC = () => {
         onClose={() => {
           setActiveModal(null);
           setInitialModalDate(undefined);
+          setInitialStartTime(undefined);
           setInitialEventType(undefined);
           setEventToEdit(null);
           setClassToEdit(null);
@@ -127,6 +131,7 @@ const MainAppContent: React.FC = () => {
           setInitialClassDay(undefined);
         }}
         initialDate={initialModalDate}
+        initialStartTime={initialStartTime}
         initialEventType={initialEventType}
         eventToEdit={eventToEdit}
         classToEdit={classToEdit}
