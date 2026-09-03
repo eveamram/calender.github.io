@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useStore, getTodayDateString } from '../../context/StoreContext';
 import { CalendarEvent, CATEGORY_METAS, ClassItem, EventType, HabitItem, eventAccentColor } from '../../types';
-import { asAllDayIfAnniversary, getAnniversaryEvent, getCommonHolidayEvent } from '../../utils/holidays';
+import { asAllDayIfAnniversary, getAnniversaryEvent, getCommonHolidayEvent, isAnniversaryTitle } from '../../utils/holidays';
 import { celebrateComplete } from '../../utils/heartBurst';
 import { eventOccursOn, eventRepeats, occurrenceEventId, resolveMasterEvent } from '../../utils/eventRepeat';
 import { classPersonaColor, habitItemColor } from '../../utils/personaColor';
@@ -251,7 +251,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       });
 
     const combined = [...eventList, ...classEvents, ...habitEvents];
-    return combined.sort((a, b) => (a.start_time || '00:00').localeCompare(b.start_time || '00:00'));
+    return combined.sort((a, b) => {
+      const aAnniv = isAnniversaryTitle(a.title) ? 0 : 1;
+      const bAnniv = isAnniversaryTitle(b.title) ? 0 : 1;
+      if (aAnniv !== bAnniv) return aAnniv - bAnniv;
+      return (a.start_time || '00:00').localeCompare(b.start_time || '00:00');
+    });
   }, [eventsByDate, selectedDate, classes, filteredHabits, habitCompletions, filterByProfile, profileColors, activeProfile]);
 
   const todayStr = useMemo(() => getTodayDateString(), []);
@@ -480,6 +485,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               const isToday = dayObj.dateStr === todayStr;
               const dayEvts = eventsByDate.get(dayObj.dateStr) || [];
               const hasEvents = dayEvts.length > 0;
+              const hasAnniv = dayEvts.some((e) => isAnniversaryTitle(e.title));
               const d = new Date(dayObj.dateStr + 'T00:00:00');
               const isWeekend = d.getDay() === 0 || d.getDay() === 6;
 
@@ -508,8 +514,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   }`}
                 >
                   <span>{dayObj.dayNum}</span>
+                  {hasAnniv && <span className="text-[9px] leading-none">💕</span>}
 
-                  {hasEvents && (
+                  {hasEvents && !hasAnniv && (
                     <div className="flex items-center gap-0.5 mt-0.5">
                       {dayEvts.slice(0, 3).map((e, idx) => {
                         const meta = CATEGORY_METAS[e.event_type as EventType] || CATEGORY_METAS.personal;
@@ -590,7 +597,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             {calendarDays.map((dayObj) => {
               const isSelected = dayObj.dateStr === selectedDate;
               const isToday = dayObj.dateStr === todayStr;
-              const dayEvts = eventsByDate.get(dayObj.dateStr) || [];
+              const dayEvts = [...(eventsByDate.get(dayObj.dateStr) || [])].sort((a, b) => {
+                const aAnniv = isAnniversaryTitle(a.title) ? 0 : 1;
+                const bAnniv = isAnniversaryTitle(b.title) ? 0 : 1;
+                return aAnniv - bAnniv;
+              });
               const d = new Date(dayObj.dateStr + 'T00:00:00');
               const isWeekend = d.getDay() === 0 || d.getDay() === 6;
 
@@ -623,7 +634,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     >
                       {dayObj.dayNum}
                     </span>
-
+                    {dayEvts.some((e) => isAnniversaryTitle(e.title)) && (
+                      <span className="text-[10px] leading-none">💕</span>
+                    )}
                   </div>
 
                   <div className="space-y-1 mt-1 flex-1">
@@ -636,6 +649,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                         : Boolean(e.is_completed || completedEventIds.includes(e.id));
                       const isPastChip = isItemPastTime(e, dayObj.dateStr);
                       const isPastClass = isClassChip && isItemPastTime(e, dayObj.dateStr);
+                      const isAnnivChip = isAnniversaryTitle(e.title);
 
                       return (
                         <div
@@ -650,7 +664,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           }}
                           title={e.title}
                           aria-label={e.title}
-                          className={`text-[11px] font-bold px-2 py-1 rounded-xl flex items-start justify-between transition-all cursor-pointer text-slate-900 hover:scale-[1.02] shadow-2xs ${
+                          className={`text-[11px] font-bold px-2 py-1 rounded-xl flex items-start justify-between transition-all cursor-pointer hover:scale-[1.02] shadow-2xs ${
+                            isAnnivChip
+                              ? 'anniversary-event anniversary-event-chip'
+                              : 'text-slate-900'
+                          } ${
                             isClassChip
                               ? isPastClass
                                 ? 'opacity-70'
@@ -661,7 +679,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                   ? 'opacity-70'
                                   : ''
                           }`}
-                          style={{ backgroundColor: `${evtColor}25`, borderLeft: `3.5px solid ${evtColor}` }}
+                          style={
+                            isAnnivChip
+                              ? { borderLeft: '3.5px solid #ec4899' }
+                              : { backgroundColor: `${evtColor}25`, borderLeft: `3.5px solid ${evtColor}` }
+                          }
                         >
                           <span className="truncate leading-tight">{e.title}</span>
                         </div>
