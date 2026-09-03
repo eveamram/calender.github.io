@@ -130,11 +130,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
           {/* Settings Button */}
           <button
             onClick={() => setIsSettingsOpen(true)}
-            className="flex items-center justify-center gap-1 min-h-[36px] px-2.5 sm:min-h-[40px] sm:px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/60 transition-all cursor-pointer shrink-0"
+            className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200/60 transition-all cursor-pointer shrink-0"
             title="App Settings"
+            aria-label="App Settings"
           >
-            <Settings className="w-4 h-4" />
-            <span className="text-[11px] font-bold">Settings</span>
+            <Settings className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
