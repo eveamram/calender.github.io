@@ -43,7 +43,7 @@ const DB_COLUMNS: Record<AppTable, readonly string[]> = {
   events: ['id', 'title', 'event_type', 'event_date', 'start_time', 'end_time', 'location', 'color', 'task_id', 'is_completed', 'profile', 'created_at', 'updated_at'],
   classes: ['id', 'name', 'instructor', 'room', 'start_time', 'end_time', 'days_of_week', 'color', 'profile', 'office_hours', 'office_hours_location', 'created_at', 'updated_at'],
   tasks: ['id', 'title', 'is_completed', 'due_date', 'due_time', 'priority', 'profile', 'created_at', 'updated_at'],
-  habits: ['id', 'title', 'emoji', 'target_quantity', 'target_unit', 'active_days', 'color', 'profile', 'show_in_daily_schedule', 'created_at', 'updated_at'],
+  habits: ['id', 'title', 'emoji', 'target_quantity', 'target_unit', 'active_days', 'color', 'profile', 'show_in_daily_schedule', 'tracking_mode', 'created_at', 'updated_at'],
   habitCompletions: ['id', 'habit_id', 'date', 'completed', 'current_quantity', 'created_at'],
   groceryItems: ['id', 'name', 'quantity', 'category', 'is_completed', 'profile', 'created_at', 'updated_at'],
   mealItems: ['id', 'title', 'day_of_week', 'meal_date', 'meal_type', 'notes', 'profile', 'created_at', 'updated_at'],

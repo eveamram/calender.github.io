@@ -19,9 +19,9 @@ const WEEK_DAYS = [
   { dayNum: 7, label: 'Sun' },
 ];
 
-type HabitLayout = 'week' | 'number';
-const HABIT_LAYOUT_KEY = 'calender_habit_layout';
 const MAX_HABIT_COUNT = 99;
+
+const isNumberHabit = (h: HabitItem) => h.tracking_mode === 'number';
 
 export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
   const {
@@ -38,24 +38,6 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
   const todayStr = getTodayDateString();
 
   const [weekOffset, setWeekOffset] = useState<number>(0);
-  const [habitLayout, setHabitLayout] = useState<HabitLayout>(() => {
-    try {
-      const saved = localStorage.getItem(HABIT_LAYOUT_KEY);
-      if (saved === 'week' || saved === 'number') return saved;
-    } catch {
-      /* ignore */
-    }
-    return 'week';
-  });
-
-  const chooseLayout = (layout: HabitLayout) => {
-    setHabitLayout(layout);
-    try {
-      localStorage.setItem(HABIT_LAYOUT_KEY, layout);
-    } catch {
-      /* ignore */
-    }
-  };
 
   // Dynamic persona color for page-level controls (Add Habit, banner, today pill, week selector)
   const activePersonColor = useMemo(() => {
@@ -105,6 +87,8 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
   const filteredHabits = useMemo(() => {
     return filterByProfile(habits);
   }, [habits, filterByProfile]);
+
+  const hasWeekHabits = filteredHabits.some((h) => !isNumberHabit(h));
 
   // Compute today's completed count
   const getHabitQuantity = (habitId: string, dateStr: string) => {
@@ -168,31 +152,11 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
             </span>
           </div>
           <p className="text-xs text-[#68748A] font-medium">
-            Choose Day grid or Numbers. Numbers is only today&apos;s count — no weekday boxes.
+            Pick Day grid or Numbers when you add a habit.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center bg-[#F4F5F8] p-1 rounded-2xl border border-[#E7EAF0]">
-            <button
-              type="button"
-              onClick={() => chooseLayout('week')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-extrabold cursor-pointer transition-all ${
-                habitLayout === 'week' ? 'bg-white text-[#182238] shadow-2xs' : 'text-[#68748A]'
-              }`}
-            >
-              Day grid
-            </button>
-            <button
-              type="button"
-              onClick={() => chooseLayout('number')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-extrabold cursor-pointer transition-all ${
-                habitLayout === 'number' ? 'bg-white text-[#182238] shadow-2xs' : 'text-[#68748A]'
-              }`}
-            >
-              Numbers
-            </button>
-          </div>
+        <div className="flex items-center gap-2">
           <button
             onClick={() => onOpenAddModal(null)}
             style={{ backgroundColor: activePersonColor }}
@@ -217,14 +181,12 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
           <Sparkles className="w-3.5 h-3.5" />
         </div>
         <p className="text-xs text-[#182238] font-medium">
-          {habitLayout === 'number'
-            ? 'Numbers layout: only + and − for how many times you did it today. No day grid.'
-            : 'Day grid: tap weekdays to mark a habit done.'}{' '}
-          Toggle <span className="font-bold" style={{ color: activePersonColor }}>Schedule</span> to show a habit on your daily agenda.
+          Each habit uses the layout you chose when you created it. Toggle{' '}
+          <span className="font-bold" style={{ color: activePersonColor }}>Schedule</span> to show it on your daily agenda.
         </p>
       </div>
 
-      {habitLayout === 'week' && (
+      {hasWeekHabits && (
       <div className="bg-white rounded-2xl p-4 border border-[#E7EAF0] shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2 text-xs font-bold text-[#182238]">
@@ -262,7 +224,7 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
       )}
 
       {/* Habits List Header */}
-      {filteredHabits.length > 0 && habitLayout === 'week' && (
+      {filteredHabits.length > 0 && hasWeekHabits && (
         <div className="hidden md:flex items-center justify-between px-4 text-xs font-bold text-[#68748A]">
           <span>Habit Name & Schedule Setting</span>
           <div className="flex items-center gap-2 pr-8">
@@ -297,9 +259,10 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
             const isShownInDailySchedule = Boolean(h.show_in_daily_schedule);
 
             // Compute completed count for this week
+            const usesNumbers = isNumberHabit(h);
             const dailyTarget = h.target_quantity && h.target_quantity > 0 ? h.target_quantity : 1;
             const weekCompletedCount = currentWeekDates.filter((w) =>
-              isHabitDoneOn(h.id, w.dateStr, habitLayout === 'number' ? dailyTarget : 1)
+              isHabitDoneOn(h.id, w.dateStr, usesNumbers ? dailyTarget : 1)
             ).length;
             const targetTotal = activeDays.length;
             const progressPercent = Math.min(100, Math.round((weekCompletedCount / (targetTotal || 1)) * 100));
@@ -328,6 +291,11 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
                   <div className="min-w-0 space-y-1.5 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="text-sm sm:text-base font-semibold text-[#182238] truncate tracking-tight">{h.title}</h3>
+                      {usesNumbers && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#F4F5F8] text-[#68748A]">
+                          Numbers
+                        </span>
+                      )}
 
                       {/* EDIT HABIT BUTTON */}
                       <button
@@ -402,7 +370,7 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
                         />
                       </div>
                       <span className="text-[11px] text-[#68748A] font-medium shrink-0">
-                        {habitLayout === 'number'
+                        {usesNumbers
                           ? `${selectedQty}${dailyTarget > 1 ? ` / ${dailyTarget}` : ''} today`
                           : `${weekCompletedCount} of ${targetTotal}`}
                       </span>
@@ -410,7 +378,7 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
                   </div>
                 </div>
 
-                {habitLayout === 'number' ? (
+                {usesNumbers ? (
                   <div className="flex items-center justify-between md:justify-end gap-3 w-full md:w-auto border-t md:border-t-0 pt-3 md:pt-0 border-[#E7EAF0] shrink-0">
                     <div className="text-left md:text-right">
                       <p className="text-[10px] font-bold text-[#68748A] uppercase tracking-wider">

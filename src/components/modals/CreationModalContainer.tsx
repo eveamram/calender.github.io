@@ -8,6 +8,7 @@ import {
   ClassItem,
   BookItem,
   HabitItem,
+  HabitTrackingMode,
   CATEGORY_METAS,
 } from '../../types';
 import {
@@ -215,6 +216,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   const [hbtProfile, setHbtProfile] = useState<ProfilePersona>(defaultProfile);
   const [hbtShowInDailySchedule, setHbtShowInDailySchedule] = useState<boolean>(true);
   const [hbtColor, setHbtColor] = useState(DEFAULT_COLOR_SWATCHES[0].hex);
+  const [hbtTrackingMode, setHbtTrackingMode] = useState<HabitTrackingMode>('week');
 
   useEffect(() => {
     if (modalType === 'habit') {
@@ -229,6 +231,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         setHbtProfile(habitToEdit.profile || defaultProfile);
         setHbtShowInDailySchedule(habitToEdit.show_in_daily_schedule ?? true);
         setHbtColor(habitToEdit.color || DEFAULT_COLOR_SWATCHES[0].hex);
+        setHbtTrackingMode(habitToEdit.tracking_mode === 'number' ? 'number' : 'week');
       } else {
         setHbtTitle('');
         setHbtEmoji('⚡');
@@ -237,6 +240,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         setHbtProfile(defaultProfile);
         setHbtShowInDailySchedule(true);
         setHbtColor(DEFAULT_COLOR_SWATCHES[0].hex);
+        setHbtTrackingMode('week');
       }
     }
   }, [modalType, habitToEdit, defaultProfile]);
@@ -445,21 +449,23 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         ok = await updateHabit(habitToEdit.id, {
           title: hbtTitle.trim(),
           emoji: hbtEmoji.trim() || '⚡',
-          target_quantity: hbtQty ? Number(hbtQty) : undefined,
+          target_quantity: hbtTrackingMode === 'number' ? (hbtQty ? Number(hbtQty) : 1) : (hbtQty ? Number(hbtQty) : undefined),
           active_days: hbtDays,
           profile: hbtProfile,
           color: hbtColor,
           show_in_daily_schedule: hbtShowInDailySchedule,
+          tracking_mode: hbtTrackingMode,
         });
       } else {
         ok = await addHabit({
           title: hbtTitle.trim(),
           emoji: hbtEmoji.trim() || '⚡',
-          target_quantity: hbtQty ? Number(hbtQty) : undefined,
+          target_quantity: hbtTrackingMode === 'number' ? (hbtQty ? Number(hbtQty) : 1) : (hbtQty ? Number(hbtQty) : undefined),
           active_days: hbtDays,
           profile: hbtProfile,
           color: hbtColor,
           show_in_daily_schedule: hbtShowInDailySchedule,
+          tracking_mode: hbtTrackingMode,
         });
       }
       if (ok) onClose();
@@ -912,8 +918,36 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             </div>
           </div>
 
-          {/* Active Days Selector */}
-          {renderDaySelector(
+          <div className="space-y-1.5 w-full">
+            <label className="block text-xs font-bold text-slate-900 tracking-tight">How do you track this?</label>
+            <div className="grid grid-cols-2 bg-slate-100/90 p-1.5 rounded-2xl gap-1 items-center border border-slate-200/50 w-full">
+              <button
+                type="button"
+                onClick={() => setHbtTrackingMode('week')}
+                className={`py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer min-h-[42px] ${
+                  hbtTrackingMode === 'week' ? 'bg-[#0f172a] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-200/50'
+                }`}
+              >
+                Day grid
+              </button>
+              <button
+                type="button"
+                onClick={() => setHbtTrackingMode('number')}
+                className={`py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer min-h-[42px] ${
+                  hbtTrackingMode === 'number' ? 'bg-[#0f172a] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-200/50'
+                }`}
+              >
+                Numbers
+              </button>
+            </div>
+            <p className="text-[11px] font-medium text-slate-500">
+              {hbtTrackingMode === 'number'
+                ? 'Only a daily count with + and −. No weekday boxes.'
+                : 'Check off days on a Mon–Sun grid.'}
+            </p>
+          </div>
+
+          {hbtTrackingMode === 'week' && renderDaySelector(
             hbtDays,
             (n) => setHbtDays((prev) => (prev.includes(n) ? prev.filter((d) => d !== n) : [...prev, n])),
             true,
@@ -954,13 +988,15 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             </button>
           </div>
 
-          <MobileFormField
-            label="Times per day (optional)"
-            type="number"
-            value={hbtQty}
-            onChange={(e) => setHbtQty(e.target.value)}
-            placeholder="e.g. 8 — leave blank for once a day"
-          />
+          {hbtTrackingMode === 'number' && (
+            <MobileFormField
+              label="Times per day"
+              type="number"
+              value={hbtQty}
+              onChange={(e) => setHbtQty(e.target.value)}
+              placeholder="e.g. 8"
+            />
+          )}
 
           {/* Submit Action */}
           <div className="sticky bottom-0 z-10 bg-white pt-2">

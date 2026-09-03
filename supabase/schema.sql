@@ -87,6 +87,7 @@ CREATE TABLE IF NOT EXISTS public.habits (
 );
 
 ALTER TABLE public.habits ADD COLUMN IF NOT EXISTS show_in_daily_schedule BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.habits ADD COLUMN IF NOT EXISTS tracking_mode TEXT DEFAULT 'week';
 
 -- 5. Habit Completions Table (snake_case)
 CREATE TABLE IF NOT EXISTS public.habit_completions (

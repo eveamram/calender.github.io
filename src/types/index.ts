@@ -64,6 +64,8 @@ export interface TaskItem {
   updated_at?: string;
 }
 
+export type HabitTrackingMode = 'week' | 'number';
+
 export interface HabitItem {
   id: string;
   title: string;
@@ -74,6 +76,7 @@ export interface HabitItem {
   color?: string;
   profile?: ProfilePersona;
   show_in_daily_schedule?: boolean;
+  tracking_mode?: HabitTrackingMode;
   created_at?: string;
   updated_at?: string;
 }
