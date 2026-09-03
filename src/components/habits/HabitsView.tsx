@@ -47,7 +47,6 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
     }
     return 'week';
   });
-  const [selectedCountDate, setSelectedCountDate] = useState<string>(todayStr);
 
   const chooseLayout = (layout: HabitLayout) => {
     setHabitLayout(layout);
@@ -95,12 +94,6 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
       };
     });
   }, [todayStr, weekOffset]);
-
-  const countDate = useMemo(() => {
-    if (currentWeekDates.some((w) => w.dateStr === selectedCountDate)) return selectedCountDate;
-    const todayInWeek = currentWeekDates.find((w) => w.isToday);
-    return todayInWeek?.dateStr || currentWeekDates[0]?.dateStr || todayStr;
-  }, [currentWeekDates, selectedCountDate, todayStr]);
 
   const weekRangeLabel = useMemo(() => {
     if (currentWeekDates.length === 0) return '';
@@ -175,11 +168,31 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
             </span>
           </div>
           <p className="text-xs text-[#68748A] font-medium">
-            Switch between a weekly check grid and a times-per-day count.
+            Choose Day grid or Numbers. Numbers is only today&apos;s count — no weekday boxes.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center bg-[#F4F5F8] p-1 rounded-2xl border border-[#E7EAF0]">
+            <button
+              type="button"
+              onClick={() => chooseLayout('week')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-extrabold cursor-pointer transition-all ${
+                habitLayout === 'week' ? 'bg-white text-[#182238] shadow-2xs' : 'text-[#68748A]'
+              }`}
+            >
+              Day grid
+            </button>
+            <button
+              type="button"
+              onClick={() => chooseLayout('number')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-extrabold cursor-pointer transition-all ${
+                habitLayout === 'number' ? 'bg-white text-[#182238] shadow-2xs' : 'text-[#68748A]'
+              }`}
+            >
+              Numbers
+            </button>
+          </div>
           <button
             onClick={() => onOpenAddModal(null)}
             style={{ backgroundColor: activePersonColor }}
@@ -205,35 +218,15 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
         </div>
         <p className="text-xs text-[#182238] font-medium">
           {habitLayout === 'number'
-            ? 'Use + and − to log how many times you did a habit that day. Set a daily target when you add the habit.'
-            : 'Tap a weekday to mark it done. Switch to Number to log times per day instead.'}{' '}
+            ? 'Numbers layout: only + and − for how many times you did it today. No day grid.'
+            : 'Day grid: tap weekdays to mark a habit done.'}{' '}
           Toggle <span className="font-bold" style={{ color: activePersonColor }}>Schedule</span> to show a habit on your daily agenda.
         </p>
       </div>
 
-      {/* Week Navigation Bar */}
+      {habitLayout === 'week' && (
       <div className="bg-white rounded-2xl p-4 border border-[#E7EAF0] shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center bg-[#F4F5F8] p-1 rounded-2xl border border-[#E7EAF0]">
-            <button
-              type="button"
-              onClick={() => chooseLayout('week')}
-              className={`px-3 py-1.5 rounded-xl text-[11px] font-extrabold cursor-pointer transition-all ${
-                habitLayout === 'week' ? 'bg-white text-[#182238] shadow-2xs' : 'text-[#68748A]'
-              }`}
-            >
-              Week
-            </button>
-            <button
-              type="button"
-              onClick={() => chooseLayout('number')}
-              className={`px-3 py-1.5 rounded-xl text-[11px] font-extrabold cursor-pointer transition-all ${
-                habitLayout === 'number' ? 'bg-white text-[#182238] shadow-2xs' : 'text-[#68748A]'
-              }`}
-            >
-              Number
-            </button>
-          </div>
           <div className="flex items-center gap-2 text-xs font-bold text-[#182238]">
             <CalendarIcon className="w-4 h-4" style={{ color: activePersonColor }} />
             <span>{weekOffset === 0 ? 'This Week' : weekRangeLabel}</span>
@@ -247,31 +240,26 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
             }`}
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>{confirmResetWeek ? 'Click to confirm' : habitLayout === 'number' ? 'Reset counts' : 'Reset Checkmarks'}</span>
+            <span>{confirmResetWeek ? 'Click to confirm' : 'Reset Checkmarks'}</span>
           </button>
         </div>
 
         <div className="grid grid-cols-7 gap-1 w-full sm:flex sm:w-auto sm:items-center sm:gap-1.5">
-          {currentWeekDates.map((w) => {
-            const isSelected = habitLayout === 'number' && w.dateStr === countDate;
-            const highlight = isSelected || (habitLayout === 'week' && w.isToday);
-            return (
-              <button
-                key={w.dateStr}
-                type="button"
-                onClick={() => habitLayout === 'number' && setSelectedCountDate(w.dateStr)}
-                style={highlight ? { backgroundColor: activePersonColor, color: '#ffffff' } : undefined}
-                className={`flex flex-col items-center justify-center px-1 sm:px-3 py-1 rounded-xl text-xs font-bold transition-all min-h-[44px] ${
-                  highlight ? 'shadow-2xs' : 'text-[#68748A] bg-[#F4F5F8]'
-                } ${habitLayout === 'number' ? 'cursor-pointer' : 'cursor-default'}`}
-              >
-                <span className="text-[10px] opacity-80">{w.label}</span>
-                <span>{w.dateStr.split('-')[2]}</span>
-              </button>
-            );
-          })}
+          {currentWeekDates.map((w) => (
+            <div
+              key={w.dateStr}
+              style={w.isToday ? { backgroundColor: activePersonColor, color: '#ffffff' } : undefined}
+              className={`flex flex-col items-center justify-center px-1 sm:px-3 py-1 rounded-xl text-xs font-bold transition-all min-h-[44px] ${
+                w.isToday ? 'shadow-2xs' : 'text-[#68748A] bg-[#F4F5F8]'
+              }`}
+            >
+              <span className="text-[10px] opacity-80">{w.label}</span>
+              <span>{w.dateStr.split('-')[2]}</span>
+            </div>
+          ))}
         </div>
       </div>
+      )}
 
       {/* Habits List Header */}
       {filteredHabits.length > 0 && habitLayout === 'week' && (
@@ -315,10 +303,9 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
             ).length;
             const targetTotal = activeDays.length;
             const progressPercent = Math.min(100, Math.round((weekCompletedCount / (targetTotal || 1)) * 100));
-            const selectedQty = getHabitQuantity(h.id, countDate);
-            const isScheduledForCountDay = activeDays.includes(
-              currentWeekDates.find((w) => w.dateStr === countDate)?.dayNum || 0
-            );
+            const selectedQty = getHabitQuantity(h.id, todayStr);
+            const todayDayNum = currentWeekDates.find((w) => w.isToday)?.dayNum;
+            const isScheduledForCountDay = todayDayNum ? activeDays.includes(todayDayNum) : true;
 
             return (
               <div
@@ -416,7 +403,7 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
                       </div>
                       <span className="text-[11px] text-[#68748A] font-medium shrink-0">
                         {habitLayout === 'number'
-                          ? `${selectedQty}${dailyTarget > 1 ? ` / ${dailyTarget}` : ''} ${countDate === todayStr ? 'today' : ''}`
+                          ? `${selectedQty}${dailyTarget > 1 ? ` / ${dailyTarget}` : ''} today`
                           : `${weekCompletedCount} of ${targetTotal}`}
                       </span>
                     </div>
@@ -427,7 +414,7 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
                   <div className="flex items-center justify-between md:justify-end gap-3 w-full md:w-auto border-t md:border-t-0 pt-3 md:pt-0 border-[#E7EAF0] shrink-0">
                     <div className="text-left md:text-right">
                       <p className="text-[10px] font-bold text-[#68748A] uppercase tracking-wider">
-                        {countDate === todayStr ? 'Today' : currentWeekDates.find((w) => w.dateStr === countDate)?.label}
+                        Today
                       </p>
                       <p className="text-[11px] font-medium text-[#68748A]">
                         {dailyTarget > 1 ? `Goal ${dailyTarget}×` : 'Times today'}
@@ -437,7 +424,7 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
                       <button
                         type="button"
                         disabled={!isScheduledForCountDay || selectedQty <= 0}
-                        onClick={() => handleCountChange(h, countDate, selectedQty - 1)}
+                        onClick={() => handleCountChange(h, todayStr, selectedQty - 1)}
                         className="w-10 h-10 rounded-xl bg-[#F4F5F8] border border-[#E7EAF0] flex items-center justify-center text-[#182238] cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#E7EAF0]"
                         title="Remove one"
                       >
@@ -452,7 +439,7 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
                       <button
                         type="button"
                         disabled={!isScheduledForCountDay || selectedQty >= MAX_HABIT_COUNT}
-                        onClick={() => handleCountChange(h, countDate, selectedQty + 1)}
+                        onClick={() => handleCountChange(h, todayStr, selectedQty + 1)}
                         className="w-10 h-10 rounded-xl text-white flex items-center justify-center cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90"
                         style={{ backgroundColor: habitAccentColor }}
                         title="Add one"
