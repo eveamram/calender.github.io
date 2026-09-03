@@ -21,7 +21,8 @@ const WEEK_DAYS = [
 
 const MAX_HABIT_COUNT = 99;
 
-const isNumberHabit = (h: HabitItem) => h.tracking_mode === 'number';
+const isNumberHabit = (h: HabitItem) =>
+  h.tracking_mode === 'number' || h.target_unit === 'times';
 
 export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
   const {
@@ -267,8 +268,6 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
             const targetTotal = activeDays.length;
             const progressPercent = Math.min(100, Math.round((weekCompletedCount / (targetTotal || 1)) * 100));
             const selectedQty = getHabitQuantity(h.id, todayStr);
-            const todayDayNum = currentWeekDates.find((w) => w.isToday)?.dayNum;
-            const isScheduledForCountDay = todayDayNum ? activeDays.includes(todayDayNum) : true;
 
             return (
               <div
@@ -391,28 +390,34 @@ export const HabitsView: React.FC<HabitsViewProps> = ({ onOpenAddModal }) => {
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        disabled={!isScheduledForCountDay || selectedQty <= 0}
-                        onClick={() => handleCountChange(h, todayStr, selectedQty - 1)}
-                        className="w-10 h-10 rounded-xl bg-[#F4F5F8] border border-[#E7EAF0] flex items-center justify-center text-[#182238] cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#E7EAF0]"
+                        disabled={selectedQty <= 0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleCountChange(h, todayStr, selectedQty - 1);
+                        }}
+                        className="w-12 h-12 rounded-2xl bg-[#F4F5F8] border border-[#E7EAF0] flex items-center justify-center text-[#182238] cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#E7EAF0] active:scale-95"
                         title="Remove one"
                       >
-                        <Minus className="w-4 h-4 stroke-[2.5]" />
+                        <Minus className="w-5 h-5 stroke-[2.5]" />
                       </button>
                       <span
-                        className="min-w-[2.5rem] text-center text-xl font-black tabular-nums"
+                        className="min-w-[2.75rem] text-center text-2xl font-black tabular-nums"
                         style={{ color: selectedQty >= dailyTarget ? habitAccentColor : '#182238' }}
                       >
                         {selectedQty}
                       </span>
                       <button
                         type="button"
-                        disabled={!isScheduledForCountDay || selectedQty >= MAX_HABIT_COUNT}
-                        onClick={() => handleCountChange(h, todayStr, selectedQty + 1)}
-                        className="w-10 h-10 rounded-xl text-white flex items-center justify-center cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90"
+                        disabled={selectedQty >= MAX_HABIT_COUNT}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleCountChange(h, todayStr, selectedQty + 1);
+                        }}
+                        className="w-12 h-12 rounded-2xl text-white flex items-center justify-center cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed hover:opacity-90 active:scale-95"
                         style={{ backgroundColor: habitAccentColor }}
                         title="Add one"
                       >
-                        <Plus className="w-4 h-4 stroke-[2.5]" />
+                        <Plus className="w-5 h-5 stroke-[2.5]" />
                       </button>
                     </div>
                   </div>

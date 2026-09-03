@@ -30,6 +30,7 @@ import {
   Smile,
   ListTodo,
   Plus,
+  Minus,
   Trash2,
 } from 'lucide-react';
 import {
@@ -231,7 +232,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         setHbtProfile(habitToEdit.profile || defaultProfile);
         setHbtShowInDailySchedule(habitToEdit.show_in_daily_schedule ?? true);
         setHbtColor(habitToEdit.color || DEFAULT_COLOR_SWATCHES[0].hex);
-        setHbtTrackingMode(habitToEdit.tracking_mode === 'number' ? 'number' : 'week');
+        setHbtTrackingMode(habitToEdit.tracking_mode === 'number' || habitToEdit.target_unit === 'times' ? 'number' : 'week');
       } else {
         setHbtTitle('');
         setHbtEmoji('⚡');
@@ -450,6 +451,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
           title: hbtTitle.trim(),
           emoji: hbtEmoji.trim() || '⚡',
           target_quantity: hbtTrackingMode === 'number' ? (hbtQty ? Number(hbtQty) : 1) : (hbtQty ? Number(hbtQty) : undefined),
+          target_unit: hbtTrackingMode === 'number' ? 'times' : '',
           active_days: hbtDays,
           profile: hbtProfile,
           color: hbtColor,
@@ -461,6 +463,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
           title: hbtTitle.trim(),
           emoji: hbtEmoji.trim() || '⚡',
           target_quantity: hbtTrackingMode === 'number' ? (hbtQty ? Number(hbtQty) : 1) : (hbtQty ? Number(hbtQty) : undefined),
+          target_unit: hbtTrackingMode === 'number' ? 'times' : '',
           active_days: hbtDays,
           profile: hbtProfile,
           color: hbtColor,
@@ -932,7 +935,10 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => setHbtTrackingMode('number')}
+                onClick={() => {
+                  setHbtTrackingMode('number');
+                  if (!hbtQty) setHbtQty('1');
+                }}
                 className={`py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer min-h-[42px] ${
                   hbtTrackingMode === 'number' ? 'bg-[#0f172a] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-200/50'
                 }`}
@@ -989,13 +995,32 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
           </div>
 
           {hbtTrackingMode === 'number' && (
-            <MobileFormField
-              label="Times per day"
-              type="number"
-              value={hbtQty}
-              onChange={(e) => setHbtQty(e.target.value)}
-              placeholder="e.g. 8"
-            />
+            <div className="space-y-1.5 w-full">
+              <label className="block text-xs font-bold text-slate-900 tracking-tight">Times per day</label>
+              <div className="flex items-center justify-between bg-slate-50/80 border border-slate-200/80 rounded-2xl px-3 py-2">
+                <span className="text-xs font-medium text-slate-500">Daily goal</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={Number(hbtQty || '1') <= 1}
+                    onClick={() => setHbtQty(String(Math.max(1, Number(hbtQty || '1') - 1)))}
+                    className="w-11 h-11 rounded-xl bg-white border border-slate-200 flex items-center justify-center cursor-pointer disabled:opacity-30"
+                  >
+                    <Minus className="w-4 h-4 stroke-[2.5]" />
+                  </button>
+                  <span className="min-w-[2.5rem] text-center text-xl font-black tabular-nums text-slate-900">
+                    {hbtQty || '1'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setHbtQty(String(Math.min(99, Number(hbtQty || '1') + 1)))}
+                    className="w-11 h-11 rounded-xl bg-slate-900 text-white flex items-center justify-center cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4 stroke-[2.5]" />
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Submit Action */}
