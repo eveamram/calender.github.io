@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useStore, getTodayDateString } from '../../context/StoreContext';
 import { CalendarEvent, CATEGORY_METAS, ClassItem, EventType, HabitItem } from '../../types';
-import { getAnniversaryEvent, getCommonHolidayEvent } from '../../utils/holidays';
+import { asAllDayIfAnniversary, getAnniversaryEvent, getCommonHolidayEvent } from '../../utils/holidays';
 import { eventOccursOn, eventRepeats, occurrenceEventId, resolveMasterEvent } from '../../utils/eventRepeat';
 import { classPersonaColor, habitItemColor } from '../../utils/personaColor';
 import {
@@ -143,7 +143,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         map.set(evt.event_date, []);
       }
       const isComp = evt.is_completed || completedEventIds.includes(evt.id);
-      map.get(evt.event_date)!.push({ ...evt, is_completed: isComp });
+      map.get(evt.event_date)!.push(asAllDayIfAnniversary({ ...evt, is_completed: isComp }));
     });
 
     calendarDays.forEach((dayObj) => {
@@ -156,7 +156,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         if (!hasAnniv) {
           if (!map.has(dayObj.dateStr)) map.set(dayObj.dateStr, []);
           const isComp = completedEventIds.includes(annivEvt.id);
-          map.get(dayObj.dateStr)!.push({ ...annivEvt, is_completed: isComp });
+          map.get(dayObj.dateStr)!.push(asAllDayIfAnniversary({ ...annivEvt, is_completed: isComp }));
         }
       }
 
@@ -178,12 +178,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         if (hiddenEventIds.includes(occId) || hiddenEventIds.includes(evt.id)) return;
         if (!map.has(dayObj.dateStr)) map.set(dayObj.dateStr, []);
         const isComp = completedEventIds.includes(occId);
-        map.get(dayObj.dateStr)!.push({
-          ...evt,
-          id: occId,
-          event_date: dayObj.dateStr,
-          is_completed: isComp,
-        });
+        map.get(dayObj.dateStr)!.push(
+          asAllDayIfAnniversary({
+            ...evt,
+            id: occId,
+            event_date: dayObj.dateStr,
+            is_completed: isComp,
+          })
+        );
       });
     });
 

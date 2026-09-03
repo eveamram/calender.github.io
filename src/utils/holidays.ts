@@ -99,12 +99,15 @@ export function getAnniversaryEvent(dateStr: string): CalendarEvent | null {
     title,
     event_type: 'task',
     event_date: dateStr,
-    start_time: '18:00',
-    end_time: '21:00',
     location: '',
     color: '#ec4899',
     profile: 'Both',
   };
+}
+
+export function asAllDayIfAnniversary(evt: CalendarEvent): CalendarEvent {
+  if (!evt.title.toLowerCase().includes('anniversary')) return evt;
+  return { ...evt, start_time: undefined, end_time: undefined };
 }
 
 /**
