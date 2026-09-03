@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useStore, getTodayDateString } from '../../context/StoreContext';
-import { CalendarEvent, CATEGORY_METAS, ClassItem, EventType, HabitItem } from '../../types';
+import { CalendarEvent, CATEGORY_METAS, ClassItem, EventType, HabitItem, eventAccentColor } from '../../types';
 import { asAllDayIfAnniversary, getAnniversaryEvent, getCommonHolidayEvent } from '../../utils/holidays';
 import { eventOccursOn, eventRepeats, occurrenceEventId, resolveMasterEvent } from '../../utils/eventRepeat';
 import { buildScheduleItemsForDate, shiftDate, weekDatesFrom, weekdayNumFromDate } from '../../utils/scheduleItems';
@@ -573,7 +573,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     <div className="space-y-0.5 flex-1 min-h-0 overflow-hidden">
                       {visible.map((e) => {
                         const meta = CATEGORY_METAS[e.event_type as EventType] || CATEGORY_METAS.personal;
-                        const evtColor = e.event_type === 'exam' ? CATEGORY_METAS.exam.color : e.color || meta.color;
+                        const evtColor = eventAccentColor(e) || meta.color;
                         const isClassChip = isClassScheduleItem(e);
                         const isCompleted = isClassChip
                           ? false
@@ -593,19 +593,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             className={`w-full text-left text-[10px] lg:text-[11px] font-bold truncate px-1 py-0.5 rounded-md cursor-pointer ${
                               isCompleted || isPastChip ? 'opacity-60' : ''
                             } ${isCompleted ? 'line-through' : ''}`}
-                            style={
-                              e.event_type === 'exam'
-                                ? {
-                                    backgroundColor: isCompleted || isPastChip ? '#fef2f2' : '#fecaca',
-                                    borderLeft: `3px solid ${CATEGORY_METAS.exam.color}`,
-                                    color: '#991b1b',
-                                  }
-                                : {
-                                    backgroundColor: `${evtColor}28`,
-                                    borderLeft: `3px solid ${evtColor}`,
-                                    color: '#0f172a',
-                                  }
-                            }
+                            style={{
+                              backgroundColor: `${evtColor}28`,
+                              borderLeft: `3px solid ${evtColor}`,
+                              color: '#0f172a',
+                            }}
                           >
                             {timeLabel ? `${timeLabel} ` : ''}
                             {e.title}

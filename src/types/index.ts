@@ -193,7 +193,7 @@ export const CATEGORY_METAS: Record<
   { label: string; color: string; emoji: string; bg: string }
 > = {
   class: { label: 'Class', color: '#2563eb', emoji: '📚', bg: '#eff6ff' },
-  exam: { label: 'Exam', color: '#ef4444', emoji: '✍️', bg: '#fef2f2' },
+  exam: { label: 'Exam', color: '#7A4E57', emoji: '✍️', bg: '#F4F0F1' },
   assignment: { label: 'Assignment', color: '#f97316', emoji: '📝', bg: '#fff7ed' },
   appointment: { label: 'Coffee & Appt', color: '#8b5cf6', emoji: '☕', bg: '#f5f3ff' },
   birthday: { label: 'Birthday & Event', color: '#ec4899', emoji: '🎂', bg: '#fdf2f8' },
@@ -204,4 +204,19 @@ export const CATEGORY_METAS: Record<
   study: { label: 'Study Session', color: '#d97706', emoji: '🧠', bg: '#fef3c7' },
   task: { label: 'Task', color: '#3b82f6', emoji: '✅', bg: '#eff6ff' },
 };
+
+/** Bright reds used by older exam chips — remap to the muted rosewood accent. */
+const LOUD_EXAM_RED =
+  /^(#)?(ef4444|dc2626|b91c1c|991b1b|f87171|fca5a5|fecaca|fee2e2|fef2f2|e11d48|be123c|f43f5e|fb7185)$/i;
+
+export function eventAccentColor(evt: { event_type?: string; color?: string }): string {
+  const type = (evt.event_type || 'personal') as EventType;
+  const meta = CATEGORY_METAS[type] || CATEGORY_METAS.personal;
+  if (type === 'exam') {
+    const stored = (evt.color || '').trim();
+    if (stored && !LOUD_EXAM_RED.test(stored)) return stored;
+    return CATEGORY_METAS.exam.color;
+  }
+  return evt.color || meta.color;
+}
 

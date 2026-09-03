@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { CATEGORY_METAS, EventType, ProfilePersona } from '../../types';
+import { CATEGORY_METAS, EventType, ProfilePersona, eventAccentColor } from '../../types';
 import { formatTime12Hour } from '../../context/StoreContext';
 import { hhmmFromMinutes, packOverlappingLanes, parseTimeToMinutes, ScheduleItem } from './DayHourGrid';
 
@@ -98,11 +98,11 @@ export const WeekView: React.FC<WeekViewProps> = ({
 
   const chipStyle = (evt: ScheduleItem) => {
     const meta = CATEGORY_METAS[evt.event_type as EventType] || CATEGORY_METAS.personal;
-    const color = evt.event_type === 'exam' ? CATEGORY_METAS.exam.color : evt.color || meta.color;
+    const color = eventAccentColor(evt) || meta.color;
     return {
-      backgroundColor: evt.event_type === 'exam' ? '#fecaca' : `${color}28`,
+      backgroundColor: `${color}22`,
       borderLeft: `3px solid ${color}`,
-      color: evt.event_type === 'exam' ? '#991b1b' : '#0f172a',
+      color: '#0f172a',
     };
   };
 
@@ -207,8 +207,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                       const top = ((t.startMin - START_HOUR * 60) / 60) * HOUR_HEIGHT;
                       const height = Math.max(22, ((t.endMin - t.startMin) / 60) * HOUR_HEIGHT);
                       const meta = CATEGORY_METAS[t.item.event_type as EventType] || CATEGORY_METAS.personal;
-                      const color =
-                        t.item.event_type === 'exam' ? CATEGORY_METAS.exam.color : t.item.color || meta.color;
+                      const color = eventAccentColor(t.item) || meta.color;
                       const owner = (t.item.profile || 'Eve') as ProfilePersona;
                       const widthPct = 100 / t.laneCount;
                       const leftPct = (t.lane / t.laneCount) * 100;
@@ -226,7 +225,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                             height,
                             left: `calc(${leftPct}% + 1px)`,
                             width: `calc(${widthPct}% - 2px)`,
-                            backgroundColor: t.item.event_type === 'exam' ? '#fecaca' : `${color}33`,
+                            backgroundColor: `${color}28`,
                             borderLeft: `3px solid ${color}`,
                             zIndex: 10 + t.lane,
                           }}
@@ -234,7 +233,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                         >
                           <div
                             className="text-[10px] font-black leading-tight truncate"
-                            style={{ color: t.item.event_type === 'exam' ? '#991b1b' : '#0f172a' }}
+                            style={{ color: '#0f172a' }}
                           >
                             {t.item.title}
                           </div>

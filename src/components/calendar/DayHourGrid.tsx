@@ -7,6 +7,7 @@ import {
   EventType,
   ProfilePersona,
   TaskItem,
+  eventAccentColor,
 } from '../../types';
 
 export type ScheduleItem = CalendarEvent & {
@@ -254,7 +255,7 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
 
   const renderItemCard = (evt: ScheduleItem, opts?: { dense?: boolean; inGrid?: boolean }) => {
     const meta = CATEGORY_METAS[evt.event_type as EventType] || CATEGORY_METAS.personal;
-    const evtColor = evt.color || meta.color || '#3b82f6';
+    const evtColor = eventAccentColor(evt) || meta.color || '#3b82f6';
     const task = evt.task_id ? tasks.find((t) => t.id === evt.task_id) : null;
     const ownerName = (evt.profile || 'Eve') as ProfilePersona;
     const badgeColor = profileColors[ownerName] || '#2563eb';
@@ -264,12 +265,9 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
       ? false
       : Boolean(evt.is_completed || task?.is_completed || completedEventIds.includes(evt.id));
     const isMuted = isPast || isCompleted;
-    const isExam = evt.event_type === 'exam';
-    const examHighlight = CATEGORY_METAS.exam.color;
     const dense = Boolean(opts?.dense);
     const inGrid = Boolean(opts?.inGrid);
     const showTime = !evt.is_habit_item && parseTimeToMinutes(evt.start_time) !== null;
-    const accentColor = isExam ? examHighlight : evtColor;
 
     return (
       <div
@@ -285,23 +283,13 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
             ? 'items-start p-1.5 rounded-lg border'
             : 'items-center justify-between p-3 rounded-xl border'
         } ${
-          isExam
-            ? isMuted
-              ? 'border-red-100'
-              : 'border-red-200'
-            : isMuted
-              ? 'bg-slate-50/40 border-slate-100/70'
-              : 'bg-white hover:bg-slate-50 border-slate-100'
+          isMuted
+            ? 'bg-slate-50/40 border-slate-100/70'
+            : 'bg-white hover:bg-slate-50 border-slate-100'
         }`}
         style={{
-          borderLeft: `3.5px solid ${accentColor}`,
-          backgroundColor: isExam
-            ? isMuted
-              ? '#fef2f2'
-              : '#fecaca'
-            : isMuted
-              ? undefined
-              : `${evtColor}18`,
+          borderLeft: `3.5px solid ${evtColor}`,
+          backgroundColor: isMuted ? undefined : `${evtColor}18`,
         }}
       >
         <div className={`flex min-w-0 flex-1 ${dense ? 'items-start gap-1.5' : 'items-center gap-3'}`}>
@@ -334,9 +322,7 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
               className={`font-semibold leading-tight ${dense ? 'text-[11px]' : 'text-xs'} truncate ${
                 isCompleted || isPast
                   ? 'line-through text-slate-400 opacity-75'
-                  : isExam
-                    ? 'text-red-800'
-                    : 'text-slate-900'
+                  : 'text-slate-900'
               }`}
             >
               {evt.title}

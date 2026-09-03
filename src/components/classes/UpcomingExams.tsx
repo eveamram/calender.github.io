@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useStore, getTodayDateString, formatTime12Hour } from '../../context/StoreContext';
-import { CalendarEvent, ProfilePersona } from '../../types';
+import { CalendarEvent, ProfilePersona, eventAccentColor } from '../../types';
 import { Plus, Clock, MapPin, Trash2, Edit3 } from 'lucide-react';
 
 interface UpcomingExamsProps {
@@ -130,7 +130,7 @@ function prepareExams(exams: CalendarEvent[]): PreparedExam[] {
       exam,
       course,
       examName,
-      color: exam.color || '#ef4444',
+      color: eventAccentColor(exam),
       diffDays,
       dateLabel: date.primary,
       dateHint: hint || date.hint,
