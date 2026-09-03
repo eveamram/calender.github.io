@@ -115,6 +115,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   const [evtLocation, setEvtLocation] = useState('');
   const [evtColor, setEvtColor] = useState('');
   const [evtProfile, setEvtProfile] = useState<ProfilePersona>(defaultProfile);
+  const [evtRepeat, setEvtRepeat] = useState<'none' | 'daily' | 'weekly'>('none');
 
   useEffect(() => {
     if (modalType === 'event') {
@@ -134,6 +135,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         setEvtLocation(eventToEdit.location || '');
         setEvtColor(eventToEdit.color || (eventToEdit.event_type === 'exam' ? CATEGORY_METAS.exam.color : DEFAULT_COLOR_SWATCHES[0].hex));
         setEvtProfile(eventToEdit.profile || defaultProfile);
+        setEvtRepeat(eventToEdit.repeat === 'daily' || eventToEdit.repeat === 'weekly' ? eventToEdit.repeat : 'none');
       } else {
         setEvtDate(initialDate || getTodayDateString());
         setEvtTitle('');
@@ -144,6 +146,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         setEvtEndTime('10:00');
         setEvtNoTime(false);
         setEvtProfile(defaultProfile);
+        setEvtRepeat('none');
       }
     }
   }, [modalType, initialDate, initialEventType, eventToEdit, defaultProfile]);
@@ -348,6 +351,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
           location: evtLocation.trim() || undefined,
           color: finalColor,
           profile: evtProfile,
+          repeat: evtRepeat,
         });
       } else {
         ok = await addEvent({
@@ -359,6 +363,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
           location: evtLocation.trim() || undefined,
           color: finalColor,
           profile: evtProfile,
+          repeat: evtRepeat,
         });
       }
       if (ok) onClose();
@@ -656,6 +661,40 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               This event will show as all day. You can add times later.
             </p>
           )}
+
+          <div className="space-y-1.5 w-full">
+            <label className={`block text-xs font-semibold tracking-tight ${isExamModal ? 'text-red-800' : 'text-slate-700'}`}>
+              Repeat
+            </label>
+            <div className="grid grid-cols-3 bg-slate-100/90 p-1.5 rounded-2xl gap-1 items-center border border-slate-200/50 w-full">
+              {([
+                { id: 'none', label: 'Never' },
+                { id: 'daily', label: 'Every day' },
+                { id: 'weekly', label: 'Every week' },
+              ] as const).map((opt) => (
+                <button
+                  type="button"
+                  key={opt.id}
+                  onClick={() => setEvtRepeat(opt.id)}
+                  className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer min-h-[38px] ${
+                    evtRepeat === opt.id ? 'bg-[#0f172a] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-200/50'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            {evtRepeat === 'weekly' && (
+              <p className="text-[11px] font-medium text-slate-500">
+                Repeats on this weekday from the date above.
+              </p>
+            )}
+            {evtRepeat === 'daily' && (
+              <p className="text-[11px] font-medium text-slate-500">
+                Shows up every day starting from the date above.
+              </p>
+            )}
+          </div>
 
           {/* Color & Persona */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 md:gap-4 items-start">

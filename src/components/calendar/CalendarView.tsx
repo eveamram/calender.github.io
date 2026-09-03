@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useStore, getTodayDateString } from '../../context/StoreContext';
 import { CalendarEvent, CATEGORY_METAS, ClassItem, EventType, HabitItem } from '../../types';
 import { getAnniversaryEvent, getCommonHolidayEvent } from '../../utils/holidays';
+import { eventOccursOn, eventRepeats, occurrenceEventId, resolveMasterEvent } from '../../utils/eventRepeat';
 import { classPersonaColor, habitItemColor } from '../../utils/personaColor';
 import {
   ChevronLeft,
@@ -136,6 +137,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     const map = new Map<string, CalendarEvent[]>();
 
     filteredEvents.forEach((evt) => {
+      if (eventRepeats(evt)) return;
       if (hiddenEventIds.includes(evt.id)) return;
       if (!map.has(evt.event_date)) {
         map.set(evt.event_date, []);
@@ -168,6 +170,21 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           map.get(dayObj.dateStr)!.push({ ...holidayEvt, is_completed: isComp });
         }
       }
+
+      filteredEvents.forEach((evt) => {
+        if (!eventRepeats(evt)) return;
+        if (!eventOccursOn(evt, dayObj.dateStr)) return;
+        const occId = occurrenceEventId(evt.id, dayObj.dateStr);
+        if (hiddenEventIds.includes(occId) || hiddenEventIds.includes(evt.id)) return;
+        if (!map.has(dayObj.dateStr)) map.set(dayObj.dateStr, []);
+        const isComp = completedEventIds.includes(occId);
+        map.get(dayObj.dateStr)!.push({
+          ...evt,
+          id: occId,
+          event_date: dayObj.dateStr,
+          is_completed: isComp,
+        });
+      });
     });
 
     return map;
@@ -288,8 +305,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       return updated;
     });
 
-    if (events.some((e) => e.id === evt.id)) {
-      await deleteEvent(evt.id);
+    const master = resolveMasterEvent(evt, events);
+    if (events.some((e) => e.id === master.id)) {
+      await deleteEvent(master.id);
     }
   };
 
@@ -311,6 +329,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       localStorage.setItem('calender_completed_event_ids', JSON.stringify(updated));
       return updated;
     });
+
+    if (eventRepeats(evt) || evt.id.includes('__occ__')) return;
 
     if (events.some((e) => e.id === evt.id)) {
       await toggleEventComplete(evt.id);
@@ -354,7 +374,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       return;
     }
 
-    onOpenAddModal(evt.event_date, evt);
+    onOpenAddModal(evt.event_date, resolveMasterEvent(evt, events));
   };
 
   return (
@@ -613,7 +633,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           }}
                           onDoubleClick={(evt) => {
                             evt.stopPropagation();
-                            onOpenAddModal(e.event_date, e);
+                            onOpenAddModal(e.event_date, resolveMasterEvent(e, events));
                           }}
                           title={e.title}
                           aria-label={e.title}

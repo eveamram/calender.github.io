@@ -43,6 +43,9 @@ CREATE TABLE IF NOT EXISTS public.events (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS repeat TEXT DEFAULT 'none';
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS repeat_until TEXT;
+
 -- 2. Classes Table
 CREATE TABLE IF NOT EXISTS public.classes (
   id TEXT PRIMARY KEY,
