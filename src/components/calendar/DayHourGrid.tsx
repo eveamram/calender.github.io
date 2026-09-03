@@ -9,7 +9,6 @@ import {
   TaskItem,
   eventAccentColor,
 } from '../../types';
-import { isAnniversaryTitle } from '../../utils/holidays';
 export type ScheduleItem = CalendarEvent & {
   is_class_item?: boolean;
   is_habit_item?: boolean;
@@ -268,7 +267,6 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
     const dense = Boolean(opts?.dense);
     const inGrid = Boolean(opts?.inGrid);
     const showTime = !evt.is_habit_item && parseTimeToMinutes(evt.start_time) !== null;
-    const isAnniv = isAnniversaryTitle(evt.title);
 
     return (
       <div
@@ -280,24 +278,18 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
         className={`flex cursor-pointer group transition-all ${
           inGrid ? 'h-full overflow-hidden' : ''
         } ${
-          dense && !isAnniv
+          dense
             ? 'items-start p-1.5 rounded-lg border'
             : 'items-center justify-between p-3 rounded-xl border'
         } ${
-          isAnniv
-            ? `anniversary-event ${isMuted ? 'opacity-70' : ''}`
-            : isMuted
-              ? 'bg-slate-50/40 border-slate-100/70'
-              : 'bg-white hover:bg-slate-50 border-slate-100'
+          isMuted
+            ? 'bg-slate-50/40 border-slate-100/70'
+            : 'bg-white hover:bg-slate-50 border-slate-100'
         }`}
-        style={
-          isAnniv
-            ? { borderLeft: '3.5px solid #ec4899' }
-            : {
-                borderLeft: `3.5px solid ${evtColor}`,
-                backgroundColor: isMuted ? undefined : `${evtColor}18`,
-              }
-        }
+        style={{
+          borderLeft: `3.5px solid ${evtColor}`,
+          backgroundColor: isMuted ? undefined : `${evtColor}18`,
+        }}
       >
         <div className={`flex min-w-0 flex-1 ${dense ? 'items-start gap-1.5' : 'items-center gap-3'}`}>
           {!isClassItem && (
@@ -326,12 +318,10 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
 
           <div className="min-w-0 flex-1">
             <h4
-              className={`font-semibold leading-tight ${dense && !isAnniv ? 'text-[11px]' : 'text-xs'} truncate ${
+              className={`font-semibold leading-tight ${dense ? 'text-[11px]' : 'text-xs'} truncate ${
                 isCompleted || isPast
                   ? 'line-through text-slate-400 opacity-75'
-                  : isAnniv
-                    ? 'text-rose-800'
-                    : 'text-slate-900'
+                  : 'text-slate-900'
               }`}
             >
               {evt.title}
@@ -351,10 +341,8 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
               {evt.is_habit_item && !showTime && (
                 <span className="font-medium text-slate-400">Habit</span>
               )}
-              {!showTime && !evt.is_habit_item && (!dense || isAnniv) && (
-                <span className={`font-medium ${isAnniv ? 'text-rose-500' : 'text-slate-400'}`}>
-                  {isAnniv ? 'All day 💕' : 'All day'}
-                </span>
+              {!showTime && !evt.is_habit_item && !dense && (
+                <span className="font-medium text-slate-400">All day</span>
               )}
 
               {activeProfile === 'Both' && (

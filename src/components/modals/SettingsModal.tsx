@@ -158,7 +158,7 @@ export const SettingsModal: React.FC = () => {
                   : 'bg-purple-50 hover:bg-purple-100 text-purple-700'
               }`}
             >
-              {confirmResetHolidays ? '⚠️ Are you sure? Click to confirm' : 'Reset Holidays 💕'}
+              {confirmResetHolidays ? '⚠️ Are you sure? Click to confirm' : 'Reset Holidays'}
             </button>
           </div>
 

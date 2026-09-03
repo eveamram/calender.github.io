@@ -88,10 +88,10 @@ export function getAnniversaryEvent(dateStr: string): CalendarEvent | null {
   let title = '';
   if (totalMonths % 12 === 0) {
     const years = totalMonths / 12;
-    title = `${years} ${years === 1 ? 'Year' : 'Years'} Anniversary 💕`;
+    title = `${years} ${years === 1 ? 'Year' : 'Years'} Anniversary`;
   } else {
     const suffix = getOrdinalSuffix(totalMonths);
-    title = `${totalMonths}${suffix} Month Anniversary 💕`;
+    title = `${totalMonths}${suffix} Month Anniversary`;
   }
 
   return {
@@ -107,10 +107,6 @@ export function getAnniversaryEvent(dateStr: string): CalendarEvent | null {
 
 export function isAnniversaryTitle(title?: string): boolean {
   return (title || '').toLowerCase().includes('anniversary');
-}
-
-export function isAnniversaryDate(dateStr: string): boolean {
-  return getAnniversaryEvent(dateStr) != null;
 }
 
 export function asAllDayIfAnniversary(evt: CalendarEvent): CalendarEvent {
