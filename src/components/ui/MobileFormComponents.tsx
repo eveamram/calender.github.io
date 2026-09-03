@@ -95,6 +95,9 @@ interface MobileFormFieldProps {
   isRed?: boolean;
   min?: string;
   max?: string;
+  autoFocus?: boolean;
+  hideLabel?: boolean;
+  large?: boolean;
 }
 
 export const MobileFormField: React.FC<MobileFormFieldProps> = ({
@@ -109,6 +112,9 @@ export const MobileFormField: React.FC<MobileFormFieldProps> = ({
   isRed,
   min,
   max,
+  autoFocus,
+  hideLabel,
+  large,
 }) => {
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -126,15 +132,25 @@ export const MobileFormField: React.FC<MobileFormFieldProps> = ({
     }
   };
 
+  useEffect(() => {
+    if (!autoFocus) return;
+    const id = window.setTimeout(() => inputRef.current?.focus(), 40);
+    return () => window.clearTimeout(id);
+  }, [autoFocus]);
+
   return (
     <div className="space-y-1.5 w-full">
-      <label htmlFor={inputId} className={`block text-xs font-semibold tracking-tight ${isRed ? 'text-red-800' : 'text-slate-700'}`}>
-        {label}
-      </label>
+      {!hideLabel && (
+        <label htmlFor={inputId} className={`block text-xs font-semibold tracking-tight ${isRed ? 'text-red-800' : 'text-slate-700'}`}>
+          {label}
+        </label>
+      )}
       <label
         htmlFor={inputId}
         onClick={activateField}
-        className={`relative block h-[52px] rounded-2xl border transition-all ${
+        className={`relative block rounded-2xl border transition-all ${
+          large ? 'h-[56px]' : 'h-[52px]'
+        } ${
           isRed
             ? 'bg-red-50/30 border-red-200 focus-within:bg-white focus-within:border-red-600'
             : 'bg-slate-50/80 border-slate-200/80 focus-within:bg-white focus-within:border-slate-900 focus-within:ring-2 focus-within:ring-slate-900/10'
@@ -149,13 +165,17 @@ export const MobileFormField: React.FC<MobileFormFieldProps> = ({
           disabled={disabled}
           value={value}
           onChange={onChange}
+          autoFocus={autoFocus}
+          aria-label={hideLabel ? label : undefined}
           onKeyDown={(event) => {
             if (event.key === ' ') event.stopPropagation();
           }}
           placeholder={placeholder}
           min={min}
           max={max}
-          className={`absolute inset-0 box-border w-full rounded-2xl bg-transparent px-4 text-sm font-semibold placeholder:text-slate-400 focus:outline-none ${
+          className={`absolute inset-0 box-border w-full rounded-2xl bg-transparent px-4 placeholder:text-slate-400 focus:outline-none ${
+            large ? 'text-base font-bold' : 'text-sm font-semibold'
+          } ${
             icon ? 'pl-11' : ''
           } ${
             isRed ? 'text-red-950' : 'text-slate-900'

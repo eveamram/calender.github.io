@@ -32,6 +32,7 @@ import {
   Plus,
   Minus,
   Trash2,
+  MapPin,
 } from 'lucide-react';
 import {
   MobileFormSheet,
@@ -67,6 +68,28 @@ const WEEK_DAYS = [
   { num: 6, label: 'S' },
   { num: 7, label: 'S' },
 ];
+
+function minutesFromHHMM(timeStr?: string): number | null {
+  if (!timeStr) return null;
+  const parts = timeStr.trim().split(':');
+  if (parts.length < 2) return null;
+  const h = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10);
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  return h * 60 + m;
+}
+
+function hhmmFromMinutes(total: number): string {
+  const wrapped = ((total % (24 * 60)) + 24 * 60) % (24 * 60);
+  const h = Math.floor(wrapped / 60);
+  const m = wrapped % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+function weekdayNumFromDateStr(dateStr: string): number {
+  const jsDay = new Date(`${dateStr}T00:00:00`).getDay();
+  return jsDay === 0 ? 7 : jsDay;
+}
 
 export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   modalType,
@@ -119,12 +142,13 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   const [evtProfile, setEvtProfile] = useState<ProfilePersona>(defaultProfile);
   const [evtRepeat, setEvtRepeat] = useState<'none' | 'daily' | 'weekly'>('none');
   const [evtRepeatDays, setEvtRepeatDays] = useState<number[]>([]);
+  const [evtRepeatUntil, setEvtRepeatUntil] = useState('');
 
   useEffect(() => {
     if (modalType === 'event') {
       setIsSaving(false);
       setErrorMsg(null);
-      setShowEvtMore(false);
+      setShowEvtMore(Boolean(eventToEdit));
       if (eventToEdit) {
         setEvtTitle(eventToEdit.title);
         setEvtType((eventToEdit.event_type as EventType) || initialEventType || 'personal');
@@ -139,8 +163,8 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         setEvtColor(eventToEdit.color || (eventToEdit.event_type === 'exam' ? CATEGORY_METAS.exam.color : DEFAULT_COLOR_SWATCHES[0].hex));
         setEvtProfile(eventToEdit.profile || defaultProfile);
         setEvtRepeat(eventToEdit.repeat === 'daily' || eventToEdit.repeat === 'weekly' ? eventToEdit.repeat : 'none');
-        const jsDay = new Date(`${eventToEdit.event_date}T00:00:00`).getDay();
-        const startDay = jsDay === 0 ? 7 : jsDay;
+        setEvtRepeatUntil(eventToEdit.repeat_until || '');
+        const startDay = weekdayNumFromDateStr(eventToEdit.event_date);
         setEvtRepeatDays(
           eventToEdit.repeat_days && eventToEdit.repeat_days.length > 0 ? eventToEdit.repeat_days : [startDay]
         );
@@ -173,8 +197,8 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         }
         setEvtProfile(defaultProfile);
         setEvtRepeat('none');
-        const jsDay = new Date(`${(initialDate || getTodayDateString())}T00:00:00`).getDay();
-        setEvtRepeatDays([jsDay === 0 ? 7 : jsDay]);
+        setEvtRepeatUntil('');
+        setEvtRepeatDays([weekdayNumFromDateStr(initialDate || getTodayDateString())]);
       }
     }
   }, [modalType, initialDate, initialStartTime, initialEventType, eventToEdit, defaultProfile]);
@@ -369,6 +393,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
       const finalColor = evtColor || (evtType === 'exam' ? CATEGORY_METAS.exam.color : undefined);
       const startTime = evtAllDay ? 'all day' : evtStartTime.trim();
       const endTime = evtAllDay ? '' : evtEndTime.trim();
+      const until = evtRepeat === 'none' ? undefined : evtRepeatUntil.trim() || undefined;
       let ok = false;
       if (eventToEdit) {
         ok = await updateEvent(eventToEdit.id, {
@@ -382,6 +407,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
           profile: evtProfile,
           repeat: evtRepeat,
           repeat_days: evtRepeat === 'weekly' ? (evtRepeatDays.length ? evtRepeatDays : undefined) : [],
+          repeat_until: until,
         });
       } else {
         ok = await addEvent({
@@ -395,6 +421,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
           profile: evtProfile,
           repeat: evtRepeat,
           repeat_days: evtRepeat === 'weekly' ? (evtRepeatDays.length ? evtRepeatDays : undefined) : [],
+          repeat_until: until,
         });
       }
       if (ok) onClose();
@@ -574,6 +601,51 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
   const isExamModal = modalType === 'event' && (evtType === 'exam' || initialEventType === 'exam');
 
+  const handleEvtDateChange = (nextDate: string) => {
+    setEvtDate(nextDate);
+    if (evtRepeat === 'weekly' && evtRepeatDays.length <= 1) {
+      setEvtRepeatDays([weekdayNumFromDateStr(nextDate)]);
+    }
+  };
+
+  const handleEvtStartTimeChange = (next: string) => {
+    const prevStart = minutesFromHHMM(evtStartTime);
+    const prevEnd = minutesFromHHMM(evtEndTime);
+    setEvtStartTime(next);
+    if (!evtEndTime.trim() || prevStart == null) return;
+    const nextStart = minutesFromHHMM(next);
+    if (nextStart == null) return;
+    const duration = prevEnd == null ? 60 : Math.max(15, prevEnd - prevStart);
+    setEvtEndTime(hhmmFromMinutes(nextStart + duration));
+  };
+
+  const applyDuration = (mins: number) => {
+    const start = minutesFromHHMM(evtStartTime) ?? 9 * 60;
+    setEvtAllDay(false);
+    setEvtStartTime(hhmmFromMinutes(start));
+    setEvtEndTime(hhmmFromMinutes(start + mins));
+  };
+
+  const currentDurationMin = (() => {
+    const start = minutesFromHHMM(evtStartTime);
+    const end = minutesFromHHMM(evtEndTime);
+    if (start == null || end == null) return null;
+    return end - start;
+  })();
+
+  const eventWhenLabel = (() => {
+    const dateLabel = formatDateDisplay(evtDate);
+    if (evtAllDay) return `${dateLabel} · All day`;
+    const startLabel = formatTimeDisplay(evtStartTime);
+    if (!evtEndTime.trim()) return `${dateLabel} · ${startLabel}`;
+    return `${dateLabel} · ${startLabel} – ${formatTimeDisplay(evtEndTime)}`;
+  })();
+
+  const handleEvtTypeChange = (next: EventType) => {
+    setEvtType(next);
+    setEvtColor(next === 'exam' ? CATEGORY_METAS.exam.color : CATEGORY_METAS[next]?.color || DEFAULT_COLOR_SWATCHES[0].hex);
+  };
+
   const profileOptions = [
     { id: 'Eve', label: 'Eve' },
     { id: 'Abbie', label: 'Abbie' },
@@ -595,33 +667,120 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
       {/* 1. ADD / EDIT EVENT FORM */}
       {modalType === 'event' && (
-        <form onSubmit={handleEvtSubmit} className="space-y-4 md:space-y-5 w-full">
-          {/* Event Title */}
+        <form
+          onSubmit={handleEvtSubmit}
+          onKeyDown={(e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+              e.preventDefault();
+              (e.currentTarget as HTMLFormElement).requestSubmit();
+            }
+          }}
+          className="space-y-4 w-full"
+        >
           <MobileFormField
-            label={isExamModal ? 'Exam Title' : 'Event Title'}
+            label={isExamModal ? 'Exam title' : 'Event title'}
             value={evtTitle}
             onChange={(e) => setEvtTitle(e.target.value)}
-            placeholder={isExamModal ? 'e.g. Midterm 1, Final Exam' : "What's happening?"}
+            placeholder={isExamModal ? 'e.g. Midterm 1' : 'Add title'}
             required
+            autoFocus
+            hideLabel
+            large
             isRed={isExamModal}
           />
 
-          {/* Date & Category Grid on Desktop */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 md:gap-4">
-            <MobileSelectField
-              label="Date"
-              type="date"
-              displayValue={formatDateDisplay(evtDate)}
-              value={evtDate}
-              onChange={(e) => setEvtDate(e.target.value)}
-              isRed={isExamModal}
-            />
+          <p className={`text-[11px] font-semibold -mt-2 ${isExamModal ? 'text-rose-600' : 'text-slate-500'}`}>
+            {eventWhenLabel}
+            {evtRepeat === 'daily' ? ' · every day' : evtRepeat === 'weekly' ? ' · weekly' : ''}
+          </p>
+
+          <div className="flex items-end gap-3">
+            <div className="flex-1 min-w-0">
+              <MobileSelectField
+                label="Date"
+                type="date"
+                displayValue={formatDateDisplay(evtDate)}
+                value={evtDate}
+                onChange={(e) => handleEvtDateChange(e.target.value)}
+                isRed={isExamModal}
+              />
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={evtAllDay}
+              onClick={() => setEvtAllDay(!evtAllDay)}
+              className={`mb-1 shrink-0 flex items-center gap-2 px-3 h-[52px] rounded-2xl border text-xs font-bold cursor-pointer transition-all ${
+                evtAllDay
+                  ? isExamModal
+                    ? 'bg-rose-600 text-white border-rose-600'
+                    : 'bg-slate-900 text-white border-slate-900'
+                  : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+              }`}
+            >
+              All day
+            </button>
+          </div>
+
+          {!evtAllDay && (
+            <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-3">
+                <MobileSelectField
+                  label="Starts"
+                  type="time"
+                  displayValue={formatTimeDisplay(evtStartTime)}
+                  value={evtStartTime}
+                  onChange={(e) => handleEvtStartTimeChange(e.target.value)}
+                  isRed={isExamModal}
+                />
+                <MobileSelectField
+                  label="Ends"
+                  type="time"
+                  displayValue={evtEndTime ? formatTimeDisplay(evtEndTime) : 'Not sure'}
+                  value={evtEndTime}
+                  onChange={(e) => setEvtEndTime(e.target.value)}
+                  isRed={isExamModal}
+                />
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {[
+                  { mins: 30, label: '30 min' },
+                  { mins: 60, label: '1 hour' },
+                  { mins: 120, label: '2 hours' },
+                ].map((opt) => (
+                  <button
+                    key={opt.mins}
+                    type="button"
+                    onClick={() => applyDuration(opt.mins)}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-bold cursor-pointer transition-all ${
+                      currentDurationMin === opt.mins
+                        ? isExamModal
+                          ? 'bg-rose-600 text-white'
+                          : 'bg-slate-900 text-white'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setEvtEndTime('')}
+                  className="px-2.5 py-1 rounded-full text-[11px] font-bold text-slate-500 hover:bg-slate-100 cursor-pointer"
+                >
+                  No end
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <MobileSelectField
               label="Category"
               type="select"
               displayValue={`${CATEGORY_METAS[evtType]?.emoji || '🎯'} ${CATEGORY_METAS[evtType]?.label || 'Personal'}`}
               value={evtType}
-              onChange={(e) => setEvtType(e.target.value as EventType)}
+              onChange={(e) => handleEvtTypeChange(e.target.value as EventType)}
               disabled={isExamModal}
               options={(Object.keys(CATEGORY_METAS) as EventType[]).map((catKey) => ({
                 value: catKey,
@@ -630,68 +789,15 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               }))}
               isRed={isExamModal}
             />
+            <MobileFormField
+              label="Location"
+              value={evtLocation}
+              onChange={(e) => setEvtLocation(e.target.value)}
+              placeholder="Room, place, or link"
+              icon={<MapPin className="w-4 h-4" />}
+              isRed={isExamModal}
+            />
           </div>
-
-          <div className="space-y-1.5 w-full">
-            <label className={`block text-xs font-semibold tracking-tight ${isExamModal ? 'text-red-800' : 'text-slate-700'}`}>
-              Time
-            </label>
-            <div className="grid grid-cols-2 bg-slate-100/90 p-1.5 rounded-2xl gap-1 items-center border border-slate-200/50 w-full">
-              <button
-                type="button"
-                onClick={() => setEvtAllDay(false)}
-                className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer min-h-[38px] ${
-                  !evtAllDay ? 'bg-[#0f172a] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-200/50'
-                }`}
-              >
-                Has times
-              </button>
-              <button
-                type="button"
-                onClick={() => setEvtAllDay(true)}
-                className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer min-h-[38px] ${
-                  evtAllDay ? 'bg-[#0f172a] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-200/50'
-                }`}
-              >
-                All day
-              </button>
-            </div>
-          </div>
-
-          {!evtAllDay && (
-            <div className="space-y-2">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 md:gap-4">
-                <MobileSelectField
-                  label="Start Time"
-                  type="time"
-                  displayValue={formatTimeDisplay(evtStartTime)}
-                  value={evtStartTime}
-                  onChange={(e) => setEvtStartTime(e.target.value)}
-                  isRed={isExamModal}
-                />
-                <MobileSelectField
-                  label="End Time"
-                  type="time"
-                  displayValue={evtEndTime ? formatTimeDisplay(evtEndTime) : 'Not sure'}
-                  value={evtEndTime}
-                  onChange={(e) => setEvtEndTime(e.target.value)}
-                  isRed={isExamModal}
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => setEvtEndTime('')}
-                className="text-[11px] font-bold text-slate-500 hover:text-slate-800 cursor-pointer"
-              >
-                Clear end time — I don&apos;t know when it ends
-              </button>
-            </div>
-          )}
-          {evtAllDay && (
-            <p className="text-[11px] font-medium text-slate-500 -mt-2">
-              This event sits in All day at the top of the schedule, with no start or end time.
-            </p>
-          )}
 
           <div className="space-y-1.5 w-full">
             <label className={`block text-xs font-semibold tracking-tight ${isExamModal ? 'text-red-800' : 'text-slate-700'}`}>
@@ -700,8 +806,8 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             <div className="grid grid-cols-3 bg-slate-100/90 p-1.5 rounded-2xl gap-1 items-center border border-slate-200/50 w-full">
               {([
                 { id: 'none', label: 'Never' },
-                { id: 'daily', label: 'Every day' },
-                { id: 'weekly', label: 'Every week' },
+                { id: 'daily', label: 'Daily' },
+                { id: 'weekly', label: 'Weekly' },
               ] as const).map((opt) => (
                 <button
                   type="button"
@@ -709,8 +815,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                   onClick={() => {
                     setEvtRepeat(opt.id);
                     if (opt.id === 'weekly' && evtRepeatDays.length === 0) {
-                      const jsDay = new Date(`${evtDate}T00:00:00`).getDay();
-                      setEvtRepeatDays([jsDay === 0 ? 7 : jsDay]);
+                      setEvtRepeatDays([weekdayNumFromDateStr(evtDate)]);
                     }
                   }}
                   className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer min-h-[38px] ${
@@ -734,64 +839,67 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                   undefined,
                   'Repeats on'
                 )}
-                <p className="text-[11px] font-medium text-slate-500 mt-1.5">
-                  Pick every weekday this should show. You can choose more than one.
-                </p>
               </div>
             )}
-            {evtRepeat === 'daily' && (
-              <p className="text-[11px] font-medium text-slate-500">
-                Shows up every day starting from the date above.
-              </p>
+            {evtRepeat !== 'none' && (
+              <div className="space-y-1">
+                <MobileSelectField
+                  label="Until"
+                  type="date"
+                  displayValue={evtRepeatUntil ? formatDateDisplay(evtRepeatUntil) : 'No end date'}
+                  value={evtRepeatUntil}
+                  onChange={(e) => setEvtRepeatUntil(e.target.value)}
+                  isRed={isExamModal}
+                />
+                {evtRepeatUntil && (
+                  <button
+                    type="button"
+                    onClick={() => setEvtRepeatUntil('')}
+                    className="text-[11px] font-bold text-slate-500 hover:text-slate-800 cursor-pointer"
+                  >
+                    No end date
+                  </button>
+                )}
+              </div>
             )}
           </div>
 
-          {/* Color & Persona */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 md:gap-4 items-start">
-            <MobileColorGrid
-              selectedColor={evtColor}
-              onSelectColor={(hex) => setEvtColor(hex)}
-            />
-            <MobileSegmentedControl
-              label="For"
-              options={profileOptions}
-              value={evtProfile}
-              onChange={(val) => setEvtProfile(val as ProfilePersona)}
-            />
-          </div>
-
-          {/* More options ⌄ */}
           <div>
             <button
               type="button"
               onClick={() => setShowEvtMore(!showEvtMore)}
               className="flex items-center justify-center gap-1.5 w-full text-xs font-bold text-slate-600 hover:text-slate-900 py-1 transition-colors cursor-pointer"
             >
-              <span>{showEvtMore ? 'Fewer options' : 'More options'}</span>
+              <span>{showEvtMore ? 'Fewer options' : 'Color & who'}</span>
               {showEvtMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
             </button>
 
             {showEvtMore && (
-              <div className="pt-2">
-                <MobileFormField
-                  label="Location / Link"
-                  value={evtLocation}
-                  onChange={(e) => setEvtLocation(e.target.value)}
-                  placeholder="Room, building, or exam link"
-                  isRed={isExamModal}
+              <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-3.5 items-start">
+                <MobileColorGrid
+                  selectedColor={evtColor}
+                  onSelectColor={(hex) => setEvtColor(hex)}
+                />
+                <MobileSegmentedControl
+                  label="For"
+                  options={profileOptions}
+                  value={evtProfile}
+                  onChange={(val) => setEvtProfile(val as ProfilePersona)}
                 />
               </div>
             )}
           </div>
 
-          {/* Action Buttons */}
           <div className="sticky bottom-0 z-10 bg-white pt-2">
-          <MobileFormAction
-            label={eventToEdit ? (isExamModal ? 'Save Exam' : 'Save Changes') : (isExamModal ? 'Add Exam' : 'Add Event')}
-            isSaving={isSaving}
-            isRed={isExamModal}
-            onCancel={onClose}
-          />
+            <MobileFormAction
+              label={eventToEdit ? (isExamModal ? 'Save Exam' : 'Save Changes') : (isExamModal ? 'Add Exam' : 'Add Event')}
+              isSaving={isSaving}
+              isRed={isExamModal}
+              onCancel={onClose}
+            />
+            <p className="text-center text-[10px] font-medium text-slate-400 mt-1.5">
+              ⌘ / Ctrl + Enter to save
+            </p>
           </div>
         </form>
       )}
