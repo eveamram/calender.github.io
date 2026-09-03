@@ -17,8 +17,15 @@ export function eventRepeats(evt: { repeat?: string }): boolean {
   return evt.repeat === 'daily' || evt.repeat === 'weekly';
 }
 
-function weekdayIndex(dateStr: string): number {
-  return new Date(`${dateStr}T00:00:00`).getDay();
+/** 1=Mon ... 7=Sun */
+export function dateToDayNum(dateStr: string): number {
+  const js = new Date(`${dateStr}T00:00:00`).getDay();
+  return js === 0 ? 7 : js;
+}
+
+export function weeklyRepeatDays(evt: CalendarEvent): number[] {
+  if (evt.repeat_days && evt.repeat_days.length > 0) return evt.repeat_days;
+  return [dateToDayNum(evt.event_date)];
 }
 
 export function eventOccursOn(evt: CalendarEvent, dateStr: string): boolean {
@@ -27,7 +34,7 @@ export function eventOccursOn(evt: CalendarEvent, dateStr: string): boolean {
   if (evt.repeat_until && dateStr > evt.repeat_until) return false;
   if (!eventRepeats(evt)) return dateStr === evt.event_date;
   if (evt.repeat === 'daily') return true;
-  return weekdayIndex(dateStr) === weekdayIndex(evt.event_date);
+  return weeklyRepeatDays(evt).includes(dateToDayNum(dateStr));
 }
 
 export function resolveMasterEvent(evt: CalendarEvent, events: CalendarEvent[]): CalendarEvent {

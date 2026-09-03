@@ -33,6 +33,7 @@ export interface CalendarEvent {
   is_completed?: boolean;
   profile?: ProfilePersona;
   repeat?: 'none' | 'daily' | 'weekly';
+  repeat_days?: number[]; // 1=Mon ... 7=Sun, for weekly
   repeat_until?: string;
   created_at?: string;
   updated_at?: string;

@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS public.events (
 );
 
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS repeat TEXT DEFAULT 'none';
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS repeat_days INT[];
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS repeat_until TEXT;
 
 -- 2. Classes Table

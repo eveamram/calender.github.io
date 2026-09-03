@@ -116,6 +116,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   const [evtColor, setEvtColor] = useState('');
   const [evtProfile, setEvtProfile] = useState<ProfilePersona>(defaultProfile);
   const [evtRepeat, setEvtRepeat] = useState<'none' | 'daily' | 'weekly'>('none');
+  const [evtRepeatDays, setEvtRepeatDays] = useState<number[]>([]);
 
   useEffect(() => {
     if (modalType === 'event') {
@@ -136,6 +137,11 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         setEvtColor(eventToEdit.color || (eventToEdit.event_type === 'exam' ? CATEGORY_METAS.exam.color : DEFAULT_COLOR_SWATCHES[0].hex));
         setEvtProfile(eventToEdit.profile || defaultProfile);
         setEvtRepeat(eventToEdit.repeat === 'daily' || eventToEdit.repeat === 'weekly' ? eventToEdit.repeat : 'none');
+        const jsDay = new Date(`${eventToEdit.event_date}T00:00:00`).getDay();
+        const startDay = jsDay === 0 ? 7 : jsDay;
+        setEvtRepeatDays(
+          eventToEdit.repeat_days && eventToEdit.repeat_days.length > 0 ? eventToEdit.repeat_days : [startDay]
+        );
       } else {
         setEvtDate(initialDate || getTodayDateString());
         setEvtTitle('');
@@ -147,6 +153,8 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         setEvtNoTime(false);
         setEvtProfile(defaultProfile);
         setEvtRepeat('none');
+        const jsDay = new Date(`${(initialDate || getTodayDateString())}T00:00:00`).getDay();
+        setEvtRepeatDays([jsDay === 0 ? 7 : jsDay]);
       }
     }
   }, [modalType, initialDate, initialEventType, eventToEdit, defaultProfile]);
@@ -298,13 +306,14 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
     selectedDays: number[],
     toggleDay: (n: number) => void,
     showWeekends = true,
-    activeColor?: string
+    activeColor?: string,
+    labelText?: string
   ) => {
     const days = showWeekends ? WEEK_DAYS : WEEK_DAYS.slice(0, 5);
     return (
       <div className="space-y-1.5 w-full">
         <label className="block text-xs font-bold text-slate-900 tracking-tight">
-          {showWeekends ? 'Active Days' : 'Days'}
+          {labelText || (showWeekends ? 'Active Days' : 'Days')}
         </label>
         <div className={`grid gap-1 w-full box-border ${showWeekends ? 'grid-cols-7' : 'grid-cols-5'}`}>
           {days.map((d) => {
@@ -352,6 +361,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
           color: finalColor,
           profile: evtProfile,
           repeat: evtRepeat,
+          repeat_days: evtRepeat === 'weekly' ? (evtRepeatDays.length ? evtRepeatDays : undefined) : [],
         });
       } else {
         ok = await addEvent({
@@ -364,6 +374,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
           color: finalColor,
           profile: evtProfile,
           repeat: evtRepeat,
+          repeat_days: evtRepeat === 'weekly' ? (evtRepeatDays.length ? evtRepeatDays : undefined) : [],
         });
       }
       if (ok) onClose();
@@ -675,7 +686,13 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                 <button
                   type="button"
                   key={opt.id}
-                  onClick={() => setEvtRepeat(opt.id)}
+                  onClick={() => {
+                    setEvtRepeat(opt.id);
+                    if (opt.id === 'weekly' && evtRepeatDays.length === 0) {
+                      const jsDay = new Date(`${evtDate}T00:00:00`).getDay();
+                      setEvtRepeatDays([jsDay === 0 ? 7 : jsDay]);
+                    }
+                  }}
                   className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer min-h-[38px] ${
                     evtRepeat === opt.id ? 'bg-[#0f172a] text-white shadow-xs' : 'text-slate-600 hover:bg-slate-200/50'
                   }`}
@@ -685,9 +702,22 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               ))}
             </div>
             {evtRepeat === 'weekly' && (
-              <p className="text-[11px] font-medium text-slate-500">
-                Repeats on this weekday from the date above.
-              </p>
+              <div className="pt-1">
+                {renderDaySelector(
+                  evtRepeatDays,
+                  (n) =>
+                    setEvtRepeatDays((prev) => {
+                      const next = prev.includes(n) ? prev.filter((d) => d !== n) : [...prev, n];
+                      return next.length > 0 ? next : prev;
+                    }),
+                  true,
+                  undefined,
+                  'Repeats on'
+                )}
+                <p className="text-[11px] font-medium text-slate-500 mt-1.5">
+                  Pick every weekday this should show. You can choose more than one.
+                </p>
+              </div>
             )}
             {evtRepeat === 'daily' && (
               <p className="text-[11px] font-medium text-slate-500">
