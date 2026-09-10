@@ -3,7 +3,7 @@ import { useStore, getTodayDateString } from '../../context/StoreContext';
 import { CalendarEvent, CATEGORY_METAS, ClassItem, EventType, HabitItem, eventAccentColor } from '../../types';
 import { asAllDayIfAnniversary, getAnniversaryEvent, getCommonHolidayEvent, isAnniversaryTitle } from '../../utils/holidays';
 import confetti from 'canvas-confetti';
-import { eventOccursOn, eventRepeats, occurrenceEventId, resolveMasterEvent } from '../../utils/eventRepeat';
+import { addDaysToDateStr, eventOccursOn, eventRepeats, eventSpanEnd, occurrenceEventId, resolveMasterEvent } from '../../utils/eventRepeat';
 import { classPersonaColor, habitItemColor } from '../../utils/personaColor';
 import {
   ChevronLeft,
@@ -167,11 +167,17 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     filteredEvents.forEach((evt) => {
       if (eventRepeats(evt)) return;
       if (hiddenEventIds.includes(evt.id)) return;
-      if (!map.has(evt.event_date)) {
-        map.set(evt.event_date, []);
-      }
       const isComp = evt.is_completed || completedEventIds.includes(evt.id);
-      map.get(evt.event_date)!.push(asAllDayIfAnniversary({ ...evt, is_completed: isComp }));
+      const start = evt.event_date;
+      const end = eventSpanEnd(evt);
+      let d = start;
+      let guard = 0;
+      while (d <= end && guard < 400) {
+        if (!map.has(d)) map.set(d, []);
+        map.get(d)!.push(asAllDayIfAnniversary({ ...evt, is_completed: isComp }));
+        d = addDaysToDateStr(d, 1);
+        guard += 1;
+      }
     });
 
     calendarDays.forEach((dayObj) => {

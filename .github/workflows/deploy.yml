@@ -69,6 +69,7 @@ jobs:
             cp "$LATEST_JS" assets/app-v31.js
             cp "$LATEST_JS" assets/app-v32.js
             cp "$LATEST_JS" assets/app-v33.js
+            cp "$LATEST_JS" assets/app-v34.js
           fi
           if [ -f "${LATEST_JS}.map" ]; then
             cp "${LATEST_JS}.map" assets/app.js.map
@@ -87,6 +88,7 @@ jobs:
             cp "${LATEST_JS}.map" assets/app-v31.js.map
             cp "${LATEST_JS}.map" assets/app-v32.js.map
             cp "${LATEST_JS}.map" assets/app-v33.js.map
+            cp "${LATEST_JS}.map" assets/app-v34.js.map
           fi
           if [ -n "$LATEST_CSS" ]; then
             cp "$LATEST_CSS" assets/app.css
@@ -105,6 +107,7 @@ jobs:
             cp "$LATEST_CSS" assets/app-v31.css
             cp "$LATEST_CSS" assets/app-v32.css
             cp "$LATEST_CSS" assets/app-v33.css
+            cp "$LATEST_CSS" assets/app-v34.css
           fi
           git add assets
           if git diff --staged --quiet; then

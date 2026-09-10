@@ -28,13 +28,29 @@ export function weeklyRepeatDays(evt: CalendarEvent): number[] {
   return [dateToDayNum(evt.event_date)];
 }
 
+export function eventSpanEnd(evt: { event_date: string; end_date?: string }): string {
+  if (evt.end_date && evt.end_date > evt.event_date) return evt.end_date;
+  return evt.event_date;
+}
+
+export function addDaysToDateStr(dateStr: string, days: number): string {
+  const d = new Date(`${dateStr}T00:00:00`);
+  d.setDate(d.getDate() + days);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 export function eventOccursOn(evt: CalendarEvent, dateStr: string): boolean {
   if (!dateStr) return false;
   if (dateStr < evt.event_date) return false;
-  if (evt.repeat_until && dateStr > evt.repeat_until) return false;
-  if (!eventRepeats(evt)) return dateStr === evt.event_date;
-  if (evt.repeat === 'daily') return true;
-  return weeklyRepeatDays(evt).includes(dateToDayNum(dateStr));
+  if (eventRepeats(evt)) {
+    if (evt.repeat_until && dateStr > evt.repeat_until) return false;
+    if (evt.repeat === 'daily') return true;
+    return weeklyRepeatDays(evt).includes(dateToDayNum(dateStr));
+  }
+  return dateStr <= eventSpanEnd(evt);
 }
 
 export function resolveMasterEvent(evt: CalendarEvent, events: CalendarEvent[]): CalendarEvent {

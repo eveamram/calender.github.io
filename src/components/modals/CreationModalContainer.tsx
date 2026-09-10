@@ -134,6 +134,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   const [evtTitle, setEvtTitle] = useState('');
   const [evtType, setEvtType] = useState<EventType>(initialEventType || 'personal');
   const [evtDate, setEvtDate] = useState(initialDate || getTodayDateString());
+  const [evtEndDate, setEvtEndDate] = useState(initialDate || getTodayDateString());
   const [evtStartTime, setEvtStartTime] = useState('09:00');
   const [evtEndTime, setEvtEndTime] = useState('10:00');
   const [evtAllDay, setEvtAllDay] = useState(false);
@@ -153,6 +154,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         setEvtTitle(eventToEdit.title);
         setEvtType((eventToEdit.event_type as EventType) || initialEventType || 'personal');
         setEvtDate(eventToEdit.event_date);
+        setEvtEndDate(eventToEdit.end_date && eventToEdit.end_date > eventToEdit.event_date ? eventToEdit.end_date : eventToEdit.event_date);
         const start = (eventToEdit.start_time || '').trim();
         const end = (eventToEdit.end_time || '').trim();
         const isAllDay = !start || start.toLowerCase() === 'all day' || start.toLowerCase() === 'all-day';
@@ -169,7 +171,9 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
           eventToEdit.repeat_days && eventToEdit.repeat_days.length > 0 ? eventToEdit.repeat_days : [startDay]
         );
       } else {
-        setEvtDate(initialDate || getTodayDateString());
+        const startDate = initialDate || getTodayDateString();
+        setEvtDate(startDate);
+        setEvtEndDate(startDate);
         setEvtTitle('');
         setEvtType(initialEventType || 'personal');
         setEvtLocation('');
@@ -394,34 +398,38 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
       const startTime = evtAllDay ? 'all day' : evtStartTime.trim();
       const endTime = evtAllDay ? '' : evtEndTime.trim();
       const until = evtRepeat === 'none' ? undefined : evtRepeatUntil.trim() || undefined;
+      const spansDays = evtRepeat === 'none' && evtEndDate > evtDate;
+      const savedEndDate = spansDays ? evtEndDate : '';
       let ok = false;
       if (eventToEdit) {
         ok = await updateEvent(eventToEdit.id, {
           title: evtTitle.trim(),
           event_type: evtType,
           event_date: evtDate,
+          end_date: savedEndDate,
           start_time: startTime,
           end_time: endTime,
           location: evtLocation.trim() || undefined,
           color: finalColor,
           profile: evtProfile,
-          repeat: evtRepeat,
-          repeat_days: evtRepeat === 'weekly' ? (evtRepeatDays.length ? evtRepeatDays : undefined) : [],
-          repeat_until: until,
+          repeat: spansDays ? 'none' : evtRepeat,
+          repeat_days: spansDays || evtRepeat !== 'weekly' ? [] : (evtRepeatDays.length ? evtRepeatDays : undefined),
+          repeat_until: spansDays ? undefined : until,
         });
       } else {
         ok = await addEvent({
           title: evtTitle.trim(),
           event_type: evtType,
           event_date: evtDate,
+          end_date: savedEndDate || undefined,
           start_time: startTime || undefined,
           end_time: endTime || undefined,
           location: evtLocation.trim() || undefined,
           color: finalColor,
           profile: evtProfile,
-          repeat: evtRepeat,
-          repeat_days: evtRepeat === 'weekly' ? (evtRepeatDays.length ? evtRepeatDays : undefined) : [],
-          repeat_until: until,
+          repeat: spansDays ? 'none' : evtRepeat,
+          repeat_days: spansDays || evtRepeat !== 'weekly' ? [] : (evtRepeatDays.length ? evtRepeatDays : undefined),
+          repeat_until: spansDays ? undefined : until,
         });
       }
       if (ok) onClose();
@@ -603,9 +611,17 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
   const handleEvtDateChange = (nextDate: string) => {
     setEvtDate(nextDate);
+    if (evtEndDate < nextDate) setEvtEndDate(nextDate);
     if (evtRepeat === 'weekly' && evtRepeatDays.length <= 1) {
       setEvtRepeatDays([weekdayNumFromDateStr(nextDate)]);
     }
+  };
+
+  const handleEvtEndDateChange = (nextDate: string) => {
+    const wasSingleDay = !evtEndDate || evtEndDate <= evtDate;
+    const end = nextDate < evtDate ? evtDate : nextDate;
+    setEvtEndDate(end);
+    if (wasSingleDay && end > evtDate) setEvtAllDay(true);
   };
 
   const handleEvtStartTimeChange = (next: string) => {
@@ -634,11 +650,13 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   })();
 
   const eventWhenLabel = (() => {
-    const dateLabel = formatDateDisplay(evtDate);
+    const startLabel = formatDateDisplay(evtDate);
+    const spans = evtEndDate > evtDate;
+    const dateLabel = spans ? `${startLabel} – ${formatDateDisplay(evtEndDate)}` : startLabel;
     if (evtAllDay) return `${dateLabel} · All day`;
-    const startLabel = formatTimeDisplay(evtStartTime);
-    if (!evtEndTime.trim()) return `${dateLabel} · ${startLabel}`;
-    return `${dateLabel} · ${startLabel} – ${formatTimeDisplay(evtEndTime)}`;
+    const timeStart = formatTimeDisplay(evtStartTime);
+    if (!evtEndTime.trim()) return `${dateLabel} · ${timeStart}`;
+    return `${dateLabel} · ${timeStart} – ${formatTimeDisplay(evtEndTime)}`;
   })();
 
   const handleEvtTypeChange = (next: EventType) => {
@@ -691,42 +709,48 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
 
           <p className={`text-[11px] font-semibold -mt-2 ${isExamModal ? 'text-rose-600' : 'text-slate-500'}`}>
             {eventWhenLabel}
-            {evtRepeat === 'daily' ? ' · every day' : evtRepeat === 'weekly' ? ' · weekly' : ''}
+            {evtEndDate > evtDate ? '' : evtRepeat === 'daily' ? ' · every day' : evtRepeat === 'weekly' ? ' · weekly' : ''}
           </p>
 
-          <div className="flex items-end gap-3">
-            <div className="flex-1 min-w-0">
-              <MobileSelectField
-                label="Date"
-                type="date"
-                displayValue={formatDateDisplay(evtDate)}
-                value={evtDate}
-                onChange={(e) => handleEvtDateChange(e.target.value)}
-                isRed={isExamModal}
-              />
-            </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={evtAllDay}
-              onClick={() => setEvtAllDay(!evtAllDay)}
-              className={`mb-1 shrink-0 flex items-center gap-2 px-3 h-[52px] rounded-2xl border text-xs font-bold cursor-pointer transition-all ${
-                evtAllDay
-                  ? isExamModal
-                    ? 'bg-rose-600 text-white border-rose-600'
-                    : 'bg-slate-900 text-white border-slate-900'
-                  : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-              }`}
-            >
-              All day
-            </button>
+          <div className="grid grid-cols-2 gap-3 items-end">
+            <MobileSelectField
+              label="Start date"
+              type="date"
+              displayValue={formatDateDisplay(evtDate)}
+              value={evtDate}
+              onChange={(e) => handleEvtDateChange(e.target.value)}
+              isRed={isExamModal}
+            />
+            <MobileSelectField
+              label="End date"
+              type="date"
+              displayValue={formatDateDisplay(evtEndDate || evtDate)}
+              value={evtEndDate || evtDate}
+              onChange={(e) => handleEvtEndDateChange(e.target.value)}
+              isRed={isExamModal}
+            />
           </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={evtAllDay}
+            onClick={() => setEvtAllDay(!evtAllDay)}
+            className={`w-full flex items-center justify-center gap-2 h-[44px] rounded-2xl border text-xs font-bold cursor-pointer transition-all ${
+              evtAllDay
+                ? isExamModal
+                  ? 'bg-rose-600 text-white border-rose-600'
+                  : 'bg-slate-900 text-white border-slate-900'
+                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+            }`}
+          >
+            All day
+          </button>
 
           {!evtAllDay && (
             <div className="space-y-2">
               <div className="grid grid-cols-2 gap-3">
                 <MobileSelectField
-                  label="Starts"
+                  label="Start time"
                   type="time"
                   displayValue={formatTimeDisplay(evtStartTime)}
                   value={evtStartTime}
@@ -734,7 +758,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
                   isRed={isExamModal}
                 />
                 <MobileSelectField
-                  label="Ends"
+                  label="End time"
                   type="time"
                   displayValue={evtEndTime ? formatTimeDisplay(evtEndTime) : 'Not sure'}
                   value={evtEndTime}
@@ -799,6 +823,11 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
             />
           </div>
 
+          {evtEndDate > evtDate ? (
+            <p className="text-[11px] font-medium text-slate-500">
+              Shows on every day from the start date through the end date.
+            </p>
+          ) : (
           <div className="space-y-1.5 w-full">
             <label className={`block text-xs font-semibold tracking-tight ${isExamModal ? 'text-red-800' : 'text-slate-700'}`}>
               Repeat
@@ -863,6 +892,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
               </div>
             )}
           </div>
+          )}
 
           <div>
             <button

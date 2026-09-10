@@ -25,6 +25,7 @@ export interface CalendarEvent {
   title: string;
   event_type: EventType;
   event_date: string; // YYYY-MM-DD
+  end_date?: string; // YYYY-MM-DD, inclusive last day of a multi-day event
   start_time?: string; // HH:MM
   end_time?: string;   // HH:MM
   location?: string;
