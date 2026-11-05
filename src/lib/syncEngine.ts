@@ -6,6 +6,24 @@ export interface SyncPayload<T = any> {
   id?: string;
   payload?: T;
   timestamp: number;
+  /** Replace the stored row instead of merging leftover device-only fields. */
+  replace?: boolean;
+}
+
+/** Shared view state stored in profile_colors. The same row is read by every device. */
+export const SHARED_VIEW_ID = 'shared-view';
+export const HIDDEN_EVENT_IDS_ID = 'hidden-event-ids';
+export const COMPLETED_EVENT_IDS_ID = 'completed-event-ids';
+
+export function parseSharedIdList(raw?: string): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((item) => typeof item === 'string');
+  } catch {
+    return [];
+  }
 }
 
 export const APP_TABLES = [
@@ -40,7 +58,7 @@ export const TABLE_MAP: Record<AppTable, string> = {
 // Columns that exist (or will exist) on each Postgres table.
 // Client-only fields like is_habit_item must never be sent.
 const DB_COLUMNS: Record<AppTable, readonly string[]> = {
-  events: ['id', 'title', 'event_type', 'event_date', 'end_date', 'start_time', 'end_time', 'location', 'color', 'task_id', 'is_completed', 'profile', 'repeat', 'repeat_days', 'repeat_until', 'created_at', 'updated_at'],
+  events: ['id', 'title', 'event_type', 'event_date', 'start_time', 'end_time', 'location', 'color', 'task_id', 'is_completed', 'profile', 'created_at', 'updated_at'],
   classes: ['id', 'name', 'instructor', 'room', 'start_time', 'end_time', 'days_of_week', 'color', 'profile', 'office_hours', 'office_hours_location', 'created_at', 'updated_at'],
   tasks: ['id', 'title', 'is_completed', 'due_date', 'due_time', 'priority', 'profile', 'created_at', 'updated_at'],
   habits: ['id', 'title', 'emoji', 'target_quantity', 'target_unit', 'active_days', 'color', 'profile', 'show_in_daily_schedule', 'tracking_mode', 'created_at', 'updated_at'],
@@ -70,12 +88,12 @@ function unknownColumnFromError(message?: string): string | null {
 async function upsertToSupabase(
   appTable: AppTable,
   item: Record<string, any>
-): Promise<{ ok: boolean; errorMessage?: string }> {
+): Promise<{ ok: boolean; saved?: Record<string, any>; errorMessage?: string }> {
   const dbTable = TABLE_MAP[appTable];
   const dbPayload = toDbPayload(appTable, item);
   for (let attempt = 0; attempt < 6; attempt++) {
     const { error } = await supabase.from(dbTable).upsert([dbPayload]).select();
-    if (!error) return { ok: true };
+    if (!error) return { ok: true, saved: { ...dbPayload } };
     const unknownCol = unknownColumnFromError(error.message);
     if (error.code === 'PGRST204' && unknownCol && unknownCol in dbPayload) {
       delete dbPayload[unknownCol];
@@ -84,6 +102,17 @@ async function upsertToSupabase(
     return { ok: false, errorMessage: error.message };
   }
   return { ok: false, errorMessage: 'Too many schema retries' };
+}
+
+/** Fields the live events table does not store. Keeping them made one device invent extra days. */
+function normalizeStoredItem(table: string, item: any) {
+  if (!item || typeof item !== 'object' || table !== 'events') return item;
+  const next = { ...item };
+  delete next.repeat;
+  delete next.repeat_days;
+  delete next.repeat_until;
+  delete next.end_date;
+  return next;
 }
 
 // Reverse Mapping: Supabase PostgreSQL Table Name -> Logical App Table Key
@@ -172,7 +201,7 @@ APP_TABLES.forEach((tbl) => {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
           parsed.forEach((item) => {
-            if (item && item.id && !isRetiredItemId(item.id)) map.set(item.id, item);
+            if (item && item.id && !isRetiredItemId(item.id)) map.set(item.id, normalizeStoredItem(tbl, item));
           });
         }
       }
@@ -237,7 +266,11 @@ function applyMemoryMutation(event: SyncPayload) {
       tableMap.delete(event.id);
       markLocalWrite(table, event.id);
     } else if (event.id && event.payload) {
-      tableMap.set(event.id, { ...tableMap.get(event.id), ...event.payload });
+      const payload = normalizeStoredItem(table, event.payload);
+      tableMap.set(
+        event.id,
+        event.replace ? payload : normalizeStoredItem(table, { ...tableMap.get(event.id), ...payload })
+      );
       markLocalWrite(table, event.id);
     }
   } else if (event.type === 'DELETE') {
@@ -331,6 +364,7 @@ export const initRealtimeSubscription = () => {
             id: targetId,
             payload: syncType === 'DELETE' ? oldRecord : newRecord,
             timestamp: Date.now(),
+            replace: syncType !== 'DELETE',
           };
 
           applyMemoryMutation(syncData);
@@ -443,6 +477,17 @@ export const syncEngine = {
         return true; // Return true so UI operation completes without throwing away user edits!
       }
       console.log(`Supabase upsert SUCCESS [${appTable} -> ${dbTable}]`);
+      if (uploaded.saved && item.id) {
+        applyMemoryMutation({
+          type: 'UPDATE',
+          table: appTable,
+          id: item.id,
+          payload: uploaded.saved,
+          timestamp: Date.now(),
+          replace: true,
+        });
+        notifyGlobalListeners();
+      }
     } catch (err: any) {
       console.warn(`Supabase upsert exception [${appTable} -> ${dbTable}]:`, err);
       updateSyncStatus({ syncError: `Saved locally. Cloud sync exception: ${err?.message || err}` });
@@ -531,6 +576,53 @@ export const syncEngine = {
   },
 };
 
+function readLocalIdList(storageKey: string): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    return parseSharedIdList(localStorage.getItem(storageKey) || '');
+  } catch {
+    return [];
+  }
+}
+
+function sameIdSet(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  const right = new Set(b);
+  return a.every((item) => right.has(item));
+}
+
+async function ensureIdListRow(
+  tableMap: Map<string, any>,
+  id: string,
+  storageKey: string,
+  startedAt: number
+) {
+  const wroteAt = localWriteAt.get(`profileColors:${id}`) || 0;
+  if (wroteAt >= startedAt) return;
+  const local = readLocalIdList(storageKey);
+  const existing = tableMap.get(id);
+  const cloud = existing ? parseSharedIdList(existing.color) : [];
+  const union = Array.from(new Set([...cloud, ...local]));
+  if (existing && sameIdSet(union, cloud)) return;
+  const row = { id, color: JSON.stringify(union) };
+  tableMap.set(id, row);
+  markLocalWrite('profileColors', id);
+  await upsertToSupabase('profileColors', row);
+}
+
+/** One Eve/Abbie/Both choice, and one hidden/completed list, for every device. */
+async function ensureSharedViewRows(tableMap: Map<string, any>, startedAt: number) {
+  const viewWrote = localWriteAt.get(`profileColors:${SHARED_VIEW_ID}`) || 0;
+  if (!tableMap.has(SHARED_VIEW_ID) && viewWrote < startedAt) {
+    const row = { id: SHARED_VIEW_ID, color: 'Both' };
+    tableMap.set(SHARED_VIEW_ID, row);
+    markLocalWrite('profileColors', SHARED_VIEW_ID);
+    await upsertToSupabase('profileColors', row);
+  }
+  await ensureIdListRow(tableMap, HIDDEN_EVENT_IDS_ID, 'calender_hidden_event_ids', startedAt);
+  await ensureIdListRow(tableMap, COMPLETED_EVENT_IDS_ID, 'calender_completed_event_ids', startedAt);
+}
+
 async function fetchAllFromCloud(): Promise<Record<string, any[]>> {
   if (!isSupabaseConfigured()) {
     updateSyncStatus({
@@ -560,10 +652,9 @@ async function fetchAllFromCloud(): Promise<Record<string, any[]>> {
           data.forEach((item) => {
             if (item && item.id && !isRetiredItemId(item.id)) {
               const wroteAt = localWriteAt.get(`${appTable}:${item.id}`) || 0;
-              const localItem = tableMap.get(item.id);
               // A delete or edit landed while this request was running.
               if (wroteAt >= startedAt) return;
-              tableMap.set(item.id, { ...localItem, ...item });
+              tableMap.set(item.id, normalizeStoredItem(appTable, item));
             }
           });
 
@@ -597,6 +688,7 @@ async function fetchAllFromCloud(): Promise<Record<string, any[]>> {
             keepLocalOnly.add(localId);
             const uploaded = await upsertToSupabase(appTable, localItem);
             if (uploaded.ok) {
+              if (uploaded.saved) tableMap.set(localId, normalizeStoredItem(appTable, uploaded.saved));
               remoteIds.add(localId);
               keepLocalOnly.delete(localId);
             } else if (uploaded.errorMessage) {
@@ -610,6 +702,9 @@ async function fetchAllFromCloud(): Promise<Record<string, any[]>> {
             if (wroteAt >= startedAt) return;
             tableMap.delete(localId);
           });
+          if (appTable === 'profileColors') {
+            await ensureSharedViewRows(tableMap, startedAt);
+          }
           saveLocalSnapshot(appTable);
         } else if (error) {
           const errMsg = `Cloud table '${dbTable}' sync notice: ${error.message}`;

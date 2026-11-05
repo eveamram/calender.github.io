@@ -11,7 +11,15 @@ import {
   MealItem,
   BookItem,
 } from '../types';
-import { syncEngine, SyncStatus, TABLE_MAP } from '../lib/syncEngine';
+import {
+  syncEngine,
+  SyncStatus,
+  TABLE_MAP,
+  SHARED_VIEW_ID,
+  HIDDEN_EVENT_IDS_ID,
+  COMPLETED_EVENT_IDS_ID,
+  parseSharedIdList,
+} from '../lib/syncEngine';
 import { classIdFromSkipEvent, classSkipAllEventId, classSkipAllLocation, classSkipEventId, classSkipLocation, isClassSkipEvent } from '../utils/classSkip';
 
 interface StoreContextType {
@@ -53,8 +61,15 @@ interface StoreContextType {
   // Helper filter by profile
   filterByProfile: <T extends { profile?: ProfilePersona }>(items: T[]) => T[];
 
+  // Shared across phones and computers. A holiday hidden or checked on one device stays that way on the other.
+  hiddenEventIds: string[];
+  completedEventIds: string[];
+  hideSharedEventId: (id: string) => void;
+  setSharedCompletedIds: (ids: string[]) => void;
+
   // CRUD & Reset Operations
   addEvent: (evt: Omit<CalendarEvent, 'id' | 'created_at' | 'updated_at'>) => Promise<boolean>;
+  upsertEvent: (evt: CalendarEvent) => Promise<boolean>;
   updateEvent: (id: string, updates: Partial<CalendarEvent>) => Promise<boolean>;
   toggleEventComplete: (id: string) => Promise<boolean>;
   deleteEvent: (id: string) => Promise<boolean>;
@@ -177,6 +192,42 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const setActiveProfile = (profile: ProfilePersona) => {
     setActiveProfileState(profile);
     localStorage.setItem('calender_profile', profile);
+    void syncEngine.upsertItem('profileColors', { id: SHARED_VIEW_ID, color: profile });
+  };
+
+  const [hiddenEventIds, setHiddenEventIds] = useState<string[]>(() => {
+    try {
+      return parseSharedIdList(localStorage.getItem('calender_hidden_event_ids') || '');
+    } catch {
+      return [];
+    }
+  });
+
+  const [completedEventIds, setCompletedEventIds] = useState<string[]>(() => {
+    try {
+      return parseSharedIdList(localStorage.getItem('calender_completed_event_ids') || '');
+    } catch {
+      return [];
+    }
+  });
+
+  const sameIdList = (left: string[], right: string[]) =>
+    left.length === right.length && left.every((id, index) => id === right[index]);
+
+  const hideSharedEventId = (id: string) => {
+    setHiddenEventIds((prev) => {
+      if (prev.includes(id)) return prev;
+      const updated = [...prev, id];
+      localStorage.setItem('calender_hidden_event_ids', JSON.stringify(updated));
+      void syncEngine.upsertItem('profileColors', { id: HIDDEN_EVENT_IDS_ID, color: JSON.stringify(updated) });
+      return updated;
+    });
+  };
+
+  const setSharedCompletedIds = (ids: string[]) => {
+    setCompletedEventIds(ids);
+    localStorage.setItem('calender_completed_event_ids', JSON.stringify(ids));
+    void syncEngine.upsertItem('profileColors', { id: COMPLETED_EVENT_IDS_ID, color: JSON.stringify(ids) });
   };
 
   const setActiveTab = (tab: AppTab) => {
@@ -219,11 +270,36 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
 
       if (storeData.profileColors && Array.isArray(storeData.profileColors) && storeData.profileColors.length > 0) {
+        const rows = storeData.profileColors as { id: string; color: string }[];
         const pMap: Partial<Record<ProfilePersona, string>> = {};
-        storeData.profileColors.forEach((pc: { id: ProfilePersona; color: string }) => {
-          if (pc.id && pc.color) pMap[pc.id] = pc.color;
+        rows.forEach((pc) => {
+          if ((pc.id === 'Eve' || pc.id === 'Abbie' || pc.id === 'Both') && pc.color) {
+            pMap[pc.id] = pc.color;
+          }
         });
-        setProfileColors((prev) => ({ ...prev, ...pMap }));
+        if (Object.keys(pMap).length > 0) {
+          setProfileColors((prev) => ({ ...prev, ...pMap }));
+        }
+
+        const sharedView = rows.find((pc) => pc.id === SHARED_VIEW_ID);
+        if (sharedView && (sharedView.color === 'Eve' || sharedView.color === 'Abbie' || sharedView.color === 'Both')) {
+          setActiveProfileState(sharedView.color);
+          localStorage.setItem('calender_profile', sharedView.color);
+        }
+
+        const hiddenRow = rows.find((pc) => pc.id === HIDDEN_EVENT_IDS_ID);
+        if (hiddenRow) {
+          const next = parseSharedIdList(hiddenRow.color);
+          setHiddenEventIds((prev) => (sameIdList(prev, next) ? prev : next));
+          localStorage.setItem('calender_hidden_event_ids', JSON.stringify(next));
+        }
+
+        const completedRow = rows.find((pc) => pc.id === COMPLETED_EVENT_IDS_ID);
+        if (completedRow) {
+          const next = parseSharedIdList(completedRow.color);
+          setCompletedEventIds((prev) => (sameIdList(prev, next) ? prev : next));
+          localStorage.setItem('calender_completed_event_ids', JSON.stringify(next));
+        }
       }
     });
 
@@ -262,6 +338,21 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       created_at: new Date().toISOString(),
     };
     return await syncEngine.upsertItem('events', newEvt);
+  };
+
+  const upsertEvent = async (evt: CalendarEvent): Promise<boolean> => {
+    const existing = events.find((item) => item.id === evt.id);
+    const row: CalendarEvent = {
+      ...existing,
+      ...evt,
+      created_at: existing?.created_at || evt.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      repeat: 'none',
+      repeat_days: [],
+      repeat_until: undefined,
+      end_date: undefined,
+    };
+    return await syncEngine.upsertItem('events', row);
   };
 
   const updateEvent = async (id: string, updates: Partial<CalendarEvent>): Promise<boolean> => {
@@ -600,7 +691,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         mealItems,
         bookItems,
         filterByProfile,
+        hiddenEventIds,
+        completedEventIds,
+        hideSharedEventId,
+        setSharedCompletedIds,
         addEvent,
+        upsertEvent,
         updateEvent,
         toggleEventComplete,
         deleteEvent,

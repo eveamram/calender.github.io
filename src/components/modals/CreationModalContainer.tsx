@@ -17,6 +17,7 @@ import {
   hiddenOfficeHoursPayload,
   OfficeHourSlot,
 } from '../../utils/officeHours';
+import { sharedOccurrenceDates } from '../../utils/eventRepeat';
 import {
   ChevronDown,
   ChevronUp,
@@ -104,8 +105,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   initialClassDay,
 }) => {
   const {
-    addEvent,
-    updateEvent,
+    upsertEvent,
     addClass,
     updateClass,
     addTask,
@@ -401,38 +401,37 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
       const endTime = evtAllDay ? '' : evtEndTime.trim();
       const until = evtRepeat === 'none' ? undefined : evtRepeatUntil.trim() || undefined;
       const spansDays = evtRepeat === 'none' && evtEndDate > evtDate;
-      const savedEndDate = spansDays ? evtEndDate : '';
-      let ok = false;
-      if (eventToEdit) {
-        ok = await updateEvent(eventToEdit.id, {
-          title: evtTitle.trim(),
-          event_type: evtType,
-          event_date: evtDate,
-          end_date: savedEndDate,
-          start_time: startTime,
-          end_time: endTime,
-          location: evtLocation.trim() || undefined,
-          color: finalColor,
-          profile: evtProfile,
-          repeat: spansDays ? 'none' : evtRepeat,
-          repeat_days: spansDays || evtRepeat !== 'weekly' ? [] : (evtRepeatDays.length ? evtRepeatDays : undefined),
-          repeat_until: spansDays ? undefined : until,
-        });
-      } else {
-        ok = await addEvent({
-          title: evtTitle.trim(),
-          event_type: evtType,
-          event_date: evtDate,
-          end_date: savedEndDate || undefined,
-          start_time: startTime || undefined,
-          end_time: endTime || undefined,
-          location: evtLocation.trim() || undefined,
-          color: finalColor,
-          profile: evtProfile,
-          repeat: spansDays ? 'none' : evtRepeat,
-          repeat_days: spansDays || evtRepeat !== 'weekly' ? [] : (evtRepeatDays.length ? evtRepeatDays : undefined),
-          repeat_until: spansDays ? undefined : until,
-        });
+      const dates = sharedOccurrenceDates({
+        start: evtDate,
+        endDate: spansDays ? evtEndDate : undefined,
+        repeat: spansDays ? 'none' : evtRepeat,
+        repeatDays: evtRepeatDays,
+        repeatUntil: until,
+      });
+      const marker = '__d__';
+      const baseId = eventToEdit
+        ? eventToEdit.id.includes(marker)
+          ? eventToEdit.id.slice(0, eventToEdit.id.indexOf(marker))
+          : eventToEdit.id
+        : `evt-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+      const anchorId = eventToEdit?.id || baseId;
+      const rows: CalendarEvent[] = dates.map((date) => ({
+        id: date === evtDate ? anchorId : `${baseId}${marker}${date}`,
+        title: evtTitle.trim(),
+        event_type: evtType,
+        event_date: date,
+        start_time: startTime || undefined,
+        end_time: endTime || undefined,
+        location: evtLocation.trim() || undefined,
+        color: finalColor,
+        profile: evtProfile,
+        repeat: 'none',
+        created_at: new Date().toISOString(),
+      }));
+      let ok = true;
+      for (const row of rows) {
+        const saved = await upsertEvent(row);
+        if (!saved) ok = false;
       }
       if (ok) onClose();
       else setErrorMsg('Could not save event. Please try again.');

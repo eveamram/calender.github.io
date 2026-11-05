@@ -102,31 +102,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     filterByProfile,
     activeProfile,
     profileColors,
+    hiddenEventIds,
+    completedEventIds,
+    hideSharedEventId,
+    setSharedCompletedIds,
   } = useStore();
 
   const [currentMonthDate, setCurrentMonthDate] = useState(() => new Date());
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
-
-  // Hidden and Completed IDs for auto-generated holidays & events
-  const [hiddenEventIds, setHiddenEventIds] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('calender_hidden_event_ids');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error(e);
-    }
-    return [];
-  });
-
-  const [completedEventIds, setCompletedEventIds] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('calender_completed_event_ids');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error(e);
-    }
-    return [];
-  });
 
   // Filter habits for current active profile
   const filteredHabits = useMemo(() => filterByProfile(habits), [habits, filterByProfile]);
@@ -365,11 +348,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       return;
     }
 
-    setHiddenEventIds((prev) => {
-      const updated = [...prev, evt.id];
-      localStorage.setItem('calender_hidden_event_ids', JSON.stringify(updated));
-      return updated;
-    });
+    hideSharedEventId(evt.id);
 
     const master = resolveMasterEvent(evt, events);
     if (events.some((e) => e.id === master.id)) {
@@ -389,12 +368,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     }
 
     const isCurrentlyDone = evt.is_completed || completedEventIds.includes(evt.id);
-
-    setCompletedEventIds((prev) => {
-      const updated = isCurrentlyDone ? prev.filter((id) => id !== evt.id) : [...prev, evt.id];
-      localStorage.setItem('calender_completed_event_ids', JSON.stringify(updated));
-      return updated;
-    });
+    setSharedCompletedIds(
+      isCurrentlyDone ? completedEventIds.filter((id) => id !== evt.id) : [...completedEventIds, evt.id]
+    );
 
     if (eventRepeats(evt) || evt.id.includes('__occ__')) return;
 

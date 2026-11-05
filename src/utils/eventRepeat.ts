@@ -42,6 +42,55 @@ export function addDaysToDateStr(dateStr: string, days: number): string {
   return `${y}-${m}-${day}`;
 }
 
+const MAX_SHARED_DATES = 120;
+const DEFAULT_REPEAT_SPAN_DAYS = 16 * 7;
+
+/**
+ * Dates that should be saved as their own shared rows.
+ * Repeat and end-date columns are not in the shared database, so a weekly
+ * event kept only on one device shows up on that device and nowhere else.
+ */
+export function sharedOccurrenceDates(input: {
+  start: string;
+  endDate?: string;
+  repeat?: string;
+  repeatDays?: number[];
+  repeatUntil?: string;
+}): string[] {
+  const start = input.start;
+  if (!start) return [];
+
+  if (!input.repeat || input.repeat === 'none') {
+    const end = input.endDate && input.endDate > start ? input.endDate : start;
+    const dates: string[] = [];
+    let cursor = start;
+    while (cursor <= end && dates.length < 60) {
+      dates.push(cursor);
+      if (cursor === end) break;
+      cursor = addDaysToDateStr(cursor, 1);
+    }
+    return dates.length > 0 ? dates : [start];
+  }
+
+  const until =
+    input.repeatUntil && input.repeatUntil >= start
+      ? input.repeatUntil
+      : addDaysToDateStr(start, DEFAULT_REPEAT_SPAN_DAYS);
+  const weekDays =
+    input.repeat === 'weekly'
+      ? input.repeatDays && input.repeatDays.length > 0
+        ? input.repeatDays
+        : [dateToDayNum(start)]
+      : null;
+  const dates: string[] = [];
+  let cursor = start;
+  while (cursor <= until && dates.length < MAX_SHARED_DATES) {
+    if (!weekDays || weekDays.includes(dateToDayNum(cursor))) dates.push(cursor);
+    cursor = addDaysToDateStr(cursor, 1);
+  }
+  return dates.length > 0 ? dates : [start];
+}
+
 export function eventOccursOn(evt: CalendarEvent, dateStr: string): boolean {
   if (!dateStr) return false;
   if (dateStr < evt.event_date) return false;
