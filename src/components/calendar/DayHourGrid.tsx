@@ -145,63 +145,24 @@ export function packOverlappingLanes(
   return layouts;
 }
 
-const STACK_FROM = 3;
-const MIN_STACK_ROW = 26;
-
-/** Two overlapping items stay side by side. Three or more stack full-width so every name stays readable. */
+/** Classes and events that overlap stay in columns next to each other. */
 export function placeTimedEvents(
   layouts: TimedLayoutItem[],
   startHour: number,
   hourHeight: number
 ): PlacedTimedItem[] {
-  const placed: PlacedTimedItem[] = [];
-  const stackedIds = new Set<string>();
-  const groups = new Map<number, TimedLayoutItem[]>();
-
-  for (const layout of layouts) {
-    if (layout.laneCount < STACK_FROM) continue;
-    const list = groups.get(layout.groupId) || [];
-    list.push(layout);
-    groups.set(layout.groupId, list);
-  }
-
-  for (const group of groups.values()) {
-    const sorted = [...group].sort(
-      (a, b) => a.startMin - b.startMin || a.item.title.localeCompare(b.item.title)
-    );
-    const startMin = Math.min(...sorted.map((item) => item.startMin));
-    const endMin = Math.max(...sorted.map((item) => item.endMin));
-    const spanPx = Math.max(((endMin - startMin) / 60) * hourHeight, sorted.length * MIN_STACK_ROW);
-    const rowHeight = spanPx / sorted.length;
-    const topBase = ((startMin - startHour * 60) / 60) * hourHeight;
-    sorted.forEach((layout, index) => {
-      stackedIds.add(layout.item.id);
-      placed.push({
-        ...layout,
-        topPx: topBase + index * rowHeight,
-        heightPx: Math.max(rowHeight - 3, 22),
-        leftPct: 0,
-        widthPct: 100,
-        stacked: true,
-      });
-    });
-  }
-
-  for (const layout of layouts) {
-    if (stackedIds.has(layout.item.id)) continue;
+  return layouts.map((layout) => {
     const topPx = ((layout.startMin - startHour * 60) / 60) * hourHeight;
     const rawHeight = ((layout.endMin - layout.startMin) / 60) * hourHeight;
-    placed.push({
+    return {
       ...layout,
       topPx,
       heightPx: Math.max(rawHeight, MIN_EVENT_HEIGHT),
       leftPct: (layout.lane / layout.laneCount) * 100,
       widthPct: 100 / layout.laneCount,
       stacked: false,
-    });
-  }
-
-  return placed;
+    };
+  });
 }
 
 export function compactTimeLabel(timeStr?: string): string {
