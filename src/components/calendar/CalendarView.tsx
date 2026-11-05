@@ -94,7 +94,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     setSelectedDate,
     toggleEventComplete,
     deleteEvent,
-    skipClassAlways,
     tasks,
     habits,
     habitCompletions,
@@ -302,7 +301,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
     const exams = eventList.filter((e) => e.event_type === 'exam');
     const visibleClassEvents = classEvents.filter((cls) => {
-      const classId = (cls as CalendarEvent & { class_original_id?: string }).class_original_id;
+      const marked = cls as CalendarEvent & { class_original_id?: string };
+      const classId =
+        marked.class_original_id ||
+        (typeof cls.id === 'string' && cls.id.startsWith('class-item-') ? cls.id.slice('class-item-'.length) : '');
       if (classId && isClassSkippedOn(events, classId, selectedDate)) return false;
       return !exams.some((exam) => examHidesClass(exam, cls));
     });
@@ -407,12 +409,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     return jsDay === 0 ? 7 : jsDay;
   };
 
-  const handleSkipClass = (classId: string) => {
-    const cls = classes.find((item) => item.id === classId);
-    if (!cls) return;
-    void skipClassAlways(cls);
-  };
-
   const handleOpenScheduleItem = (evt: ScheduleItem) => {
     const isSyntheticClass =
       Boolean(evt.is_class_item) ||
@@ -488,7 +484,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             onOpenItem={handleOpenScheduleItem}
             onToggleComplete={handleToggleAnyEventComplete}
             onDelete={handleDeleteAnyEvent}
-            onSkipClass={handleSkipClass}
             onAddEvent={(startTime) => onOpenAddModal(selectedDate, undefined, startTime)}
             scrollMaxHeightClass="max-h-[min(52vh,28rem)]"
           />
@@ -781,7 +776,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             onOpenItem={handleOpenScheduleItem}
             onToggleComplete={handleToggleAnyEventComplete}
             onDelete={handleDeleteAnyEvent}
-            onSkipClass={handleSkipClass}
             onAddEvent={(startTime) => onOpenAddModal(selectedDate, undefined, startTime)}
             scrollMaxHeightClass="max-h-[calc(100vh-12rem)]"
           />

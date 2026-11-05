@@ -193,7 +193,6 @@ export interface DayHourGridProps {
   onOpenItem: (evt: ScheduleItem) => void;
   onToggleComplete: (evt: ScheduleItem) => void;
   onDelete: (evt: ScheduleItem) => void;
-  onSkipClass?: (classId: string) => void;
   onAddEvent: (startTime?: string) => void;
   scrollMaxHeightClass?: string;
 }
@@ -209,7 +208,6 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
   onOpenItem,
   onToggleComplete,
   onDelete,
-  onSkipClass,
   onAddEvent,
   scrollMaxHeightClass = 'max-h-[min(52vh,28rem)]',
 }) => {
@@ -302,7 +300,6 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
     const dense = Boolean(opts?.dense || opts?.stacked);
     const inGrid = Boolean(opts?.inGrid);
     const stacked = Boolean(opts?.stacked);
-    const classId = evt.class_original_id;
     const showTime = !evt.is_habit_item && parseTimeToMinutes(evt.start_time) !== null;
 
     return (
@@ -400,19 +397,6 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
           </div>
         </div>
 
-        {isClassItem && classId && onSkipClass && !stacked && !dense && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onSkipClass(classId);
-            }}
-            className="shrink-0 text-[10px] font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-md px-1.5 py-0.5"
-            title="You don't go to this class. It stays in Classes and stays off the schedule."
-          >
-            Don't go
-          </button>
-        )}
         <div className={`flex items-center shrink-0 ${dense ? 'gap-0 ml-0.5' : 'gap-1 ml-2'} ${stacked ? 'hidden' : ''}`}>
           <button
             type="button"
