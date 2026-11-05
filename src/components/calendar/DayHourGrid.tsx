@@ -447,7 +447,7 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
               onSkipClass(classId);
             }}
             className="shrink-0 text-[10px] font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-md px-1.5 py-0.5"
-            title="Don't go to class this day. It stays off the calendar."
+            title="You don't go to this class. It stays in Classes and stays off the schedule."
           >
             Don't go
           </button>

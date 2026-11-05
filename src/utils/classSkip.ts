@@ -1,26 +1,49 @@
 import { CalendarEvent, ClassItem } from '../types';
 
-const SKIP_LOCATION_PREFIX = 'class-skip:';
+const SKIP_ONE_PREFIX = 'class-skip:';
+const SKIP_ALL_PREFIX = 'class-skip-all:';
 
 export function classSkipEventId(classId: string, dateStr: string): string {
   return `skip-${classId}-${dateStr}`;
 }
 
+export function classSkipAllEventId(classId: string): string {
+  return `skip-${classId}-all`;
+}
+
 export function classSkipLocation(classId: string): string {
-  return `${SKIP_LOCATION_PREFIX}${classId}`;
+  return `${SKIP_ONE_PREFIX}${classId}`;
+}
+
+export function classSkipAllLocation(classId: string): string {
+  return `${SKIP_ALL_PREFIX}${classId}`;
 }
 
 export function isClassSkipEvent(evt: { id?: string; location?: string }): boolean {
-  return Boolean(evt.location && evt.location.startsWith(SKIP_LOCATION_PREFIX));
+  const location = evt.location || '';
+  return location.startsWith(SKIP_ALL_PREFIX) || location.startsWith(SKIP_ONE_PREFIX);
 }
 
 export function classIdFromSkipEvent(evt: { location?: string }): string | null {
-  if (!evt.location || !evt.location.startsWith(SKIP_LOCATION_PREFIX)) return null;
-  const classId = evt.location.slice(SKIP_LOCATION_PREFIX.length).trim();
-  return classId || null;
+  const location = evt.location || '';
+  if (location.startsWith(SKIP_ALL_PREFIX)) {
+    const classId = location.slice(SKIP_ALL_PREFIX.length).trim();
+    return classId || null;
+  }
+  if (location.startsWith(SKIP_ONE_PREFIX)) {
+    const classId = location.slice(SKIP_ONE_PREFIX.length).trim();
+    return classId || null;
+  }
+  return null;
+}
+
+export function isClassAlwaysSkipped(events: CalendarEvent[], classId: string): boolean {
+  const location = classSkipAllLocation(classId);
+  return events.some((evt) => evt.location === location);
 }
 
 export function isClassSkippedOn(events: CalendarEvent[], classId: string, dateStr: string): boolean {
+  if (isClassAlwaysSkipped(events, classId)) return true;
   return events.some(
     (evt) => isClassSkipEvent(evt) && classIdFromSkipEvent(evt) === classId && evt.event_date === dateStr
   );
@@ -30,6 +53,7 @@ export function skippedDatesForClass(events: CalendarEvent[], classId: string): 
   const dates = new Set<string>();
   for (const evt of events) {
     if (!isClassSkipEvent(evt) || classIdFromSkipEvent(evt) !== classId || !evt.event_date) continue;
+    if (evt.location === classSkipAllLocation(classId)) continue;
     dates.add(evt.event_date);
   }
   return Array.from(dates).sort();

@@ -94,7 +94,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     setSelectedDate,
     toggleEventComplete,
     deleteEvent,
-    skipClassDate,
+    skipClassAlways,
     tasks,
     habits,
     habitCompletions,
@@ -410,7 +410,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const handleSkipClass = (classId: string) => {
     const cls = classes.find((item) => item.id === classId);
     if (!cls) return;
-    void skipClassDate(cls, selectedDate);
+    void skipClassAlways(cls);
   };
 
   const handleOpenScheduleItem = (evt: ScheduleItem) => {
