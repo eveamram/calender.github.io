@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useStore, getTodayDateString } from '../../context/StoreContext';
 import { CalendarEvent, CATEGORY_METAS, ClassItem, EventType, HabitItem, eventAccentColor } from '../../types';
-import { asAllDayIfAnniversary, getAnniversaryEvent, getCommonHolidayEvent, isAnniversaryTitle } from '../../utils/holidays';
+import { asAllDayIfAnniversary, getAnniversaryEvent, getCommonHolidayEvent, isAnniversaryTitle, isNoSchoolDate } from '../../utils/holidays';
 import confetti from 'canvas-confetti';
 import { addDaysToDateStr, eventOccursOn, eventRepeats, eventSpanEnd, occurrenceEventId, resolveMasterEvent } from '../../utils/eventRepeat';
 import { classPersonaColor, habitItemColor } from '../../utils/personaColor';
@@ -232,7 +232,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
     // Filter classes for the selected date's day of week (1=Mon ... 5=Fri)
     const filteredClasses = filterByProfile(classes);
-    const classEvents: CalendarEvent[] = filteredClasses
+    const classEvents: CalendarEvent[] = isNoSchoolDate(selectedDate)
+      ? []
+      : filteredClasses
       .filter((cls) => {
         const activeDays = cls.days_of_week && cls.days_of_week.length > 0 ? cls.days_of_week : [1, 2, 3, 4, 5];
         return activeDays.includes(dayOfWeekNum);

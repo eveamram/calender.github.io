@@ -105,6 +105,11 @@ export function getAnniversaryEvent(dateStr: string): CalendarEvent | null {
   };
 }
 
+/** Weekdays with no classes. Veterans Day is November 11, including Wednesday, November 11, 2026. */
+export function isNoSchoolDate(dateStr: string): boolean {
+  return dateStr.slice(5) === '11-11';
+}
+
 export function isAnniversaryTitle(title?: string): boolean {
   return (title || '').toLowerCase().includes('anniversary');
 }
@@ -135,7 +140,7 @@ export function getCommonHolidayEvent(dateStr: string): CalendarEvent | null {
     '06-19': 'Juneteenth ✊🏽',
     '07-04': 'Independence Day 🎆',
     '10-31': 'Halloween 🎃',
-    '11-11': 'Veterans Day 🎖️',
+    '11-11': 'Veterans Day · No school 🎖️',
     '12-25': 'Christmas Day 🎄',
     '12-31': "New Year's Eve 🥂",
   };
