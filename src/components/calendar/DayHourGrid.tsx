@@ -80,6 +80,15 @@ interface TimedLayoutItem {
   endMin: number;
   lane: number;
   laneCount: number;
+  groupId: number;
+}
+
+export interface PlacedTimedItem extends TimedLayoutItem {
+  topPx: number;
+  heightPx: number;
+  leftPct: number;
+  widthPct: number;
+  stacked: boolean;
 }
 
 export function packOverlappingLanes(
@@ -95,10 +104,12 @@ export function packOverlappingLanes(
     ...t,
     lane: 0,
     laneCount: 1,
+    groupId: 0,
   }));
 
   let group: number[] = [];
   let groupEnd = -1;
+  let groupId = 0;
   const laneEnds: number[] = [];
 
   const closeGroup = () => {
@@ -108,6 +119,7 @@ export function packOverlappingLanes(
     group = [];
     groupEnd = -1;
     laneEnds.length = 0;
+    groupId += 1;
   };
 
   for (const ev of indexed) {
@@ -124,12 +136,72 @@ export function packOverlappingLanes(
     }
 
     layouts[ev.originalIndex].lane = lane;
+    layouts[ev.originalIndex].groupId = groupId;
     group.push(ev.originalIndex);
     groupEnd = Math.max(groupEnd, ev.endMin);
   }
   closeGroup();
 
   return layouts;
+}
+
+const STACK_FROM = 3;
+const MIN_STACK_ROW = 26;
+
+/** Two overlapping items stay side by side. Three or more stack full-width so every name stays readable. */
+export function placeTimedEvents(
+  layouts: TimedLayoutItem[],
+  startHour: number,
+  hourHeight: number
+): PlacedTimedItem[] {
+  const placed: PlacedTimedItem[] = [];
+  const stackedIds = new Set<string>();
+  const groups = new Map<number, TimedLayoutItem[]>();
+
+  for (const layout of layouts) {
+    if (layout.laneCount < STACK_FROM) continue;
+    const list = groups.get(layout.groupId) || [];
+    list.push(layout);
+    groups.set(layout.groupId, list);
+  }
+
+  for (const group of groups.values()) {
+    const sorted = [...group].sort(
+      (a, b) => a.startMin - b.startMin || a.item.title.localeCompare(b.item.title)
+    );
+    const startMin = Math.min(...sorted.map((item) => item.startMin));
+    const endMin = Math.max(...sorted.map((item) => item.endMin));
+    const spanPx = Math.max(((endMin - startMin) / 60) * hourHeight, sorted.length * MIN_STACK_ROW);
+    const rowHeight = spanPx / sorted.length;
+    const topBase = ((startMin - startHour * 60) / 60) * hourHeight;
+    sorted.forEach((layout, index) => {
+      stackedIds.add(layout.item.id);
+      placed.push({
+        ...layout,
+        topPx: topBase + index * rowHeight,
+        heightPx: Math.max(rowHeight - 3, 22),
+        leftPct: 0,
+        widthPct: 100,
+        stacked: true,
+      });
+    });
+  }
+
+  for (const layout of layouts) {
+    if (stackedIds.has(layout.item.id)) continue;
+    const topPx = ((layout.startMin - startHour * 60) / 60) * hourHeight;
+    const rawHeight = ((layout.endMin - layout.startMin) / 60) * hourHeight;
+    placed.push({
+      ...layout,
+      topPx,
+      heightPx: Math.max(rawHeight, MIN_EVENT_HEIGHT),
+      leftPct: (layout.lane / layout.laneCount) * 100,
+      widthPct: 100 / layout.laneCount,
+      stacked: false,
+    });
+  }
+
+  return placed;
 }
 
 export function compactTimeLabel(timeStr?: string): string {
@@ -160,6 +232,7 @@ export interface DayHourGridProps {
   onOpenItem: (evt: ScheduleItem) => void;
   onToggleComplete: (evt: ScheduleItem) => void;
   onDelete: (evt: ScheduleItem) => void;
+  onSkipClass?: (classId: string) => void;
   onAddEvent: (startTime?: string) => void;
   scrollMaxHeightClass?: string;
 }
@@ -175,6 +248,7 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
   onOpenItem,
   onToggleComplete,
   onDelete,
+  onSkipClass,
   onAddEvent,
   scrollMaxHeightClass = 'max-h-[min(52vh,28rem)]',
 }) => {
@@ -196,7 +270,7 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
     return () => window.clearInterval(id);
   }, [isToday, selectedDate]);
 
-  const { untimed, timedLayout, startHour, endHour } = useMemo(() => {
+  const { untimed, placed, startHour, endHour } = useMemo(() => {
     const untimedItems: ScheduleItem[] = [];
     const timedRaw: { item: ScheduleItem; startMin: number; endMin: number }[] = [];
 
@@ -226,7 +300,7 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
 
     return {
       untimed: untimedItems,
-      timedLayout: packOverlappingLanes(timedRaw),
+      placed: placeTimedEvents(packOverlappingLanes(timedRaw), rangeStart, HOUR_HEIGHT),
       startHour: rangeStart,
       endHour: rangeEnd,
     };
@@ -252,7 +326,7 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
     el.scrollTop = Math.max(0, top - el.clientHeight * 0.35);
   }, [isToday, selectedDate, startHour, endHour]);
 
-  const renderItemCard = (evt: ScheduleItem, opts?: { dense?: boolean; inGrid?: boolean }) => {
+  const renderItemCard = (evt: ScheduleItem, opts?: { dense?: boolean; inGrid?: boolean; stacked?: boolean }) => {
     const meta = CATEGORY_METAS[evt.event_type as EventType] || CATEGORY_METAS.personal;
     const evtColor = eventAccentColor(evt) || meta.color || '#3b82f6';
     const task = evt.task_id ? tasks.find((t) => t.id === evt.task_id) : null;
@@ -264,8 +338,10 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
       ? false
       : Boolean(evt.is_completed || task?.is_completed || completedEventIds.includes(evt.id));
     const isMuted = isPast || isCompleted;
-    const dense = Boolean(opts?.dense);
+    const dense = Boolean(opts?.dense || opts?.stacked);
     const inGrid = Boolean(opts?.inGrid);
+    const stacked = Boolean(opts?.stacked);
+    const classId = evt.class_original_id;
     const showTime = !evt.is_habit_item && parseTimeToMinutes(evt.start_time) !== null;
 
     return (
@@ -327,6 +403,7 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
               {evt.title}
             </h4>
 
+            {!stacked && (
             <div
               className={`flex items-center gap-1.5 text-slate-400 flex-wrap ${
                 dense ? 'text-[9px] mt-0.5' : 'text-[11px] mt-0.5'
@@ -358,10 +435,24 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
                 <span className="truncate max-w-[120px] text-slate-400">📍 {evt.location}</span>
               )}
             </div>
+            )}
           </div>
         </div>
 
-        <div className={`flex items-center shrink-0 ${dense ? 'gap-0 ml-0.5' : 'gap-1 ml-2'}`}>
+        {isClassItem && classId && onSkipClass && !stacked && !dense && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSkipClass(classId);
+            }}
+            className="shrink-0 text-[10px] font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-md px-1.5 py-0.5"
+            title="Don't go to class this day. It stays off the calendar."
+          >
+            Don't go
+          </button>
+        )}
+        <div className={`flex items-center shrink-0 ${dense ? 'gap-0 ml-0.5' : 'gap-1 ml-2'} ${stacked ? 'hidden' : ''}`}>
           <button
             type="button"
             onClick={(e) => {
@@ -449,27 +540,22 @@ export const DayHourGrid: React.FC<DayHourGridProps> = ({
             className="absolute left-12 right-0"
             style={{ top: LABEL_OFFSET, height: gridHeight }}
           >
-            {timedLayout.map((layout) => {
-              const top = ((layout.startMin - startHour * 60) / 60) * HOUR_HEIGHT;
-              const rawHeight = ((layout.endMin - layout.startMin) / 60) * HOUR_HEIGHT;
-              const height = Math.max(rawHeight, MIN_EVENT_HEIGHT);
-              const widthPct = 100 / layout.laneCount;
-              const leftPct = (layout.lane / layout.laneCount) * 100;
-              const dense = height < 48 || layout.laneCount >= 2;
+            {placed.map((layout) => {
+              const dense = layout.stacked || layout.heightPx < 48 || layout.laneCount >= 2;
 
               return (
                 <div
                   key={layout.item.id}
                   className="absolute"
                   style={{
-                    top,
-                    height,
-                    left: `calc(${leftPct}% + 2px)`,
-                    width: `calc(${widthPct}% - 4px)`,
-                    zIndex: 10 + layout.lane,
+                    top: layout.topPx,
+                    height: layout.heightPx,
+                    left: `calc(${layout.leftPct}% + 2px)`,
+                    width: `calc(${layout.widthPct}% - 4px)`,
+                    zIndex: layout.stacked ? 20 : 10 + layout.lane,
                   }}
                 >
-                  {renderItemCard(layout.item, { dense, inGrid: true })}
+                  {renderItemCard(layout.item, { dense, inGrid: true, stacked: layout.stacked })}
                 </div>
               );
             })}

@@ -118,6 +118,8 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   } = useStore();
 
   const defaultProfile: ProfilePersona = activeProfile === 'Both' ? 'Eve' : activeProfile;
+  // Events made while looking at both people are shared. Otherwise Abbie never sees Eve's event.
+  const defaultEventProfile: ProfilePersona = activeProfile;
 
   // Shared Form State
   const [isSaving, setIsSaving] = useState(false);
@@ -140,7 +142,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
   const [evtAllDay, setEvtAllDay] = useState(false);
   const [evtLocation, setEvtLocation] = useState('');
   const [evtColor, setEvtColor] = useState('');
-  const [evtProfile, setEvtProfile] = useState<ProfilePersona>(defaultProfile);
+  const [evtProfile, setEvtProfile] = useState<ProfilePersona>(defaultEventProfile);
   const [evtRepeat, setEvtRepeat] = useState<'none' | 'daily' | 'weekly'>('none');
   const [evtRepeatDays, setEvtRepeatDays] = useState<number[]>([]);
   const [evtRepeatUntil, setEvtRepeatUntil] = useState('');
@@ -163,7 +165,7 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
         setEvtEndTime(isAllDay ? '10:00' : end);
         setEvtLocation(eventToEdit.location || '');
         setEvtColor(eventToEdit.color || (eventToEdit.event_type === 'exam' ? CATEGORY_METAS.exam.color : DEFAULT_COLOR_SWATCHES[0].hex));
-        setEvtProfile(eventToEdit.profile || defaultProfile);
+        setEvtProfile(eventToEdit.profile || defaultEventProfile);
         setEvtRepeat(eventToEdit.repeat === 'daily' || eventToEdit.repeat === 'weekly' ? eventToEdit.repeat : 'none');
         setEvtRepeatUntil(eventToEdit.repeat_until || '');
         const startDay = weekdayNumFromDateStr(eventToEdit.event_date);
@@ -199,13 +201,13 @@ export const CreationModalContainer: React.FC<CreationModalContainerProps> = ({
           setEvtEndTime('10:00');
           setEvtAllDay(false);
         }
-        setEvtProfile(defaultProfile);
+        setEvtProfile(defaultEventProfile);
         setEvtRepeat('none');
         setEvtRepeatUntil('');
         setEvtRepeatDays([weekdayNumFromDateStr(initialDate || getTodayDateString())]);
       }
     }
-  }, [modalType, initialDate, initialStartTime, initialEventType, eventToEdit, defaultProfile]);
+  }, [modalType, initialDate, initialStartTime, initialEventType, eventToEdit, defaultEventProfile]);
 
   // 2. CLASS FORM STATE
   const [clsName, setClsName] = useState('');

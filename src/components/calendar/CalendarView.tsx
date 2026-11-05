@@ -5,6 +5,7 @@ import { asAllDayIfAnniversary, getAnniversaryEvent, getCommonHolidayEvent, isAn
 import confetti from 'canvas-confetti';
 import { addDaysToDateStr, eventOccursOn, eventRepeats, eventSpanEnd, occurrenceEventId, resolveMasterEvent } from '../../utils/eventRepeat';
 import { classPersonaColor, habitItemColor } from '../../utils/personaColor';
+import { isClassSkippedOn, isClassSkipEvent } from '../../utils/classSkip';
 import {
   ChevronLeft,
   ChevronRight,
@@ -63,6 +64,17 @@ function examHidesClass(
   return examRange.start < classRange.end && classRange.start < examRange.end;
 }
 
+function eventSortKey(evt: { title?: string; start_time?: string }): string {
+  if (isAnniversaryTitle(evt.title)) return `0-${evt.title || ''}`;
+  const time = (evt.start_time || '').trim().toLowerCase();
+  if (!time || time === 'all day' || time === 'all-day') return `1-${evt.title || ''}`;
+  return `2-${time}-${evt.title || ''}`;
+}
+
+function compareDayEvents(a: { title?: string; start_time?: string }, b: { title?: string; start_time?: string }): number {
+  return eventSortKey(a).localeCompare(eventSortKey(b));
+}
+
 
 interface CalendarViewProps {
   onOpenAddModal: (initialDate?: string, eventToEdit?: CalendarEvent, initialStartTime?: string) => void;
@@ -82,6 +94,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     setSelectedDate,
     toggleEventComplete,
     deleteEvent,
+    skipClassDate,
     tasks,
     habits,
     habitCompletions,
@@ -93,6 +106,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   } = useStore();
 
   const [currentMonthDate, setCurrentMonthDate] = useState(() => new Date());
+  const [expandedDay, setExpandedDay] = useState<string | null>(null);
 
   // Hidden and Completed IDs for auto-generated holidays & events
   const [hiddenEventIds, setHiddenEventIds] = useState<string[]>(() => {
@@ -166,6 +180,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
     filteredEvents.forEach((evt) => {
       if (eventRepeats(evt)) return;
+      if (isClassSkipEvent(evt)) return;
       if (hiddenEventIds.includes(evt.id)) return;
       const isComp = evt.is_completed || completedEventIds.includes(evt.id);
       const start = evt.event_date;
@@ -207,6 +222,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
       filteredEvents.forEach((evt) => {
         if (!eventRepeats(evt)) return;
+        if (isClassSkipEvent(evt)) return;
         if (!eventOccursOn(evt, dayObj.dateStr)) return;
         const occId = occurrenceEventId(evt.id, dayObj.dateStr);
         if (hiddenEventIds.includes(occId) || hiddenEventIds.includes(evt.id)) return;
@@ -285,9 +301,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       });
 
     const exams = eventList.filter((e) => e.event_type === 'exam');
-    const visibleClassEvents = classEvents.filter(
-      (cls) => !exams.some((exam) => examHidesClass(exam, cls))
-    );
+    const visibleClassEvents = classEvents.filter((cls) => {
+      const classId = (cls as CalendarEvent & { class_original_id?: string }).class_original_id;
+      if (classId && isClassSkippedOn(events, classId, selectedDate)) return false;
+      return !exams.some((exam) => examHidesClass(exam, cls));
+    });
 
     const combined = [...eventList, ...visibleClassEvents, ...habitEvents];
     return combined.sort((a, b) => {
@@ -296,7 +314,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       if (aAnniv !== bAnniv) return aAnniv - bAnniv;
       return (a.start_time || '00:00').localeCompare(b.start_time || '00:00');
     });
-  }, [eventsByDate, selectedDate, classes, filteredHabits, habitCompletions, filterByProfile, profileColors, activeProfile]);
+  }, [eventsByDate, selectedDate, classes, events, filteredHabits, habitCompletions, filterByProfile, profileColors, activeProfile]);
 
   const todayStr = useMemo(() => getTodayDateString(), []);
 
@@ -389,6 +407,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     return jsDay === 0 ? 7 : jsDay;
   };
 
+  const handleSkipClass = (classId: string) => {
+    const cls = classes.find((item) => item.id === classId);
+    if (!cls) return;
+    void skipClassDate(cls, selectedDate);
+  };
+
   const handleOpenScheduleItem = (evt: ScheduleItem) => {
     const isSyntheticClass =
       Boolean(evt.is_class_item) ||
@@ -464,6 +488,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             onOpenItem={handleOpenScheduleItem}
             onToggleComplete={handleToggleAnyEventComplete}
             onDelete={handleDeleteAnyEvent}
+            onSkipClass={handleSkipClass}
             onAddEvent={(startTime) => onOpenAddModal(selectedDate, undefined, startTime)}
             scrollMaxHeightClass="max-h-[min(52vh,28rem)]"
           />
@@ -623,11 +648,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             {calendarDays.map((dayObj) => {
               const isSelected = dayObj.dateStr === selectedDate;
               const isToday = dayObj.dateStr === todayStr;
-              const dayEvts = [...(eventsByDate.get(dayObj.dateStr) || [])].sort((a, b) => {
-                const aAnniv = isAnniversaryTitle(a.title) ? 0 : 1;
-                const bAnniv = isAnniversaryTitle(b.title) ? 0 : 1;
-                return aAnniv - bAnniv;
-              });
+              const dayEvts = [...(eventsByDate.get(dayObj.dateStr) || [])].sort(compareDayEvents);
+              const isExpanded = expandedDay === dayObj.dateStr;
+              const visibleEvts = isExpanded ? dayEvts : dayEvts.slice(0, 3);
               const d = new Date(dayObj.dateStr + 'T00:00:00');
               const isWeekend = d.getDay() === 0 || d.getDay() === 6;
 
@@ -636,7 +659,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   key={dayObj.dateStr}
                   onClick={() => setSelectedDate(dayObj.dateStr)}
                   onDoubleClick={(e) => handleDayDoubleClick(e, dayObj.dateStr)}
-                  className={`min-h-[105px] p-2 rounded-2xl border transition-all flex flex-col justify-between cursor-pointer group ${
+                  className={`min-h-[105px] p-2 rounded-2xl border transition-all flex flex-col justify-start cursor-pointer group ${
                     !dayObj.isCurrentMonth
                       ? 'bg-slate-50/40 border-slate-100 text-slate-300'
                       : isSelected
@@ -662,8 +685,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     </span>
                   </div>
 
-                  <div className="space-y-1 mt-1 flex-1">
-                    {dayEvts.slice(0, 3).map((e) => {
+                  <div className="space-y-0.5 mt-1">
+                    {visibleEvts.map((e) => {
                       const meta = CATEGORY_METAS[e.event_type as EventType] || CATEGORY_METAS.personal;
                       const evtColor = eventAccentColor(e) || meta.color || '#3b82f6';
                       const isClassChip = isClassScheduleItem(e);
@@ -686,7 +709,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           }}
                           title={e.title}
                           aria-label={e.title}
-                          className={`text-[11px] font-bold px-2 py-1 rounded-xl flex items-start justify-between transition-all cursor-pointer text-slate-900 hover:scale-[1.02] shadow-2xs ${
+                          className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md flex items-start justify-between transition-all cursor-pointer text-slate-900 hover:brightness-95 ${
                             isClassChip
                               ? isPastClass
                                 ? 'opacity-70'
@@ -704,9 +727,17 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       );
                     })}
                     {dayEvts.length > 3 && (
-                      <div className="text-[10px] font-extrabold pl-1 text-blue-700">
-                        +{dayEvts.length - 3} more
-                      </div>
+                      <button
+                        type="button"
+                        onClick={(evt) => {
+                          evt.stopPropagation();
+                          setSelectedDate(dayObj.dateStr);
+                          setExpandedDay(isExpanded ? null : dayObj.dateStr);
+                        }}
+                        className="text-[10px] font-extrabold pl-1 text-left text-blue-700 hover:text-blue-900"
+                      >
+                        {isExpanded ? 'Show less' : `+${dayEvts.length - 3} more`}
+                      </button>
                     )}
                   </div>
                 </div>
@@ -750,6 +781,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             onOpenItem={handleOpenScheduleItem}
             onToggleComplete={handleToggleAnyEventComplete}
             onDelete={handleDeleteAnyEvent}
+            onSkipClass={handleSkipClass}
             onAddEvent={(startTime) => onOpenAddModal(selectedDate, undefined, startTime)}
             scrollMaxHeightClass="max-h-[calc(100vh-12rem)]"
           />

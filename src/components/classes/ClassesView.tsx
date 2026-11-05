@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { useStore, formatTime12Hour } from '../../context/StoreContext';
+import { useStore, formatTime12Hour, getTodayDateString } from '../../context/StoreContext';
 import { CalendarEvent, ClassItem } from '../../types';
 import { classPersonaColor } from '../../utils/personaColor';
+import { formatSkipDay, skippedDatesForClass, upcomingClassMeetings } from '../../utils/classSkip';
 import {
   parseOfficeHourSlots,
   serializeOfficeHourSlots,
@@ -10,7 +11,7 @@ import {
   hiddenOfficeHoursPayload,
   OfficeHourSlot,
 } from '../../utils/officeHours';
-import { Plus, Clock, MapPin, Trash2, Edit3, GraduationCap, UserCheck } from 'lucide-react';
+import { Plus, Clock, MapPin, Trash2, Edit3, GraduationCap, UserCheck, CalendarOff } from 'lucide-react';
 import { UpcomingExams } from './UpcomingExams';
 
 interface ClassesViewProps {
@@ -35,6 +36,10 @@ interface ClassCardProps {
   activeProfile: string;
   onEdit: () => void;
   onDelete: () => void;
+  skippedDates: string[];
+  meetingDates: string[];
+  onSkip: (date: string) => void;
+  onUnskip: (date: string) => void;
 }
 
 const ClassCardItem: React.FC<ClassCardProps> = ({
@@ -45,7 +50,13 @@ const ClassCardItem: React.FC<ClassCardProps> = ({
   activeProfile,
   onEdit,
   onDelete,
+  skippedDates,
+  meetingDates,
+  onSkip,
+  onUnskip,
 }) => {
+  const nextOpen = meetingDates.find((date) => !skippedDates.includes(date));
+  const skippedSoon = meetingDates.filter((date) => skippedDates.includes(date)).slice(0, 3);
   return (
     <div
       className="group relative bg-white rounded-2xl p-3.5 border transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 space-y-2.5 overflow-hidden cursor-pointer"
@@ -118,6 +129,33 @@ const ClassCardItem: React.FC<ClassCardProps> = ({
         </div>
       </div>
 
+      {(nextOpen || skippedSoon.length > 0) && (
+        <div className="space-y-1.5" onClick={(e) => e.stopPropagation()}>
+          {skippedSoon.map((date) => (
+            <button
+              key={date}
+              type="button"
+              onClick={() => onUnskip(date)}
+              className="w-full text-left text-[11px] font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg px-2 py-1"
+              title="Put this class back on the calendar"
+            >
+              Skipping {formatSkipDay(date)} · tap to go
+            </button>
+          ))}
+          {nextOpen && (
+            <button
+              type="button"
+              onClick={() => onSkip(nextOpen)}
+              className="w-full inline-flex items-center justify-center gap-1 text-[11px] font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-2 py-1.5"
+              title={`Don't go to class on ${formatSkipDay(nextOpen)}. It will not be put on the calendar that day.`}
+            >
+              <CalendarOff className="w-3.5 h-3.5 shrink-0" />
+              <span>Don't go to class · {formatSkipDay(nextOpen)}</span>
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Meta Details: Room & Instructor */}
       {(cls.room || cls.instructor || activeProfile === 'Both') && (
         <div className="flex flex-wrap items-center gap-1.5 pt-1.5 text-[11px] font-normal text-slate-500 border-t border-slate-100">
@@ -148,13 +186,24 @@ const ClassCardItem: React.FC<ClassCardProps> = ({
 };
 
 export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, onOpenAddExamModal }) => {
-  const { classes, deleteClass, updateClass, filterByProfile, activeProfile, profileColors } = useStore();
+  const { classes, events, deleteClass, updateClass, skipClassDate, unskipClassDate, filterByProfile, activeProfile, profileColors } = useStore();
   const [selectedMobileDay, setSelectedMobileDay] = useState<number>(getTodayDayNum());
   const [addingOfficeId, setAddingOfficeId] = useState<string | null>(null);
   const [officeDraftTime, setOfficeDraftTime] = useState('');
   const [officeDraftRoom, setOfficeDraftRoom] = useState('');
 
   const todayDayNum = getTodayDayNum();
+  const todayStr = getTodayDateString();
+
+  const skipHandlers = (cls: ClassItem) => ({
+    skippedDates: skippedDatesForClass(events, cls.id),
+    onSkip: (date: string) => {
+      void skipClassDate(cls, date);
+    },
+    onUnskip: (date: string) => {
+      void unskipClassDate(cls.id, date);
+    },
+  });
 
   const filteredClasses = useMemo(() => {
     return filterByProfile(classes);
@@ -330,6 +379,8 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                     activeProfile={activeProfile}
                     onEdit={() => onOpenAddClassModal(selectedMobileDay, cls)}
                     onDelete={() => deleteClass(cls.id)}
+                    meetingDates={upcomingClassMeetings(cls, todayStr, selectedMobileDay)}
+                    {...skipHandlers(cls)}
                   />
                 );
               })}
@@ -406,6 +457,8 @@ export const ClassesView: React.FC<ClassesViewProps> = ({ onOpenAddClassModal, o
                           activeProfile={activeProfile}
                           onEdit={() => onOpenAddClassModal(dayNum, cls)}
                           onDelete={() => deleteClass(cls.id)}
+                          meetingDates={upcomingClassMeetings(cls, todayStr, dayNum)}
+                          {...skipHandlers(cls)}
                         />
                       );
                     })

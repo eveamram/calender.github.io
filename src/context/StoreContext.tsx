@@ -12,6 +12,7 @@ import {
   BookItem,
 } from '../types';
 import { syncEngine, SyncStatus, TABLE_MAP } from '../lib/syncEngine';
+import { classIdFromSkipEvent, classSkipEventId, classSkipLocation, isClassSkipEvent } from '../utils/classSkip';
 
 interface StoreContextType {
   // Sync Status Feedback
@@ -64,6 +65,8 @@ interface StoreContextType {
   addClass: (cls: Omit<ClassItem, 'id' | 'created_at' | 'updated_at'>) => Promise<boolean>;
   updateClass: (id: string, updates: Partial<ClassItem>) => Promise<boolean>;
   deleteClass: (id: string) => Promise<boolean>;
+  skipClassDate: (cls: ClassItem, dateStr: string) => Promise<boolean>;
+  unskipClassDate: (classId: string, dateStr: string) => Promise<boolean>;
   clearClasses: () => Promise<boolean>;
 
   addTask: (tsk: Omit<TaskItem, 'id' | 'created_at' | 'updated_at'>) => Promise<boolean>;
@@ -227,6 +230,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     // Re-fetch when tab gets focus or becomes visible
     const handleFocus = () => {
+      if (document.visibilityState === 'hidden') return;
       syncEngine.fetchAll();
     };
 
@@ -283,7 +287,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const clearCalendarEventsExceptAnniversaries = async () => {
-    const toDelete = events.filter((e) => !isAnniversaryEvent(e));
+    const toDelete = events.filter((e) => !isAnniversaryEvent(e) && !isClassSkipEvent(e));
     for (const evt of toDelete) {
       await syncEngine.deleteItem('events', evt.id);
     }
@@ -317,7 +321,33 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const deleteClass = async (id: string): Promise<boolean> => {
+    const skips = events.filter((evt) => isClassSkipEvent(evt) && classIdFromSkipEvent(evt) === id);
+    for (const skip of skips) {
+      await syncEngine.deleteItem('events', skip.id);
+    }
     return await syncEngine.deleteItem('classes', id);
+  };
+
+  const skipClassDate = async (cls: ClassItem, dateStr: string): Promise<boolean> => {
+    const skipEvent: CalendarEvent = {
+      id: classSkipEventId(cls.id, dateStr),
+      title: `Don't go: ${cls.name}`,
+      event_type: 'personal',
+      event_date: dateStr,
+      start_time: 'all day',
+      location: classSkipLocation(cls.id),
+      profile: 'Both',
+      color: '#94a3b8',
+      created_at: new Date().toISOString(),
+    };
+    return await syncEngine.upsertItem('events', skipEvent);
+  };
+
+  const unskipClassDate = async (classId: string, dateStr: string): Promise<boolean> => {
+    const existing = events.find(
+      (evt) => isClassSkipEvent(evt) && classIdFromSkipEvent(evt) === classId && evt.event_date === dateStr
+    );
+    return await syncEngine.deleteItem('events', existing?.id || classSkipEventId(classId, dateStr));
   };
 
   const clearClasses = async (): Promise<boolean> => {
@@ -558,6 +588,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         addClass,
         updateClass,
         deleteClass,
+        skipClassDate,
+        unskipClassDate,
         clearClasses,
         addTask,
         toggleTaskComplete,

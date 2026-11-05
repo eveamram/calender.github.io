@@ -216,6 +216,15 @@ function notifyGlobalListeners() {
   });
 }
 
+// Writes that happen while a cloud fetch is in flight. A slow fetch must not
+// delete or overwrite them when its snapshot is older than the write.
+const localWriteAt = new Map<string, number>();
+
+function markLocalWrite(table: string, id?: string) {
+  if (!id) return;
+  localWriteAt.set(`${table}:${id}`, Date.now());
+}
+
 function applyMemoryMutation(event: SyncPayload) {
   const table = event.table;
   if (!memoryStore.has(table)) {
@@ -226,12 +235,15 @@ function applyMemoryMutation(event: SyncPayload) {
   if (event.type === 'INSERT' || event.type === 'UPDATE') {
     if (event.id && isRetiredItemId(event.id)) {
       tableMap.delete(event.id);
+      markLocalWrite(table, event.id);
     } else if (event.id && event.payload) {
       tableMap.set(event.id, { ...tableMap.get(event.id), ...event.payload });
+      markLocalWrite(table, event.id);
     }
   } else if (event.type === 'DELETE') {
     if (event.id) {
       tableMap.delete(event.id);
+      markLocalWrite(table, event.id);
     }
   } else if (event.type === 'RESET') {
     tableMap.clear();
@@ -362,6 +374,9 @@ if (typeof window !== 'undefined') {
   window.addEventListener('pageshow', handleMobileResume);
 }
 
+let fetchInflight: Promise<Record<string, any[]>> | null = null;
+let fetchSeq = 0;
+
 export const syncEngine = {
   subscribeToSync: (listener: GlobalSyncListener) => {
     globalSyncListeners.add(listener);
@@ -387,105 +402,12 @@ export const syncEngine = {
   /**
    * SERVER-AUTHORITATIVE FETCH ALL WITH LOCAL CACHE FALLBACK
    */
-  fetchAll: async (): Promise<Record<string, any[]>> => {
-    if (!isSupabaseConfigured()) {
-      updateSyncStatus({
-        isConfigured: false,
-        isSyncing: false,
-        syncError: 'Unable to connect to shared data. Supabase unconfigured.',
-      });
-      notifyGlobalListeners();
-      return getStoreSnapshot();
-    }
-
-    updateSyncStatus({ isSyncing: true, syncError: null });
-    let fetchErrors: string[] = [];
-
-    await Promise.all(
-      APP_TABLES.map(async (appTable) => {
-        const dbTable = TABLE_MAP[appTable];
-        try {
-          const { data, error } = await supabase.from(dbTable).select('*');
-          if (!error && Array.isArray(data)) {
-            const tableMap = memoryStore.get(appTable)!;
-            const remoteIds = new Set(data.map((d) => d.id));
-
-            data.forEach((item) => {
-              if (item && item.id && !isRetiredItemId(item.id)) {
-                const localItem = tableMap.get(item.id);
-                tableMap.set(item.id, { ...localItem, ...item });
-              }
-            });
-
-            for (const retiredId of RETIRED_ITEM_IDS) {
-              if (tableMap.has(retiredId) || remoteIds.has(retiredId)) {
-                tableMap.delete(retiredId);
-                remoteIds.delete(retiredId);
-                supabase.from(dbTable).delete().eq('id', retiredId).then(({ error }) => {
-                  if (error) {
-                    console.warn(`Could not remove leftover item ${retiredId} from ${dbTable}:`, error.message);
-                  }
-                });
-              }
-            }
-
-            // Cloud is the source of truth. Only keep (and upload) rows created in
-            // the last 5 minutes that have not reached the server yet. Older
-            // local-only rows are leftover cache and must not be resurrected.
-            const keepLocalOnly = new Set<string>();
-            for (const [localId, localItem] of Array.from(tableMap.entries())) {
-              if (isRetiredItemId(localId)) {
-                tableMap.delete(localId);
-                continue;
-              }
-              if (remoteIds.has(localId)) continue;
-              const timestamp = Number(String(localId).split('-')[1]);
-              const isNewLocal = Number.isFinite(timestamp) && Date.now() - timestamp < 300000;
-              if (!isNewLocal) continue;
-              keepLocalOnly.add(localId);
-              const uploaded = await upsertToSupabase(appTable, localItem);
-              if (uploaded.ok) {
-                remoteIds.add(localId);
-                keepLocalOnly.delete(localId);
-              } else if (uploaded.errorMessage) {
-                console.warn(`Supabase pending-upload warning [${appTable}]:`, uploaded.errorMessage);
-              }
-            }
-
-            Array.from(tableMap.keys()).forEach((localId) => {
-              if (!remoteIds.has(localId) && !keepLocalOnly.has(localId)) {
-                tableMap.delete(localId);
-              }
-            });
-            saveLocalSnapshot(appTable);
-          } else if (error) {
-            const errMsg = `Cloud table '${dbTable}' sync notice: ${error.message}`;
-            console.warn(errMsg, error);
-            fetchErrors.push(errMsg);
-          }
-        } catch (e: any) {
-          const errMsg = `Exception fetching ${appTable}: ${e?.message || e}`;
-          console.warn(errMsg, e);
-          fetchErrors.push(errMsg);
-        }
-      })
-    );
-
-    if (fetchErrors.length > 0) {
-      updateSyncStatus({
-        isSyncing: false,
-        syncError: fetchErrors[0], // Display primary notice without blocking UI
-      });
-    } else {
-      updateSyncStatus({
-        isSyncing: false,
-        syncError: null,
-        lastSyncedAt: Date.now(),
-      });
-    }
-
-    notifyGlobalListeners();
-    return getStoreSnapshot();
+  fetchAll: (): Promise<Record<string, any[]>> => {
+    if (fetchInflight) return fetchInflight;
+    fetchInflight = fetchAllFromCloud().finally(() => {
+      fetchInflight = null;
+    });
+    return fetchInflight;
   },
 
   /**
@@ -608,3 +530,115 @@ export const syncEngine = {
     return true;
   },
 };
+
+async function fetchAllFromCloud(): Promise<Record<string, any[]>> {
+  if (!isSupabaseConfigured()) {
+    updateSyncStatus({
+      isConfigured: false,
+      isSyncing: false,
+      syncError: 'Unable to connect to shared data. Supabase unconfigured.',
+    });
+    notifyGlobalListeners();
+    return getStoreSnapshot();
+  }
+
+  const seq = ++fetchSeq;
+  const startedAt = Date.now();
+  updateSyncStatus({ isSyncing: true, syncError: null });
+  const fetchErrors: string[] = [];
+
+  await Promise.all(
+    APP_TABLES.map(async (appTable) => {
+      const dbTable = TABLE_MAP[appTable];
+      try {
+        const { data, error } = await supabase.from(dbTable).select('*');
+        if (seq !== fetchSeq) return;
+        if (!error && Array.isArray(data)) {
+          const tableMap = memoryStore.get(appTable)!;
+          const remoteIds = new Set(data.map((d) => d.id));
+
+          data.forEach((item) => {
+            if (item && item.id && !isRetiredItemId(item.id)) {
+              const wroteAt = localWriteAt.get(`${appTable}:${item.id}`) || 0;
+              const localItem = tableMap.get(item.id);
+              // A delete or edit landed while this request was running.
+              if (wroteAt >= startedAt) return;
+              tableMap.set(item.id, { ...localItem, ...item });
+            }
+          });
+
+          for (const retiredId of RETIRED_ITEM_IDS) {
+            if (tableMap.has(retiredId) || remoteIds.has(retiredId)) {
+              tableMap.delete(retiredId);
+              remoteIds.delete(retiredId);
+              supabase.from(dbTable).delete().eq('id', retiredId).then(({ error: deleteError }) => {
+                if (deleteError) {
+                  console.warn(`Could not remove leftover item ${retiredId} from ${dbTable}:`, deleteError.message);
+                }
+              });
+            }
+          }
+
+          // Cloud is the source of truth. Only keep (and upload) rows created in
+          // the last 5 minutes that have not reached the server yet. Older
+          // local-only rows are leftover cache and must not be resurrected.
+          const keepLocalOnly = new Set<string>();
+          for (const [localId, localItem] of Array.from(tableMap.entries())) {
+            if (isRetiredItemId(localId)) {
+              tableMap.delete(localId);
+              continue;
+            }
+            if (remoteIds.has(localId)) continue;
+            const wroteAt = localWriteAt.get(`${appTable}:${localId}`) || 0;
+            const recentlyWritten = wroteAt > 0 && Date.now() - wroteAt < 300000;
+            const timestamp = Number(String(localId).split('-')[1]);
+            const isNewLocal = recentlyWritten || (Number.isFinite(timestamp) && Date.now() - timestamp < 300000);
+            if (!isNewLocal) continue;
+            keepLocalOnly.add(localId);
+            const uploaded = await upsertToSupabase(appTable, localItem);
+            if (uploaded.ok) {
+              remoteIds.add(localId);
+              keepLocalOnly.delete(localId);
+            } else if (uploaded.errorMessage) {
+              console.warn(`Supabase pending-upload warning [${appTable}]:`, uploaded.errorMessage);
+            }
+          }
+
+          Array.from(tableMap.keys()).forEach((localId) => {
+            if (remoteIds.has(localId) || keepLocalOnly.has(localId)) return;
+            const wroteAt = localWriteAt.get(`${appTable}:${localId}`) || 0;
+            if (wroteAt >= startedAt) return;
+            tableMap.delete(localId);
+          });
+          saveLocalSnapshot(appTable);
+        } else if (error) {
+          const errMsg = `Cloud table '${dbTable}' sync notice: ${error.message}`;
+          console.warn(errMsg, error);
+          fetchErrors.push(errMsg);
+        }
+      } catch (e: any) {
+        const errMsg = `Exception fetching ${appTable}: ${e?.message || e}`;
+        console.warn(errMsg, e);
+        fetchErrors.push(errMsg);
+      }
+    })
+  );
+
+  if (seq !== fetchSeq) return getStoreSnapshot();
+
+  if (fetchErrors.length > 0) {
+    updateSyncStatus({
+      isSyncing: false,
+      syncError: fetchErrors[0],
+    });
+  } else {
+    updateSyncStatus({
+      isSyncing: false,
+      syncError: null,
+      lastSyncedAt: Date.now(),
+    });
+  }
+
+  notifyGlobalListeners();
+  return getStoreSnapshot();
+}
