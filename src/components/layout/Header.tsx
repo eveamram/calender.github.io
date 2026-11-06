@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { AppTab, ProfilePersona } from '../../types';
+import { SeasonBanner, useSeasonTheme } from './SeasonBanner';
 import {
   Calendar,
   BookOpen,
@@ -42,6 +43,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
   } = useStore();
 
   const [colorPickerTarget, setColorPickerTarget] = useState<ProfilePersona | null>(null);
+  const season = useSeasonTheme();
 
   const navItems: { tab: AppTab; label: string; icon: React.ReactNode }[] = [
     { tab: 'calendar', label: 'Calendar', icon: <Calendar className="w-4 h-4" /> },
@@ -54,8 +56,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
   const profiles: ProfilePersona[] = ['Eve', 'Abbie', 'Both'];
 
   return (
-    <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/60 px-3 sm:px-4 md:px-6 py-2.5 transition-all max-w-full">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-3">
+    <header className="app-header sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/60 py-2.5 transition-all max-w-full">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-3 px-3 sm:px-4 md:px-6">
         {/* Left: Brand Logo */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <button
@@ -138,6 +140,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAddModal }) => {
           </button>
         </div>
       </div>
+      <SeasonBanner season={season} />
 
       {/* PERSONA COLOR PICKER MODAL */}
       {colorPickerTarget && (
