@@ -3,6 +3,7 @@ import { SeasonTheme, seasonForDate, seasonLabel } from '../../utils/seasonTheme
 
 const MARKS: Record<Exclude<SeasonTheme, 'default'>, string> = {
   thanksgiving: '🍂  🍁  🦃',
+  hanukkah: '🕎  ✨  ✡️',
   christmas: '🎄  ✨  🎁',
   newyear: '🥂  ✨  🎆',
 };
@@ -13,7 +14,7 @@ export function useSeasonTheme(): SeasonTheme {
   useEffect(() => {
     const apply = () => setSeason(seasonForDate(new Date()));
     apply();
-    const timer = window.setInterval(apply, 60 * 60 * 1000);
+    const timer = window.setInterval(apply, 60 * 1000);
     document.addEventListener('visibilitychange', apply);
     return () => {
       window.clearInterval(timer);

@@ -216,6 +216,30 @@ html[data-season="thanksgiving"] .hover\:bg-slate-800:hover {
   background-color: #7c2d12;
 }
 
+html[data-season="hanukkah"] body,
+html[data-season="hanukkah"] .bg-slate-50,
+html[data-season="hanukkah"] .bg-\[\#faf9f6\] {
+  background-color: #f3f6fb;
+}
+
+html[data-season="hanukkah"] .app-header {
+  background-color: rgba(245, 248, 255, 0.94);
+  border-bottom-color: #93c5fd;
+}
+
+html[data-season="hanukkah"] .season-banner {
+  background: linear-gradient(90deg, #1e3a8a, #1d4ed8 42%, #d4a017 72%, #1e3a8a);
+  color: #eff6ff;
+}
+
+html[data-season="hanukkah"] .bg-slate-900 {
+  background-color: #1e3a8a;
+}
+
+html[data-season="hanukkah"] .hover\:bg-slate-800:hover {
+  background-color: #1e40af;
+}
+
 html[data-season="christmas"] body,
 html[data-season="christmas"] .bg-slate-50,
 html[data-season="christmas"] .bg-\[\#faf9f6\] {
